@@ -31,6 +31,8 @@ def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_p
     def run_model(runtime, factory, path, callback, **options):
         name = Path(path).name
         calls.append(name)
+        if name != "structure_decoder":
+            assert options["dtype"] == torch.float32
         if name == "dino":
             assert options["dtype"] == torch.float32
             return callback(lambda image: torch.zeros((1, (image.shape[-1] // 16) ** 2 + 5, 1024)))

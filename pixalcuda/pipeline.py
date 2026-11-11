@@ -41,6 +41,7 @@ class Pipeline:
                     "texture_size": texture_size, "target_faces": target_faces,
                     "camera": camera, "fov_degrees": fov_degrees, "remove_background": remove_background,
                     "dino_precision": "float32",
+                    "flow_precision": "float32", "sparse_decoder_precision": "float32",
                     "limits": asdict(self.limits), "pixal_revision": PIXAL_REVISION,
                     "dino_revision": DINO_REVISION, "moge_revision": MOGE_REVISION, "naf_sha256": NAF_SHA256,
                     "runtime_schema": 1, "torch": torch.__version__, "cuda_runtime": torch.version.cuda,
@@ -94,7 +95,7 @@ class Pipeline:
                     context = self.condition(encoded["512"], image, 512, coordinates, camera_params)
                     noise = self.noise((len(coordinates), 32), seed + 1)
                     normalized = runtime.run_model(lambda: Flow(limits=self.limits), self.store.checkpoint("shape_lr"),
-                        lambda model: sample_flow(model, noise, context, coordinates[:, 1:], config["shape_slat_sampler"]["params"]))
+                        lambda model: sample_flow(model, noise, context, coordinates[:, 1:], config["shape_slat_sampler"]["params"]), dtype=torch.float32)
                     lr_latent = self.denormalize(normalized, config["shape_slat_normalization"]).cpu()
                     runtime.save("shape_lr", lr_latent)
                     del context, noise, normalized
@@ -102,7 +103,7 @@ class Pipeline:
                 hr_coordinates = runtime.load("coordinates")
                 if hr_coordinates is None:
                     decoded = runtime.run_model(lambda: SparseDecoder(limits=self.limits), self.store.checkpoint("shape_decoder"),
-                        lambda model: model(lr_latent.to(self.device), structure.to(self.device), coordinates_only=True))
+                        lambda model: model(lr_latent.to(self.device), structure.to(self.device), coordinates_only=True), dtype=torch.float32)
                     hr_coordinates = requantize(decoded, 512).cpu()
                     self.check_tokens(hr_coordinates)
                     runtime.save("coordinates", hr_coordinates)
@@ -121,7 +122,7 @@ class Pipeline:
                     context = {name: value.to(self.device) for name, value in hr_context.items()}
                     noise = self.noise((len(coordinates), 32), seed + 2)
                     shape = runtime.run_model(lambda: Flow(limits=self.limits), self.store.checkpoint("shape_hr"),
-                        lambda model: sample_flow(model, noise, context, coordinates[:, 1:], config["shape_slat_sampler"]["params"])).cpu()
+                        lambda model: sample_flow(model, noise, context, coordinates[:, 1:], config["shape_slat_sampler"]["params"]), dtype=torch.float32).cpu()
                     runtime.save("shape_hr", shape)
                     del context, noise
             with runtime.stage("shape_decode"):
@@ -129,7 +130,7 @@ class Pipeline:
                 if mesh_data is None:
                     denormalized = self.denormalize(shape.to(self.device), config["shape_slat_normalization"])
                     output, coordinates, guides = runtime.run_model(lambda: SparseDecoder(limits=self.limits), self.store.checkpoint("shape_decoder"),
-                        lambda model: model(denormalized, hr_coordinates.to(self.device)))
+                        lambda model: model(denormalized, hr_coordinates.to(self.device)), dtype=torch.float32)
                     vertices, faces = decoder_output_to_mesh(output.float().cpu().numpy(), coordinates.cpu().numpy(), resolution=512)
                     vertices, faces = clean_mesh(vertices, faces, target_faces)
                     mesh_data = {"vertices": torch.from_numpy(vertices), "faces": torch.from_numpy(faces), "guides": guides}
@@ -142,7 +143,7 @@ class Pipeline:
                     context = {name: value.to(self.device) for name, value in hr_context.items()}
                     noise = self.noise((len(coordinates), 32), seed + 3)
                     texture = runtime.run_model(lambda: Flow(64, limits=self.limits), self.store.checkpoint("texture"),
-                        lambda model: sample_flow(model, noise, context, coordinates[:, 1:], config["tex_slat_sampler"]["params"], concat=shape.to(self.device))).cpu()
+                        lambda model: sample_flow(model, noise, context, coordinates[:, 1:], config["tex_slat_sampler"]["params"], concat=shape.to(self.device)), dtype=torch.float32).cpu()
                     runtime.save("texture", texture)
                     del context, noise
             del hr_context, shape
@@ -151,7 +152,7 @@ class Pipeline:
                 if texture_data is None:
                     latent = self.denormalize(texture.to(self.device), config["tex_slat_normalization"])
                     output, coordinates, _ = runtime.run_model(lambda: SparseDecoder(texture=True, limits=self.limits), self.store.checkpoint("texture_decoder"),
-                        lambda model: model(latent, hr_coordinates.to(self.device), guides=mesh_data["guides"]))
+                        lambda model: model(latent, hr_coordinates.to(self.device), guides=mesh_data["guides"]), dtype=torch.float32)
                     texture_data = {"attributes": (output.float() * 0.5 + 0.5).cpu(), "coordinates": coordinates.cpu()}
                     runtime.save("texture_decoded", texture_data)
                     del output, coordinates, latent

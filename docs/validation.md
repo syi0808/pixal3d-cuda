@@ -41,6 +41,8 @@ At revision `02aa162`, preprocessing/camera and DINO stages returned, but SS sam
 
 This failed initial attempt does not establish end-to-end completion; the acceptance criteria below still apply to the corrected runtime.
 
+The second actual T4 attempt at `4274bc4` used FP32 DINO and completed all 12 SS steps, but FP16 LR shape sampling produced a non-finite state at step 10 (288.01 s including initial downloads). There was no reported OOM. Flow models and sparse decoders now explicitly execute in FP32 while retaining one-model residency, bounded attention/FFN/convolution intermediates, and all 12-step schedules. The dense occupancy decoder retains its separately exercised FP16 path. This changes the precision identity, so another fresh output directory is required for the next acceptance run.
+
 Run all notebook cells on an allocated T4, not merely on a CPU or another GPU:
 
 1. Record GPU name, compute capability, driver, torch/CUDA versions, and available RAM/disk.

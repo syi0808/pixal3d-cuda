@@ -22,7 +22,7 @@ A separate, memory-bounded **PyTorch/CUDA Pixal3D runtime targeting Colab T4**, 
 - Native PyTorch DINOv3 ViT-L/16 with the **non-affine final normalization** expected by Pixal3D.
 - Exact pixel projection and sparse NAF neighborhood queries, including shifted border windows. No bilinear-only substitute for NAF.
 - Full global self-attention with **query chunking**, not local attention or token dropping. PyTorch selects a compatible SDPA backend; its math fallback is bounded by the query chunk.
-- FP32 DINOv3/SS flow/CFG/sampler state; FP16 SLat flow/decoders; FP32 normalization/NAF/sparse-convolution accumulation. The official DINOv3 backbone overflows in FP16 and must not be downcast on T4.
+- FP32 DINOv3, flow models, sparse decoders, CFG/sampler state and NAF; FP16 dense occupancy decoder. The first real T4 attempts exposed FP16 overflows in DINO and LR sampling, so the bounded runtime prioritizes a stable FP32 baseline rather than claiming unvalidated mixed-precision quality.
 - Tensor-at-a-time safetensors loading into meta-initialized modules. No full state-dict copy and no all-model CPU/GPU residency.
 - Sampling-scoped global K/V and bounded projected-conditioning caches; exact zero-negative-context folding.
 - Reused sparse topology and bounded gather/GEMM submanifold convolution. Guided texture subdivision uses the shape decoder's masks.
