@@ -14,6 +14,14 @@ def test_nonmanifold_repair_preserves_triangle_positions_without_welding_fans():
     assert mesh_metrics(repaired, triangles)["nonmanifold_edges"] == 0
 
 
+def test_bow_tie_vertex_is_split_before_decimation():
+    vertices = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]], dtype=np.float32)
+    faces = np.array([[0, 1, 2], [0, 3, 4]])
+    repaired, triangles = split_nonmanifold(vertices, faces)
+    np.testing.assert_array_equal(repaired[triangles], vertices[faces])
+    assert len(repaired) == 6
+
+
 def test_small_attached_detail_is_not_filtered_as_detached_noise():
     vertices = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1e-6, 0],
                          [2, 0, 0], [2.001, 0, 0], [2, .001, 0]], dtype=np.float32)

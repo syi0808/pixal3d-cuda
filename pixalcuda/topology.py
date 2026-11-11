@@ -54,8 +54,6 @@ def remove_floaters(vertices, faces, minimum_area=1e-5):
 
 def split_nonmanifold(vertices, faces):
     order, starts, counts = edge_groups(faces)
-    if not (counts > 2).any():
-        return vertices, faces
     paired = starts[counts == 2]
 
     def edge_corners(occurrences):
