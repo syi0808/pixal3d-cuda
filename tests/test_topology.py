@@ -2,7 +2,7 @@ import numpy as np
 import trimesh
 
 from pixalcuda.export import clean_mesh
-from pixalcuda.topology import fill_small_holes, mesh_metrics, orient_faces, remove_floaters, shading_geometry, split_nonmanifold
+from pixalcuda.topology import fill_small_holes, mesh_metrics, orient_faces, remove_floaters, separate_conflicts, shading_geometry, split_nonmanifold
 
 
 def test_nonmanifold_repair_preserves_triangle_positions_without_welding_fans():
@@ -46,6 +46,25 @@ def test_hole_fill_is_limited_by_world_space_perimeter():
     assert mesh_metrics(vertices, triangles)["boundary_edges"] == 0
     vertices, triangles = fill_small_holes(mesh.vertices, faces)
     assert len(triangles) == len(faces)
+
+
+def test_hole_filling_does_not_cap_artificial_fan_seams():
+    vertices = np.array([[0, 0, 0], [.001, 0, 0], [0, .001, 0],
+                         [.001, 0, 0], [0, .001, 0], [.001, .001, 0]], dtype=np.float32)
+    faces = np.array([[0, 1, 2], [3, 5, 4]])
+    retained, triangles = fill_small_holes(vertices, faces)
+    np.testing.assert_array_equal(triangles, faces)
+
+
+def test_nonorientable_cycles_are_cut_without_removing_geometry():
+    vertices = np.array([[1, 0, .2], [1, 0, -.2], [-.5, .866, .2],
+                         [-.5, .866, -.2], [-.5, -.866, .2], [-.5, -.866, -.2]])
+    faces = np.array([[0, 2, 1], [1, 2, 3], [2, 4, 3], [3, 4, 5], [4, 1, 5], [5, 1, 0]])
+    vertices, faces = orient_faces(vertices, faces)
+    assert mesh_metrics(vertices, faces)["inconsistent_manifold_edges"] > 0
+    retained, triangles = separate_conflicts(vertices, faces)
+    np.testing.assert_array_equal(retained[triangles], vertices[faces])
+    assert mesh_metrics(retained, triangles)["inconsistent_manifold_edges"] == 0
 
 
 def test_cleanup_does_not_weld_coincident_disconnected_sheets():

@@ -7,6 +7,8 @@ A separate, memory-bounded **PyTorch/CUDA Pixal3D runtime targeting Colab T4**, 
 
 **Experimental, with one real T4 acceptance case completed:** the pinned shoe image generated a finite 512-geometry GLB with embedded 1024×1024 base-color and metallic/roughness textures. The run took **1,083.05 s including uncached model downloads**, with **5.45 GiB peak PyTorch allocated / 5.48 GiB reserved** and **7.21 GiB sampled process RSS**. All 29 tests passed on that T4. This is not a warm-cache benchmark, general 16 GB fit guarantee, or quality-parity claim. The preview has visible surface artifacts. See [full evidence and limitations](docs/validation.md).
 
+The recorded T4 run used `dacb3a1`. Subsequent [mesh-artifact fixes](docs/mesh-artifacts.md) add topology repair and normal validation; their fresh full T4 revalidation is pending. The notebook remains pinned to the previously released runtime until that check completes.
+
 ## Colab quick start
 
 1. Open the notebook using the badge; select **Runtime → Change runtime type → T4 GPU** and use a fresh session.

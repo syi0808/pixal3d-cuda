@@ -104,6 +104,11 @@ def orient_faces(vertices, faces):
 def fill_small_holes(vertices, faces, maximum_perimeter=0.03):
     order, starts, counts = edge_groups(faces)
     boundary = order[starts[counts == 1]]
+    _, geometric_ids = np.unique(vertices, axis=0, return_inverse=True)
+    geometric_order, geometric_starts, geometric_counts = edge_groups(geometric_ids[faces])
+    multiplicity = np.empty(faces.size, dtype=np.int32)
+    multiplicity[geometric_order] = np.repeat(geometric_counts, geometric_counts)
+    boundary = boundary[multiplicity[boundary] == 1]
     owners, local = boundary // 3, boundary % 3
     edges = faces[owners[:, None], np.column_stack((local, (local + 1) % 3))]
     outgoing, incoming = {}, {}
@@ -136,6 +141,21 @@ def fill_small_holes(vertices, faces, maximum_perimeter=0.03):
     if extra_faces:
         faces = np.concatenate((faces, np.asarray(extra_faces, dtype=np.int64)))
     return vertices, faces
+
+
+def separate_conflicts(vertices, faces):
+    order, starts, counts = edge_groups(faces)
+    paired = starts[counts == 2]
+    first, second = order[paired], order[paired + 1]
+    conflicts = faces[first // 3, first % 3] == faces[second // 3, second % 3]
+    isolated = np.unique(np.maximum(first[conflicts] // 3, second[conflicts] // 3))
+    if not len(isolated):
+        return vertices, faces
+    extra = vertices[faces[isolated]].reshape(-1, 3)
+    faces = faces.copy()
+    faces[isolated] = len(vertices) + np.arange(len(extra)).reshape(-1, 3)
+    print(f"    separated {len(isolated)} nonorientable conflict faces without moving or deleting triangles", flush=True)
+    return np.concatenate((vertices, extra)), faces
 
 
 def mesh_metrics(vertices, faces):
@@ -194,7 +214,8 @@ def repair(vertices, faces):
     vertices, faces = fill_small_holes(vertices, faces)
     vertices, faces = sanitize(vertices, faces)
     vertices, faces = split_nonmanifold(vertices, faces)
-    return orient_faces(vertices, faces)
+    vertices, faces = orient_faces(vertices, faces)
+    return separate_conflicts(vertices, faces)
 
 
 def clean_geometry(vertices, faces, target_faces=100000):
