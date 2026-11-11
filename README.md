@@ -5,7 +5,7 @@
 
 A separate, memory-bounded **PyTorch/CUDA Pixal3D runtime targeting Colab T4**, with fixed **512 geometry** and **embedded PBR-textured GLB** output. No dependency on the MLX checkout; no training or replacement model weights.
 
-**Experimental:** operator/CPU/export tests are available. Full pretrained image-to-GLB generation on an actual T4 has **not yet been measured or quality-validated**. Do not interpret this repository as a guaranteed 16 GB fit, a benchmark, or demonstrated quality parity. The Colab notebook is the reproducible hardware validation path. See [validation status](docs/validation.md).
+**Experimental, with one real T4 acceptance case completed:** the pinned shoe image generated a finite 512-geometry GLB with embedded 1024×1024 base-color and metallic/roughness textures. The run took **1,083.05 s including uncached model downloads**, with **5.45 GiB peak PyTorch allocated / 5.48 GiB reserved** and **7.21 GiB sampled process RSS**. All 29 tests passed on that T4. This is not a warm-cache benchmark, general 16 GB fit guarantee, or quality-parity claim. The preview has visible surface artifacts. See [full evidence and limitations](docs/validation.md).
 
 ## Colab quick start
 
@@ -45,7 +45,7 @@ image → foreground crop → MoGe-2 camera
       → guided texture decode → UV/PBR bake → result.glb
 ```
 
-512 denotes the geometry grid, **not** a dense 512³ allocation, input resolution, or texture size. The implementation preserves the MLX fork's established 512 cascade, including 1024-named refinement/texture weights; it does not simply remove the refinement stage. NAF output sampling uses the reference fork's bounded 512 feature setting. Image preprocessing and the FP16 CUDA path still require end-to-end quality comparison.
+512 denotes the geometry grid, **not** a dense 512³ allocation, input resolution, or texture size. The implementation preserves the MLX fork's established 512 cascade, including 1024-named refinement/texture weights; it does not simply remove the refinement stage. NAF output sampling uses the reference fork's bounded 512 feature setting. End-to-end quality parity with the reference has not been established.
 
 All four flow schedules retain the official 12 steps. No quantization, automatic resolution fallback, geometry-token pruning, or step reduction. On an explicit resource guard, generation fails with a report rather than silently changing the requested output.
 
@@ -68,6 +68,14 @@ pixal3d-cuda generate --image object.png --output-dir outputs/first
 ```
 
 `hf auth login` is provided by recent `huggingface-hub`; the notebook also supports its interactive login. The token and model weights are never committed or embedded in reports. Background removal uses a CPU ONNX session; MoGe-2 executes separately from the flow models. Camera code is pinned before MoGe-3's FlexGEMM dependencies.
+
+To repeat the public single-image acceptance case on a real T4 after installation/authentication:
+
+```bash
+python -u scripts/validate_colab_t4.py --output-dir outputs/t4-acceptance
+```
+
+It checks T4 hardware and the pinned input hash, then writes `acceptance.json` plus `run/result.glb` and `run/report.json`. Use a fresh output directory when upgrading from the earlier FP16 runtime; old checkpoints have a different precision/source fingerprint.
 
 For an already isolated RGBA input, use `--no-rembg`. To explicitly skip MoGe and choose a horizontal FOV in degrees, use `--camera fixed --fov-degrees 49.13`; fixed camera can change output quality and is never an automatic fallback.
 

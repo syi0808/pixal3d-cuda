@@ -1,0 +1,154 @@
+{
+  "schema": "pixalcuda.runtime.v1",
+  "status": "complete",
+  "identity": {
+    "input_sha256": "abf395cc52d81c26dadae9f024072d6c7301679be4e8fc08d572723d7ae32a21",
+    "seed": 42,
+    "geometry_resolution": 512,
+    "texture_size": 1024,
+    "target_faces": 100000,
+    "camera": "auto",
+    "fov_degrees": 49.13,
+    "remove_background": true,
+    "dino_precision": "float32",
+    "flow_precision": "float32",
+    "sparse_decoder_precision": "float32",
+    "limits": {
+      "attention_queries": 256,
+      "ffn_rows": 1024,
+      "sparse_rows": 4096,
+      "naf_queries": 128,
+      "conditioning_cache_mb": 128,
+      "max_tokens": 16384,
+      "max_voxels": 1500000
+    },
+    "pixal_revision": "0b31f9160aa400719af409098bff7936a932f726",
+    "dino_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "moge_revision": "39c4d5e957afe587e04eec59dc2bcc3be5ecd968",
+    "naf_sha256": "c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f",
+    "runtime_schema": 1,
+    "torch": "2.6.0+cu124",
+    "cuda_runtime": "12.4",
+    "source_files": {
+      "__init__.py": "b0e1b502a1db8cd5dab705379e9b27c60a6b233bbe47cbbecc6157cbcc66309e",
+      "bake.py": "30a480a65e874e813c8181fb216ebb85dfd5d6e59bf47fa23b27b86e6b4b5bee",
+      "cli.py": "52e12d66ae2b35d9e853a355091f56a3f446798bc18a8ee27e4644e58c61f9c8",
+      "conditioning.py": "2b9b8e9799b299da78b85f8350b1edbf6dc6de74df7aab302692bd65ff7a9fc4",
+      "decoder.py": "205c7033d57292056bda50dc743cac6a9772f6fdcb024d9af6e8c43b60ded97b",
+      "export.py": "136391196f9c1993ed5d0e878a6d9089bc7d54159f075e4b866eb39561d831c2",
+      "flow.py": "87f07729f3b021482ad6d7d84fd4621e54e8dab8231fa7e122cf2aee807249a7",
+      "mesh.py": "71dce0e9842edb659535f67ffd77ca8b7ce61aae957a9688886e7ff6a5831acb",
+      "ops.py": "d9b936d646f479df1519f0ad5df29825053fabf94b766a56ecd926f2d869ddf9",
+      "pipeline.py": "1657b116902f2cf4df0c6401de96889e06190e3ffdb6e72d072dd85b5ade44e1",
+      "preprocess.py": "2fd65d5f8bdde21ce13c7b6423243a1818b47d15d22f276613a9f26255520ff9",
+      "runtime.py": "ac8faea92d35d569ab9a4460e80b437358d1e4f632fba738d5ff846783d63dd5",
+      "sparse.py": "c1393fc79ee125f44a935105bdd431e55d480e2098d028f495193d8fa1fcfc6f",
+      "weights.py": "835bd61fa81349fa5a6a2d402284b3cbd46730a128c8675577abf270708bd554"
+    }
+  },
+  "device": "cuda",
+  "torch": "2.6.0+cu124",
+  "stages": [
+    {
+      "name": "preprocess_camera",
+      "peak_sampled_rss_bytes": 3532615680,
+      "status": "complete",
+      "elapsed_seconds": 19.508997009999803,
+      "peak_allocated_bytes": 2353584128,
+      "peak_reserved_bytes": 2554331136
+    },
+    {
+      "name": "dino_features",
+      "peak_sampled_rss_bytes": 3750649856,
+      "status": "complete",
+      "elapsed_seconds": 6.913434056000369,
+      "peak_allocated_bytes": 1404684800,
+      "peak_reserved_bytes": 1455423488
+    },
+    {
+      "name": "sparse_structure",
+      "peak_sampled_rss_bytes": 7743610880,
+      "status": "complete",
+      "elapsed_seconds": 109.92868563499997,
+      "peak_allocated_bytes": 5771013120,
+      "peak_reserved_bytes": 5802819584
+    },
+    {
+      "name": "shape_lr",
+      "peak_sampled_rss_bytes": 7567757312,
+      "status": "complete",
+      "elapsed_seconds": 73.9700456759997,
+      "peak_allocated_bytes": 5855294464,
+      "peak_reserved_bytes": 5888802816
+    },
+    {
+      "name": "coordinate_subdivision",
+      "peak_sampled_rss_bytes": 3797151744,
+      "status": "complete",
+      "elapsed_seconds": 43.641352255999664,
+      "peak_allocated_bytes": 3070766592,
+      "peak_reserved_bytes": 3181379584
+    },
+    {
+      "name": "hr_conditioning",
+      "peak_sampled_rss_bytes": 2839994368,
+      "status": "complete",
+      "elapsed_seconds": 0.9726567689999683,
+      "peak_allocated_bytes": 2872434688,
+      "peak_reserved_bytes": 2923429888
+    },
+    {
+      "name": "shape_hr",
+      "peak_sampled_rss_bytes": 7327207424,
+      "status": "complete",
+      "elapsed_seconds": 360.7049492369997,
+      "peak_allocated_bytes": 5851224064,
+      "peak_reserved_bytes": 5886705664
+    },
+    {
+      "name": "shape_decode",
+      "peak_sampled_rss_bytes": 3666165760,
+      "status": "complete",
+      "elapsed_seconds": 36.84033908799938,
+      "peak_allocated_bytes": 3144028672,
+      "peak_reserved_bytes": 3244294144
+    },
+    {
+      "name": "texture_flow",
+      "peak_sampled_rss_bytes": 7076958208,
+      "status": "complete",
+      "elapsed_seconds": 312.54050561000076,
+      "peak_allocated_bytes": 5849938432,
+      "peak_reserved_bytes": 5886705664
+    },
+    {
+      "name": "texture_decode",
+      "peak_sampled_rss_bytes": 4451422208,
+      "status": "complete",
+      "elapsed_seconds": 76.57444793599916,
+      "peak_allocated_bytes": 3143964672,
+      "peak_reserved_bytes": 3244294144
+    },
+    {
+      "name": "pbr_export",
+      "peak_sampled_rss_bytes": 3523940352,
+      "status": "complete",
+      "elapsed_seconds": 38.90272053300032,
+      "peak_allocated_bytes": 8519680,
+      "peak_reserved_bytes": 41943040
+    }
+  ],
+  "memory_limit_is_hard": false,
+  "gpu": "Tesla T4",
+  "capability": [
+    7,
+    5
+  ],
+  "output": "outputs/colab-t4-shoe-stable-fp32/run/result.glb",
+  "validation": {
+    "glb_bytes": 12276444,
+    "triangles": 150306,
+    "embedded_pbr": true,
+    "geometry_resolution": 512
+  }
+}
