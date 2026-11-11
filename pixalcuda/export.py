@@ -9,19 +9,12 @@ from PIL import Image
 import trimesh
 
 from .bake import VoxelSampler, inpaint_texture, rasterize_uv, uv_unwrap
+from .topology import clean_geometry, shading_geometry
 
 
-def clean_mesh(vertices, faces, target_faces=100000):
-    mesh = trimesh.Trimesh(vertices, faces, process=True)
-    mesh.update_faces(mesh.nondegenerate_faces())
-    mesh.update_faces(mesh.unique_faces())
-    mesh.remove_unreferenced_vertices()
-    if len(mesh.faces) > target_faces:
-        mesh = mesh.simplify_quadric_decimation(face_count=target_faces)
-    if len(mesh.faces) == 0 or not np.isfinite(mesh.vertices).all():
-        raise ValueError("Shape decoder did not produce a nonempty finite triangle mesh")
-    mesh.fix_normals(multibody=True)
-    return np.asarray(mesh.vertices, dtype=np.float32), np.asarray(mesh.faces, dtype=np.int64)
+def clean_mesh(vertices, faces, target_faces=100000, return_report=False):
+    vertices, faces, report = clean_geometry(vertices, faces, target_faces)
+    return (vertices, faces, report) if return_report else (vertices, faces)
 
 
 def export_pbr(vertices, faces, voxel_coordinates, attributes, destination, texture_size=1024):
@@ -29,6 +22,7 @@ def export_pbr(vertices, faces, voxel_coordinates, attributes, destination, text
         raise ValueError("Supported texture sizes are 512, 1024, and 2048")
     if not np.isfinite(attributes).all() or len(attributes) == 0:
         raise ValueError("Texture attributes must be nonempty and finite")
+    vertices, faces, normals = shading_geometry(vertices, faces)
     unwrapped, triangles, coordinates, mapping = uv_unwrap(vertices, faces)
     mask, face_indices, barycentric = rasterize_uv(coordinates, triangles, texture_size)
     if not mask.any():
@@ -53,9 +47,11 @@ def export_pbr(vertices, faces, voxel_coordinates, attributes, destination, text
     )
     export_uvs = coordinates.copy()
     export_uvs[:, 1] = 1 - export_uvs[:, 1]
+    if not np.isfinite(normals).all() or not np.allclose(np.linalg.norm(normals, axis=1), 1, atol=1e-5):
+        raise ValueError("Clean geometry must produce finite unit vertex normals before UV splitting")
     mesh = trimesh.Trimesh(
         vertices=unwrapped * np.array([-1, 1, -1]), faces=triangles, process=False,
-        vertex_normals=trimesh.Trimesh(vertices=vertices, faces=faces, process=False).vertex_normals[mapping] * np.array([-1, 1, -1]),
+        vertex_normals=normals[mapping] * np.array([-1, 1, -1]),
         visual=trimesh.visual.TextureVisuals(uv=export_uvs, material=material),
     )
     destination = Path(destination)
@@ -88,4 +84,10 @@ def validate_glb(path):
     meshes = list(scene.geometry.values())
     if not meshes or not all(len(mesh.faces) and np.isfinite(mesh.vertices).all() for mesh in meshes):
         raise ValueError("Exported GLB geometry is empty or non-finite")
-    return {"glb_bytes": len(data), "triangles": sum(len(mesh.faces) for mesh in meshes), "embedded_pbr": True, "geometry_resolution": 512}
+    if "NORMAL" not in primitive["attributes"] or not all(
+        np.isfinite(mesh.vertex_normals).all() and np.allclose(np.linalg.norm(mesh.vertex_normals, axis=1), 1, atol=1e-5)
+        for mesh in meshes
+    ):
+        raise ValueError("Exported GLB must contain finite unit vertex normals")
+    return {"glb_bytes": len(data), "triangles": sum(len(mesh.faces) for mesh in meshes), "embedded_pbr": True,
+            "unit_normals": True, "geometry_resolution": 512}

@@ -132,7 +132,8 @@ class Pipeline:
                     output, coordinates, guides = runtime.run_model(lambda: SparseDecoder(limits=self.limits), self.store.checkpoint("shape_decoder"),
                         lambda model: model(denormalized, hr_coordinates.to(self.device)), dtype=torch.float32)
                     vertices, faces = decoder_output_to_mesh(output.float().cpu().numpy(), coordinates.cpu().numpy(), resolution=512)
-                    vertices, faces = clean_mesh(vertices, faces, target_faces)
+                    vertices, faces, cleanup = clean_mesh(vertices, faces, target_faces, return_report=True)
+                    runtime.report["mesh_cleanup"] = cleanup
                     mesh_data = {"vertices": torch.from_numpy(vertices), "faces": torch.from_numpy(faces), "guides": guides}
                     runtime.save("mesh", mesh_data)
                     del output, coordinates, denormalized
