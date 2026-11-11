@@ -30,6 +30,18 @@ def test_resume_rejects_changed_input_and_settings(tmp_path):
         Runtime(tmp_path, "cpu", {"seed": 43}, resume=True)
 
 
+def test_loader_rejects_overflowing_fp16_conversion(tmp_path):
+    model = torch.nn.Linear(3, 2)
+    with torch.no_grad():
+        model.weight.fill_(70000)
+    checkpoint = tmp_path / "large.safetensors"
+    save_file(model.state_dict(), checkpoint)
+    with pytest.raises(FloatingPointError, match="wider dtype"):
+        load_model(lambda: torch.nn.Linear(3, 2), checkpoint, "cpu", torch.float16)
+    loaded = load_model(lambda: torch.nn.Linear(3, 2), checkpoint, "cpu", torch.float32)
+    assert torch.isfinite(loaded.weight).all()
+
+
 def test_failure_writes_report_and_keeps_checkpoint(tmp_path):
     runtime = Runtime(tmp_path, "cpu", {"seed": 42})
     runtime.save("structure", torch.zeros(1))

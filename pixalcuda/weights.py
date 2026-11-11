@@ -120,6 +120,8 @@ def _assign(model, key, tensor, expected, parameters, buffers, device, dtype):
     parent_name, _, attribute = key.rpartition(".")
     parent = model.get_submodule(parent_name) if parent_name else model
     tensor = tensor.to(device=device, dtype=dtype if tensor.is_floating_point() else tensor.dtype)
+    if tensor.is_floating_point() and not torch.isfinite(tensor).all():
+        raise FloatingPointError(f"Non-finite checkpoint tensor {key} after conversion to {tensor.dtype}; use a wider dtype")
     if key in parameters:
         setattr(parent, attribute, torch.nn.Parameter(tensor, requires_grad=False))
     elif key in buffers:

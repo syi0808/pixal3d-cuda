@@ -105,7 +105,10 @@ class Dino(nn.Module):
         angles = (coordinates.unsqueeze(-1) * frequencies * (2 * math.pi)).flatten(1).repeat(1, 2)
         for block in self.layer:
             features = block(features, angles.cos(), angles.sin())
-        return layer_norm(features, 1e-5)
+        normalized = layer_norm(features, 1e-5)
+        if not torch.isfinite(normalized).all():
+            raise FloatingPointError("Non-finite DINOv3 features. The official backbone requires FP32 execution on T4; do not cache these features.")
+        return normalized
 
 
 class GuideBlock(nn.Module):

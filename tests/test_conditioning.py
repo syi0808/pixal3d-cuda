@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from pixalcuda.conditioning import Dino, NAF, neighborhood_indices, project_grid
@@ -37,3 +38,11 @@ def test_sparse_naf_returns_finite_projected_features():
         output = model.project(torch.rand(1, 3, 64, 64), torch.rand(1, 16, 16, 16), torch.tensor([[-1., -1.], [0., 0.], [1., 1.]]), target=64)
     assert output.shape == (3, 16)
     assert output.isfinite().all()
+
+
+def test_dino_rejects_nonfinite_features_before_checkpointing():
+    model = Dino(channels=32, heads=4, layers=1)
+    with torch.no_grad():
+        model.embeddings.cls_token.fill_(float("nan"))
+    with torch.inference_mode(), pytest.raises(FloatingPointError, match="DINOv3 features"):
+        model(torch.rand(1, 3, 32, 32))

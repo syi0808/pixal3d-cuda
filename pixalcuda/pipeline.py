@@ -40,6 +40,7 @@ class Pipeline:
         identity = {"input_sha256": sha256_file(image_path), "seed": seed, "geometry_resolution": 512,
                     "texture_size": texture_size, "target_faces": target_faces,
                     "camera": camera, "fov_degrees": fov_degrees, "remove_background": remove_background,
+                    "dino_precision": "float32",
                     "limits": asdict(self.limits), "pixal_revision": PIXAL_REVISION,
                     "dino_revision": DINO_REVISION, "moge_revision": MOGE_REVISION, "naf_sha256": NAF_SHA256,
                     "runtime_schema": 1, "torch": torch.__version__, "cuda_runtime": torch.version.cuda,
@@ -67,6 +68,7 @@ class Pipeline:
                     def encode(model):
                         return {str(size): model(image_tensor(image, size, self.device)).cpu() for size in (512, 1024)}
                     encoded = runtime.run_model(lambda: Dino(limits=self.limits), self.store.dino(), encode,
+                                                dtype=torch.float32,
                                                 ignored=("embeddings.mask_token", "norm.weight", "norm.bias", "rope_embeddings.inv_freq"))
                     runtime.save("dino", encoded)
             with runtime.stage("sparse_structure"):

@@ -35,6 +35,12 @@ The sparse decoder's output coordinates match exactly. These are scoped numerica
 
 ## Required T4 acceptance run
 
+The first actual Colab T4 attempt ran on 2026-11-11, Python 3.13.16, PyTorch 2.6.0+cu124, driver 580.82.07, Tesla T4 (SM 7.5), with 15,637,086,208 GPU bytes and 13,605,818,368 system RAM bytes. The pinned public shoe sample is identified by SHA-256 `abf395cc52d81c26dadae9f024072d6c7301679be4e8fc08d572723d7ae32a21` in `scripts/validate_colab_t4.py`.
+
+At revision `02aa162`, preprocessing/camera and DINO stages returned, but SS sampling rejected a non-finite state at step 1. This was **not an OOM**. Both cached DINO feature tensors were entirely non-finite (1,053,696 values at 512, 4,199,424 at 1024). Official-weight FP16 DINO inference also reproduced non-finite output at layer 0 on the CPU development host. The runtime now explicitly loads/executes DINO in FP32, rejects non-finite features before caching, and rejects non-finite tensors introduced during checkpoint dtype conversion. This precision correction needs a new output directory rather than reuse of the poisoned feature cache.
+
+This failed initial attempt does not establish end-to-end completion; the acceptance criteria below still apply to the corrected runtime.
+
 Run all notebook cells on an allocated T4, not merely on a CPU or another GPU:
 
 1. Record GPU name, compute capability, driver, torch/CUDA versions, and available RAM/disk.
