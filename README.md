@@ -24,6 +24,7 @@ A separate, memory-bounded **PyTorch/CUDA Pixal3D runtime targeting Colab T4**, 
 - Full global self-attention with **query chunking**, not local attention or token dropping. PyTorch selects a compatible SDPA backend; its math fallback is bounded by the query chunk.
 - FP32 SS flow/CFG/sampler state; FP16 SLat flow/decoders; FP32 normalization/NAF/sparse-convolution accumulation.
 - Tensor-at-a-time safetensors loading into meta-initialized modules. No full state-dict copy and no all-model CPU/GPU residency.
+- Sampling-scoped global K/V and bounded projected-conditioning caches; exact zero-negative-context folding.
 - Reused sparse topology and bounded gather/GEMM submanifold convolution. Guided texture subdivision uses the shape decoder's masks.
 - CPU dual-grid extraction, simplification, xatlas UV unwrap, trilinear PBR sampling/seam filling, and embedded base-color plus metallic/roughness images.
 - Atomic stage checkpoints, strict resume fingerprints, finite-state checks, explicit token/voxel guards, and per-stage GPU/RSS telemetry.
@@ -86,6 +87,7 @@ Settings/input mismatch is rejected. Use a new output directory for a different 
 | `--ffn-rows` | 1024 | Bound FFN intermediate rows |
 | `--sparse-rows` | 4096 | Bound convolution gather/GEMM rows |
 | `--naf-queries` | 128 | Bound projected NAF queries |
+| `--conditioning-cache-mb` | 128 | Bound static projection cache; 0 disables it |
 | `--max-tokens` | 16384 | Fail before flow on oversized sparse sets |
 | `--max-voxels` | 1500000 | Fail before oversized subdivision |
 | `--texture-size` | 1024 | 512/1024/2048 PBR output textures |

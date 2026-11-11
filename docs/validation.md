@@ -14,6 +14,24 @@ The Colab notebook pins PyTorch 2.6.0 / torchvision 0.21.0 / CUDA 12.4. Linux CP
 - Strict tensor-at-a-time loading, checkpoint identity validation, and failure report preservation.
 - Actual synthetic-mesh UV unwrap, trilinear PBR sampling, embedded base-color/metallic-roughness textures, GLB validation and reload. This is an exporter test, not pretrained image-to-3D output.
 - Colab notebook JSON/schema and Python cell syntax. No saved outputs or credentials.
+- Optional pinned MoGe-2 dependency installation/import and real CPU camera inference complete successfully. This is not a T4 camera benchmark.
+
+Initial local suite: **23 passed, 2 skipped** (the two CUDA-only tests). A controlled-output pipeline wiring/resume test exercises all stages through a real PBR export, but deliberately does not claim pretrained full-model inference.
+
+The same **23 passed, 2 skipped** suite also passes on GitHub Actions Linux with the notebook's PyTorch 2.6.0 version. CUDA tests remain skipped on that CPU-only runner.
+
+## Frozen-input MLX reference comparisons
+
+The reference checkout was read/executed without writing files into it (`PYTHONDONTWRITEBYTECODE=1`). Comparison artifacts remain ignored under `outputs/`; no user image or model weights are published.
+
+| Component | Conditions | Maximum absolute difference |
+| --- | --- | ---: |
+| NAF | Official weights, synthetic 64 guide, 16×16 source features, 23 queries including borders | 4.95e-6 |
+| Flow | Two-block/48-channel dense model, identical FP16-rounded random weights, FP32 execution | 2.98e-7 |
+| Sparse decoder | One-level 16→8-channel model, identical FP16-rounded random weights, FP32 execution | 1.00e-6 |
+| DINOv3 | Official ViT-L/16 weights, identical synthetic 128×128 image, FP32 execution | 7.82e-5 |
+
+The sparse decoder's output coordinates match exactly. These are scoped numerical comparisons, not quality equivalence of the FP16 SLat/decoder CUDA path, large-model flow sampling, full-resolution DINO features, or a generated mesh. Random tiny-model tests do not establish pretrained generation quality.
 
 ## Required T4 acceptance run
 
