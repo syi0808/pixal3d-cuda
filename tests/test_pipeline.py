@@ -27,9 +27,10 @@ class ControlledStore:
                 "tex_slat_sampler": {"params": {"steps": 12}}}
 
 
-@pytest.mark.parametrize("multiview", [False, True])
+@pytest.mark.parametrize("input_mode", ["single", "directory", "mapped"])
 @pytest.mark.parametrize("defer_export", [False, True])
-def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_path, monkeypatch, multiview, defer_export):
+def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_path, monkeypatch, input_mode, defer_export):
+    multiview = input_mode != "single"
     calls = []
     conditioning_calls = []
     decoded_coordinates = dense_coordinates(3, "cpu")
@@ -81,10 +82,19 @@ def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_p
     options = {"texture_size": 512, "camera": "fixed", "remove_background": False, "defer_export": defer_export}
     if multiview:
         metadata = orbit_camera_metadata()
+        if input_mode == "mapped":
+            metadata["frames"] = [
+                {"file_path": f"view{index:02d}.png", "image_index": index, "azimuth_degrees": index * 72,
+                 "elevation_degrees": 0, "distance": 3.119205, "fov_degrees": 20} for index in range(5)]
         for frame in metadata["frames"]:
             Image.new("RGBA", (32, 32), (255, 0, 0, 128)).save(tmp_path / frame["file_path"])
         (tmp_path / "transforms.json").write_text(json.dumps(metadata))
-        options.update(views_dir=tmp_path, camera="auto")
+        options["camera"] = "auto"
+        if input_mode == "mapped":
+            options.update(images=[tmp_path / frame["file_path"] for frame in metadata["frames"]],
+                           camera_metadata={**metadata, "frames": list(reversed(metadata["frames"]))})
+        else:
+            options["views_dir"] = tmp_path
     result = pipeline.generate(None if multiview else image, output, **options)
     assert result.is_file()
     if defer_export:

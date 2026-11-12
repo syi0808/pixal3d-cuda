@@ -152,6 +152,10 @@ def test_missing_local_mv_checkpoint_does_not_substitute_single_view(tmp_path):
     ["--views-dir", "views", "--num-views", "0"],
     ["--image", "image.png", "--num-views", "4"],
     ["--image", "image.png", "--views-dir", "views"],
+    ["--images", "image.png"],
+    ["--image", "image.png", "--transforms", "cameras.json"],
+    ["--views-dir", "views", "--transforms", "cameras.json"],
+    ["--images", "image.png", "--transforms", "cameras.json", "--camera", "fixed"],
 ])
 def test_cli_rejects_invalid_modes_before_loading_any_models(arguments):
     from pixalcuda.cli import main

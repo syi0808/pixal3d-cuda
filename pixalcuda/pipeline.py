@@ -12,7 +12,7 @@ from .decoder import SparseDecoder, StructureDecoder
 from .export import clean_mesh, export_pbr
 from .flow import Flow, sample_flow
 from .mesh import decoder_output_to_mesh
-from .multiview import PreparedViews, encode_views, prepare_views, read_views
+from .multiview import PreparedViews, encode_views, prepare_views, read_mapped_views, read_views
 from .ops import Limits
 from .preprocess import camera_from_fov, estimate_camera, prepare_image
 from .runtime import Runtime, atomic_json, release
@@ -70,15 +70,19 @@ class Pipeline:
     @torch.inference_mode()
     def generate(self, image_path, output_dir, seed=42, texture_size=1024, target_faces=100000,
                  camera="auto", fov_degrees=49.13, remove_background=True, resume=False,
-                 *, views_dir=None, num_views=None, defer_export=False):
-        if bool(image_path) == bool(views_dir):
-            raise ValueError("Supply exactly one of image_path or views_dir")
-        multiview = views_dir is not None
+                 *, views_dir=None, num_views=None, defer_export=False, images=None, camera_metadata=None):
+        if sum((bool(image_path), bool(views_dir), images is not None)) != 1:
+            raise ValueError("Supply exactly one of image_path, views_dir or mapped images")
+        if images is None and camera_metadata is not None:
+            raise ValueError("camera_metadata requires mapped images")
+        multiview = bool(views_dir) or images is not None
         if num_views is not None and not multiview:
-            raise ValueError("num_views requires views_dir")
+            raise ValueError("num_views requires views_dir or mapped images")
         if multiview and (camera != "auto" or fov_degrees != 49.13):
-            raise ValueError("Multi-view cameras come from transforms.json, not camera/FOV overrides")
-        manifest = read_views(views_dir, num_views) if multiview else None
+            raise ValueError("Mapped cameras supply the FOV; camera/FOV overrides are not allowed")
+        manifest = None
+        if multiview:
+            manifest = read_mapped_views(images, camera_metadata, num_views) if images is not None else read_views(views_dir, num_views)
         if self.default_store:
             self.store = ModelStore(multiview=multiview)
         elif bool(getattr(self.store, "multiview", False)) != multiview:

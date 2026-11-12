@@ -1,0 +1,8 @@
+{
+  "mesh_scale": 1.0,
+  "frames": [
+    {"image_index": 2, "azimuth_degrees": 240, "elevation_degrees": 0, "distance": 3.119205, "fov_degrees": 20},
+    {"image_index": 0, "azimuth_degrees": 0, "elevation_degrees": 0, "distance": 3.119205, "fov_degrees": 20},
+    {"image_index": 1, "azimuth_degrees": 120, "elevation_degrees": 0, "distance": 3.119205, "fov_degrees": 20}
+  ]
+}

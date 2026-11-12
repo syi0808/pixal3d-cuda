@@ -14,7 +14,7 @@ import torch
 
 from pixalcuda.export import validate_glb
 from pixalcuda.pipeline import Pipeline
-from pixalcuda.multiview import read_views
+from pixalcuda.multiview import read_mapped_views, read_views
 from pixalcuda.runtime import atomic_json
 from pixalcuda.weights import sha256_file
 
@@ -29,12 +29,16 @@ def main(argv=None):
     inputs = parser.add_mutually_exclusive_group()
     inputs.add_argument("--image", help="Optional local image; otherwise download the pinned public shoe sample")
     inputs.add_argument("--views-dir", help="Posed images and transforms.json, with dedicated MV weights")
+    inputs.add_argument("--images", nargs="+", help="Ordered images, each mapped in --transforms")
+    parser.add_argument("--transforms")
     parser.add_argument("--num-views", type=int)
     parser.add_argument("--no-rembg", action="store_true")
     parser.add_argument("--resume", action="store_true")
     arguments = parser.parse_args(argv)
-    if arguments.num_views is not None and not arguments.views_dir:
-        parser.error("--num-views requires --views-dir")
+    if bool(arguments.images) != bool(arguments.transforms):
+        parser.error("--images and --transforms must be supplied together")
+    if arguments.num_views is not None and not (arguments.views_dir or arguments.images):
+        parser.error("--num-views requires mapped images or --views-dir")
     if not torch.cuda.is_available():
         raise RuntimeError("This acceptance run requires a real NVIDIA T4 CUDA runtime")
     name = torch.cuda.get_device_name()
@@ -42,7 +46,12 @@ def main(argv=None):
         raise RuntimeError(f"Expected an actual T4 (SM 7.5), received {name}")
     directory = Path(arguments.output_dir)
     directory.mkdir(parents=True, exist_ok=True)
-    views = read_views(arguments.views_dir, arguments.num_views) if arguments.views_dir else None
+    camera_metadata = json.loads(Path(arguments.transforms).read_text()) if arguments.images else None
+    views = None
+    if arguments.images:
+        views = read_mapped_views(arguments.images, camera_metadata, arguments.num_views)
+    elif arguments.views_dir:
+        views = read_views(arguments.views_dir, arguments.num_views)
     image = None if views else Path(arguments.image) if arguments.image else directory / "source.png"
     if not views and not arguments.image and not image.exists():
         with urllib.request.urlopen(SAMPLE_URL, timeout=120) as response:
@@ -66,7 +75,8 @@ def main(argv=None):
     started = time.perf_counter()
     try:
         output = Pipeline("cuda").generate(image, directory / "run", resume=arguments.resume,
-            views_dir=arguments.views_dir, num_views=arguments.num_views, remove_background=not arguments.no_rembg)
+            views_dir=arguments.views_dir, num_views=arguments.num_views, remove_background=not arguments.no_rembg,
+            images=arguments.images, camera_metadata=camera_metadata)
         evidence.update(status="complete", validation=validate_glb(output), output_sha256=sha256_file(output))
         print(f"T4_ACCEPTANCE_COMPLETE: {output}", flush=True)
     except BaseException as error:
