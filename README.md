@@ -129,12 +129,21 @@ source. Intermediate checkpoints are private input-derived data.
 | `--sparse-rows` | 4096 | Bound convolution gather/GEMM rows |
 | `--naf-queries` | 128 | Bound projected NAF queries |
 | `--conditioning-cache-mb` | 128 | Bound static projection cache; 0 disables it |
+| `--sparse-prepack` | 0 | Experimental 1=contiguous per-offset weights at load; extra temporary memory |
 | `--max-tokens` | 16384 | Fail before flow on oversized sparse sets |
 | `--max-voxels` | 1500000 | Fail before oversized subdivision |
 | `--texture-size` | 1024 | 512/1024/2048 PBR output textures |
 | `--target-faces` | 100000 | Simplification target, not a strict triangle cap |
 
 Smaller chunks can reduce temporary allocations but take longer. Guards are not allocator limits; increasing them may OOM. Neither PyTorch memory reports nor this runtime promise a hard GPU/process memory cap. `report.json` separates per-stage peak allocated/reserved CUDA bytes from sampled process RSS. RSS sampling can miss brief peaks. Different devices/backends are not bitwise reproducible.
+
+Correctness-first optimizations now skip unused final coordinate-decoder work,
+reuse DINO RoPE, batch checkpoint finite-status decisions, and remove duplicate
+stage-entry allocator flushes. Per-model load/callback/cleanup timing and flow
+cache usage are recorded. Sparse prepacking remains opt-in; precision, sampling
+and default cache budgets are unchanged. See [performance scope and warm GPU
+profiling](docs/performance.md) and the [Colab operator notebook](notebooks/colab_t4_performance.ipynb).
+No new T4 speedup or pretrained quality-parity result is claimed.
 
 ## Tests
 

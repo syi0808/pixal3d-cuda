@@ -7,7 +7,7 @@ import nbformat
 import pytest
 
 
-@pytest.mark.parametrize("name", ["colab_t4_512.ipynb", "colab_t4_multiview_512.ipynb"])
+@pytest.mark.parametrize("name", ["colab_t4_512.ipynb", "colab_t4_multiview_512.ipynb", "colab_t4_performance.ipynb"])
 def test_colab_notebook_schema_and_python_cells(name):
     path = Path(__file__).resolve().parents[1] / "notebooks" / name
     notebook = nbformat.read(path, as_version=4)
@@ -43,3 +43,13 @@ def test_notebook_streams_child_stdout_and_stderr(capsys):
     with pytest.raises(subprocess.CalledProcessError) as error:
         namespace["run_command"]([sys.executable, "-c", "raise SystemExit(3)"])
     assert error.value.returncode == 3
+
+
+def test_operator_notebook_needs_no_model_downloads_or_authentication():
+    path = Path(__file__).resolve().parents[1] / "notebooks" / "colab_t4_performance.ipynb"
+    notebook = nbformat.read(path, as_version=4)
+    code = "\n".join(cell.source for cell in notebook.cells if cell.cell_type == "code")
+    assert "benchmark_cuda_ops.py" in code and '"--device", "cuda"' in code
+    assert "get_device_capability() == (7, 5)" in code
+    assert "HF_TOKEN" not in code and "userdata" not in code
+    assert "--device cpu" not in code
