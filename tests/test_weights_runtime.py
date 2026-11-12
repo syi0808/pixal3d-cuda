@@ -52,3 +52,29 @@ def test_failure_writes_report_and_keeps_checkpoint(tmp_path):
     assert report["status"] == "failed"
     assert report["stages"][-1]["status"] == "failed"
     assert (tmp_path / "structure.pt").exists()
+
+
+def test_cpu_export_restore_rejects_tampered_manifest_or_source(tmp_path):
+    runtime = Runtime(tmp_path, "cpu", {"seed": 42})
+    restored = Runtime.restore(tmp_path)
+    assert restored.device.type == "cpu" and restored.fingerprint == runtime.fingerprint
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["identity"]["seed"] = 43
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="identity mismatch"):
+        Runtime.restore(tmp_path)
+    changed = tmp_path / "changed"
+    Runtime(changed, "cpu", {"source_files": {"not_current.py": "hash"}})
+    with pytest.raises(ValueError, match="source changed"):
+        Runtime.restore(changed)
+
+
+def test_offline_naf_cache_miss_cannot_download(tmp_path, monkeypatch):
+    from huggingface_hub import constants
+    from pixalcuda.weights import ModelStore
+
+    monkeypatch.setattr(constants, "HF_HUB_CACHE", str(tmp_path))
+    monkeypatch.setattr(constants, "HF_HUB_OFFLINE", True)
+    with pytest.raises(FileNotFoundError, match="prefetch weights on CPU"):
+        ModelStore().naf()

@@ -29,6 +29,25 @@ def release(device):
 
 
 class Runtime:
+    @classmethod
+    def restore(cls, directory, device="cpu"):
+        directory = Path(directory)
+        manifest = json.loads((directory / "manifest.json").read_text())
+        report = json.loads((directory / "report.json").read_text())
+        identity = manifest["identity"]
+        fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+        if fingerprint != manifest["fingerprint"] or report["identity"] != identity:
+            raise ValueError("Export manifest/report identity mismatch")
+        if "source_files" in identity:
+            actual = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                      for path in sorted(Path(__file__).parent.glob("*.py"))}
+            if actual != identity["source_files"]:
+                raise ValueError("Runtime source changed; use the same source revision for CPU export")
+        runtime = cls.__new__(cls)
+        runtime.directory, runtime.device = directory, torch.device(device)
+        runtime.fingerprint, runtime.resume, runtime.report = fingerprint, True, report
+        return runtime
+
     def __init__(self, directory, device, identity, resume=False):
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)

@@ -208,18 +208,40 @@ class NAF(nn.Module):
 def project_grid(coordinates, resolution, image_size, camera):
     spatial = coordinates[:, 1:].float() / (resolution - 1) * 2 - 1
     points = torch.stack((spatial[:, 0], -spatial[:, 2], spatial[:, 1]), -1) / camera["mesh_scale"] / 2
-    depth = points[:, 1] + camera["distance"]
+    if "transform_matrix" in camera:
+        matrix = torch.as_tensor(camera["transform_matrix"], dtype=torch.float32, device=points.device)
+        points = functional.pad(points, (0, 1), value=1) @ torch.linalg.inv(matrix).T
+        horizontal, vertical, depth = points[:, 0], points[:, 1], -points[:, 2]
+    else:
+        horizontal, vertical, depth = points[:, 0], points[:, 2], points[:, 1] + camera["distance"]
     focal = image_size / (2 * math.tan(camera["camera_angle_x"] / 2))
-    pixels = torch.stack((focal * points[:, 0] / (depth + 1e-8) + image_size / 2,
-                          -focal * points[:, 2] / (depth + 1e-8) + image_size / 2), -1)
+    pixels = torch.stack((focal * horizontal / (depth + 1e-8) + image_size / 2,
+                          -focal * vertical / (depth + 1e-8) + image_size / 2), -1)
     return (pixels + 0.5) / image_size * 2 - 1
 
 
-def build_conditioning(encoded, image, coordinates, resolution, camera, naf=None):
+def build_conditioning(encoded, image, coordinates, resolution, camera, naf=None, naf_target=512):
     patch_count = image.shape[-1] // 16
     spatial = encoded[:, 5:].transpose(1, 2).reshape(1, -1, patch_count, patch_count).float()
     grid = project_grid(coordinates, resolution, image.shape[-1], camera)
     projected = functional.grid_sample(spatial, grid[None, None], mode="bilinear", padding_mode="border", align_corners=False)[0, :, 0].T
     if naf is not None:
-        projected = torch.cat((projected, naf.project(image, spatial, grid)), -1)
+        projected = torch.cat((projected, naf.project(image, spatial, grid, target=naf_target)), -1)
     return {"global": encoded[:, :5].float(), "proj": projected.unsqueeze(0)}
+
+
+def build_multiview_conditioning(encoded, views, coordinates, resolution, size, device, naf=None, naf_target=512):
+    if len(encoded) != len(views.images):
+        raise ValueError("Expected one DINO feature tensor per posed view")
+    summed = None
+    for index, features in enumerate(encoded):
+        context = build_conditioning(features.to(device), views.tensor(index, size, device), coordinates,
+                                     resolution, views.camera(index), naf, naf_target)
+        if summed is None:
+            summed = context
+            summed["global"] = summed["global"].clone()
+        else:
+            for name in summed:
+                summed[name].add_(context[name].float())
+        del context
+    return {name: value.div_(len(encoded)) for name, value in summed.items()}

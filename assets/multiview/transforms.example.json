@@ -1,0 +1,26 @@
+{
+  "camera_angle_x": 0.3490658503988659,
+  "mesh_scale": 1.0,
+  "frames": [
+    {
+      "file_path": "front.png",
+      "name": "azim000",
+      "transform_matrix": [[1, 0, 0, 0], [0, 0, -1, -3.1192049980163574], [0, 1, 0, 0], [0, 0, 0, 1]]
+    },
+    {
+      "file_path": "azim090.png",
+      "name": "azim090",
+      "transform_matrix": [[0, 0, 1, 3.1192049980163574], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]]
+    },
+    {
+      "file_path": "back.png",
+      "name": "azim180",
+      "transform_matrix": [[-1, 0, 0, 0], [0, 0, 1, 3.1192049980163574], [0, 1, 0, 0], [0, 0, 0, 1]]
+    },
+    {
+      "file_path": "azim270.png",
+      "name": "azim270",
+      "transform_matrix": [[0, 0, -1, -3.1192049980163574], [-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]]
+    }
+  ]
+}

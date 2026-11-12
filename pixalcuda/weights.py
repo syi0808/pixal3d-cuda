@@ -12,6 +12,7 @@ from safetensors import safe_open
 
 PIXAL_REPO = "TencentARC/Pixal3D"
 PIXAL_REVISION = "0b31f9160aa400719af409098bff7936a932f726"
+MULTIVIEW_REVISION = "b0cb2e1b794cab9aa0ac38a95d794a4d9337437f"
 DINO_REPO = "facebook/dinov3-vitl16-pretrain-lvd1689m"
 DINO_REVISION = "ea8dc2863c51be0a264bab82070e3e8836b02d51"
 MOGE_REPO = "Ruicheng/moge-2-vitl"
@@ -27,6 +28,8 @@ CHECKPOINTS = {
     "texture": "slat_flow_imgshape2tex_dit_1_3B_1024_bf16",
     "texture_decoder": "tex_dec_next_dc_f16c32_fp16",
 }
+MULTIVIEW_CHECKPOINTS = {name: filename + ("_mv" if name in ("structure", "shape_lr", "shape_hr", "texture") else "")
+                         for name, filename in CHECKPOINTS.items()}
 
 
 def sha256_file(path):
@@ -38,8 +41,10 @@ def sha256_file(path):
 
 
 class ModelStore:
-    def __init__(self, directory=None):
+    def __init__(self, directory=None, multiview=False):
         self.directory = Path(directory).expanduser() if directory else None
+        self.multiview = multiview
+        self.revision = MULTIVIEW_REVISION if multiview else PIXAL_REVISION
 
     def pixal_file(self, filename):
         if self.directory is not None:
@@ -47,22 +52,26 @@ class ModelStore:
             if not path.is_file():
                 raise FileNotFoundError(path)
             return path
-        return Path(hf_hub_download(PIXAL_REPO, filename, revision=PIXAL_REVISION))
+        return Path(hf_hub_download(PIXAL_REPO, filename, revision=self.revision))
 
     def checkpoint(self, name):
-        return self.pixal_file(f"ckpts/{CHECKPOINTS[name]}.safetensors")
+        filenames = MULTIVIEW_CHECKPOINTS if self.multiview else CHECKPOINTS
+        return self.pixal_file(f"ckpts/{filenames[name]}.safetensors")
 
     def config(self):
-        return json.loads(self.pixal_file("pipeline.json").read_text())["args"]
+        filename = "pipeline_mv.json" if self.multiview else "pipeline.json"
+        return json.loads(self.pixal_file(filename).read_text())["args"]
 
     def dino(self):
         return Path(hf_hub_download(DINO_REPO, "model.safetensors", revision=DINO_REVISION))
 
     def naf(self):
-        from huggingface_hub.constants import HF_HUB_CACHE
+        from huggingface_hub.constants import HF_HUB_CACHE, HF_HUB_OFFLINE
         destination = Path(HF_HUB_CACHE) / "pixal3d-cuda" / "naf_release.pth"
         destination.parent.mkdir(parents=True, exist_ok=True)
         if not destination.exists():
+            if HF_HUB_OFFLINE:
+                raise FileNotFoundError("NAF is not cached; prefetch weights on CPU before offline GPU inference")
             temporary = destination.with_suffix(".download")
             try:
                 with urllib.request.urlopen(NAF_URL, timeout=120) as response, temporary.open("wb") as target:
@@ -83,7 +92,7 @@ class ModelStore:
         self.naf()
         for name in CHECKPOINTS:
             self.checkpoint(name)
-        if camera:
+        if camera and not self.multiview:
             hf_hub_download(MOGE_REPO, "model.pt", revision=MOGE_REVISION)
 
 

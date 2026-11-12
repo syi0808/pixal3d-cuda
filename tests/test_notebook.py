@@ -7,8 +7,9 @@ import nbformat
 import pytest
 
 
-def test_colab_notebook_schema_and_python_cells():
-    path = Path(__file__).resolve().parents[1] / "notebooks" / "colab_t4_512.ipynb"
+@pytest.mark.parametrize("name", ["colab_t4_512.ipynb", "colab_t4_multiview_512.ipynb"])
+def test_colab_notebook_schema_and_python_cells(name):
+    path = Path(__file__).resolve().parents[1] / "notebooks" / name
     notebook = nbformat.read(path, as_version=4)
     nbformat.validate(notebook)
     for cell in notebook.cells:
@@ -18,8 +19,9 @@ def test_colab_notebook_schema_and_python_cells():
             assert cell.outputs == []
 
 
-def test_notebook_uses_official_weights_and_no_embedded_credentials():
-    path = Path(__file__).resolve().parents[1] / "notebooks" / "colab_t4_512.ipynb"
+@pytest.mark.parametrize("name", ["colab_t4_512.ipynb", "colab_t4_multiview_512.ipynb"])
+def test_notebook_uses_official_weights_and_no_embedded_credentials(name):
+    path = Path(__file__).resolve().parents[1] / "notebooks" / name
     notebook = nbformat.read(path, as_version=4)
     source = "\n".join(cell.source for cell in notebook.cells)
     assert 'userdata.get("HF_TOKEN")' in source

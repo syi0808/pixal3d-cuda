@@ -34,16 +34,23 @@ def main(argv=None):
     commands.add_parser("doctor")
     download = commands.add_parser("download")
     download.add_argument("--skip-camera", action="store_true")
+    download.add_argument("--multiview", action="store_true")
+    postprocess = commands.add_parser("export", help="Finish GPU checkpoints on a CPU-only host")
+    postprocess.add_argument("--output-dir", required=True)
     generation = commands.add_parser("generate")
-    generation.add_argument("--image", required=True)
+    inputs = generation.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--image")
+    inputs.add_argument("--views-dir", help="Posed images and transforms.json; no recropping or MoGe")
+    generation.add_argument("--num-views", type=int, help="Use a prefix of one to four posed views")
     generation.add_argument("--output-dir", default="outputs/run")
     generation.add_argument("--seed", type=int, default=42)
     generation.add_argument("--texture-size", type=int, choices=(512, 1024, 2048), default=1024)
     generation.add_argument("--target-faces", type=int, default=100000)
-    generation.add_argument("--camera", choices=("auto", "fixed"), default="auto")
-    generation.add_argument("--fov-degrees", type=float, default=49.13)
+    generation.add_argument("--camera", choices=("auto", "fixed"))
+    generation.add_argument("--fov-degrees", type=float)
     generation.add_argument("--no-rembg", action="store_true")
     generation.add_argument("--resume", action="store_true")
+    generation.add_argument("--defer-export", action="store_true", help="Save neural outputs; finish with the CPU export command")
     generation.add_argument("--device", choices=("cuda", "cpu"), default="cuda")
     generation.add_argument("--model-dir", help="Local pinned snapshot containing pipeline.json and ckpts/")
     for field in fields(Limits):
@@ -52,17 +59,26 @@ def main(argv=None):
     if arguments.command == "doctor":
         doctor()
     elif arguments.command == "download":
-        ModelStore().download(camera=not arguments.skip_camera)
+        ModelStore(multiview=arguments.multiview).download(camera=not arguments.skip_camera)
+    elif arguments.command == "export":
+        from .pipeline import finish_export
+        print(f"Saved PBR GLB: {finish_export(arguments.output_dir)}")
     else:
         if arguments.target_faces < 4:
             parser.error("--target-faces must be at least 4")
+        if arguments.num_views is not None and (not arguments.views_dir or not 1 <= arguments.num_views <= 4):
+            parser.error("--num-views requires --views-dir and must be between one and four")
+        if arguments.views_dir and (arguments.camera is not None or arguments.fov_degrees is not None):
+            parser.error("Multi-view cameras/FOV come from transforms.json")
         from .pipeline import Pipeline
         limits = Limits(**{field.name: getattr(arguments, field.name) for field in fields(Limits)})
-        output = Pipeline(arguments.device, limits, ModelStore(arguments.model_dir)).generate(
+        output = Pipeline(arguments.device, limits, ModelStore(arguments.model_dir, multiview=bool(arguments.views_dir))).generate(
             arguments.image, arguments.output_dir, arguments.seed, arguments.texture_size, arguments.target_faces,
-            arguments.camera, arguments.fov_degrees, not arguments.no_rembg, arguments.resume,
+            arguments.camera or "auto", arguments.fov_degrees if arguments.fov_degrees is not None else 49.13,
+            not arguments.no_rembg, arguments.resume, views_dir=arguments.views_dir, num_views=arguments.num_views,
+            defer_export=arguments.defer_export,
         )
-        print(f"Saved PBR GLB: {output}")
+        print(f"Saved {'GPU checkpoints' if arguments.defer_export else 'PBR GLB'}: {output}")
 
 
 if __name__ == "__main__":

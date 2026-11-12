@@ -10,8 +10,9 @@ from .conditioning import image_tensor
 from .weights import MOGE_REPO, MOGE_REVISION
 
 
-def prepare_image(path, remove_background=True):
-    image = ImageOps.exif_transpose(Image.open(path)).convert("RGBA")
+def prepare_foreground(path, remove_background=True):
+    with Image.open(path) as source:
+        image = ImageOps.exif_transpose(source).convert("RGBA")
     image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
     alpha = np.asarray(image.getchannel("A"))
     if remove_background and (alpha == 255).all():
@@ -20,6 +21,11 @@ def prepare_image(path, remove_background=True):
         except ImportError as error:
             raise RuntimeError("Install pixal3d-cuda[preprocess], or supply an RGBA image / --no-rembg") from error
         image = remove(image, session=new_session("u2net", providers=["CPUExecutionProvider"]))
+    return image
+
+
+def prepare_image(path, remove_background=True):
+    image = prepare_foreground(path, remove_background)
     array = np.asarray(image)
     foreground = np.argwhere(array[..., 3] > 127)
     if not len(foreground):

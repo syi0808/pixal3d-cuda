@@ -2,9 +2,11 @@ import json
 from pathlib import Path
 
 from PIL import Image
+import pytest
 import torch
 
-from pixalcuda.pipeline import Pipeline, dense_coordinates
+from pixalcuda.cameras import orbit_camera_metadata
+from pixalcuda.pipeline import Pipeline, dense_coordinates, finish_export
 from pixalcuda.runtime import Runtime
 
 
@@ -25,8 +27,11 @@ class ControlledStore:
                 "tex_slat_sampler": {"params": {"steps": 12}}}
 
 
-def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_path, monkeypatch):
+@pytest.mark.parametrize("multiview", [False, True])
+@pytest.mark.parametrize("defer_export", [False, True])
+def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_path, monkeypatch, multiview, defer_export):
     calls = []
+    conditioning_calls = []
     decoded_coordinates = dense_coordinates(3, "cpu")
     def run_model(runtime, factory, path, callback, **options):
         name = Path(path).name
@@ -60,21 +65,52 @@ def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_p
         if name == "structure":
             return torch.zeros(1, 8, 16, 16, 16)
         return torch.zeros(8, 32)
-    def condition(pipeline, encoded, image, size, coordinates, camera):
+    def condition(pipeline, encoded, image, size, coordinates, camera, naf_target=512):
+        conditioning_calls.append((size, naf_target))
+        if multiview:
+            encoded = encoded[0]
         return {"global": encoded[:, :5], "proj": torch.zeros(1, len(coordinates), 2048)}
     monkeypatch.setattr(Runtime, "run_model", run_model)
     monkeypatch.setattr(Pipeline, "condition", condition)
     image = tmp_path / "input.png"
     Image.new("RGB", (32, 32), "red").save(image)
     output = tmp_path / "run"
-    pipeline = Pipeline("cpu", store=ControlledStore())
-    result = pipeline.generate(image, output, texture_size=512, camera="fixed", remove_background=False)
+    store = ControlledStore()
+    store.multiview = multiview
+    pipeline = Pipeline("cpu", store=store)
+    options = {"texture_size": 512, "camera": "fixed", "remove_background": False, "defer_export": defer_export}
+    if multiview:
+        metadata = orbit_camera_metadata()
+        for frame in metadata["frames"]:
+            Image.new("RGBA", (32, 32), (255, 0, 0, 128)).save(tmp_path / frame["file_path"])
+        (tmp_path / "transforms.json").write_text(json.dumps(metadata))
+        options.update(views_dir=tmp_path, camera="auto")
+    result = pipeline.generate(None if multiview else image, output, **options)
     assert result.is_file()
+    if defer_export:
+        assert not (output / "result.glb").exists()
+        assert json.loads((output / "report.json").read_text())["status"] == "awaiting_export"
+        def forbid_cuda(*args, **kwargs):
+            raise AssertionError("CPU export must not initialize or synchronize CUDA")
+        monkeypatch.setattr(torch.cuda, "synchronize", forbid_cuda)
+        monkeypatch.setattr(torch.cuda, "empty_cache", forbid_cuda)
+        result = finish_export(output)
+        assert result.name == "result.glb"
     report = json.loads((output / "report.json").read_text())
     assert report["status"] == "complete"
     assert report["validation"]["embedded_pbr"]
-    assert len(report["stages"]) == 11
+    assert len(report["stages"]) == (12 if multiview else 11)
+    assert report["identity"]["conditioning_mode"] == ("multiview_average" if multiview else "single")
+    assert ((1024, 1024) in conditioning_calls) == multiview
     assert "shape_hr" in calls and "texture" in calls
     calls.clear()
-    pipeline.generate(image, output, texture_size=512, camera="fixed", remove_background=False, resume=True)
+    pipeline.generate(None if multiview else image, output, **options, resume=True)
+    if defer_export:
+        finish_export(output)
     assert not calls
+    report = json.loads((output / "report.json").read_text())
+    assert "mesh_cleanup" in report
+    if multiview:
+        Image.new("RGB", (32, 32), "blue").save(tmp_path / metadata["frames"][-1]["file_path"])
+        with pytest.raises(ValueError, match="changed"):
+            pipeline.generate(None, output, **options, resume=True)
