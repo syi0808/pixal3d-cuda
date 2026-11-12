@@ -89,6 +89,29 @@ pixal3d-cuda generate --image object.png --output-dir outputs/first --resume
 
 Settings/input mismatch is rejected. Use a new output directory for a different seed or setting. Resume checkpoints contain the input-derived tensors, so treat them as private. Put the output directory on Drive if it must survive Colab runtime loss. Interrupted model downloads use the normal Hugging Face cache; the cache also needs persistent storage to survive runtime deletion.
 
+## Posed four-view input and Modal
+
+The experimental CUDA multi-view path accepts one to four posed images plus
+`transforms.json`, uses the dedicated pinned MV flow weights, and averages
+camera-projected conditioning without running four separate generations.
+Framing must match the supplied calibration; arbitrary four photos are not
+automatically calibrated. See [MV input and validation](docs/multiview.md) and
+[the experimental Colab T4 MV notebook](notebooks/colab_t4_multiview_512.ipynb).
+Real pretrained four-view CUDA generation remains **unvalidated**.
+
+[The private Modal adapter](docs/modal.md) separates CPU prefetch/matting,
+offline GPU inference, and CPU mesh/UV/PBR export, with scale-to-zero and
+content-addressed job reuse. No paid Modal deployment has been performed.
+For the same GPU/CPU split outside Modal:
+
+```bash
+pixal3d-cuda generate --views-dir inputs/object --output-dir outputs/mv --defer-export
+pixal3d-cuda export --output-dir outputs/mv
+```
+
+Transfer the entire output directory for CPU export, using the same runtime
+source. Intermediate checkpoints are private input-derived data.
+
 ## Memory and performance controls
 
 | Option | Default | Effect |

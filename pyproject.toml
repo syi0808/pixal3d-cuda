@@ -24,6 +24,7 @@ dependencies = [
 preprocess = ["rembg[cpu]>=2.0.60"]
 camera = ["moge @ git+https://github.com/microsoft/MoGe.git@b942f00bdc2a2a23ebb474fbe034d487e6dcceec"]
 dev = ["pytest>=8", "nbformat>=5.10"]
+modal = ["modal>=1.6.4,<2"]
 
 [project.scripts]
 pixal3d-cuda = "pixalcuda.cli:main"
