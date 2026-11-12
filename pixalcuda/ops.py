@@ -17,9 +17,12 @@ class Limits:
     conditioning_cache_mb: int = 128
     max_tokens: int = 16384
     max_voxels: int = 1500000
+    sparse_prepack: int = 0
 
     def __post_init__(self):
-        if self.conditioning_cache_mb < 0 or any(value <= 0 for name, value in vars(self).items() if name != "conditioning_cache_mb"):
+        if type(self.sparse_prepack) is not int or self.sparse_prepack not in (0, 1):
+            raise ValueError("sparse_prepack must be 0 or 1")
+        if self.conditioning_cache_mb < 0 or any(value <= 0 for name, value in vars(self).items() if name not in ("conditioning_cache_mb", "sparse_prepack")):
             raise ValueError("All runtime limits must be positive")
 
 

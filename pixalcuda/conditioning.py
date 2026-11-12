@@ -103,8 +103,9 @@ class Dino(nn.Module):
         coordinates = torch.stack(torch.meshgrid(rows, columns, indexing="ij"), -1).reshape(-1, 2)
         frequencies = 100.0 ** (-torch.arange(self.head_dim // 4, device=image.device).float() * 4 / self.head_dim)
         angles = (coordinates.unsqueeze(-1) * frequencies * (2 * math.pi)).flatten(1).repeat(1, 2)
+        cosine, sine = angles.cos(), angles.sin()
         for block in self.layer:
-            features = block(features, angles.cos(), angles.sin())
+            features = block(features, cosine, sine)
         normalized = layer_norm(features, 1e-5)
         if not torch.isfinite(normalized).all():
             raise FloatingPointError("Non-finite DINOv3 features. The official backbone requires FP32 execution on T4; do not cache these features.")

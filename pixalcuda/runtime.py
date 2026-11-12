@@ -21,10 +21,11 @@ def atomic_json(path, value):
     temporary.replace(path)
 
 
-def release(device):
+def release(device, synchronize=True):
     gc.collect()
     if torch.device(device).type == "cuda":
-        torch.cuda.synchronize(device)
+        if synchronize:
+            torch.cuda.synchronize(device)
         torch.cuda.empty_cache()
 
 
@@ -63,7 +64,7 @@ class Runtime:
                 raise ValueError("Output directory already has a run. Use --resume or a new output directory.")
         atomic_json(manifest, {"fingerprint": self.fingerprint, "identity": identity})
         self.report = {"schema": "pixalcuda.runtime.v1", "status": "running", "identity": identity,
-                       "device": str(self.device), "torch": torch.__version__, "stages": [],
+                       "device": str(self.device), "torch": torch.__version__, "stages": [], "models": [],
                        "memory_limit_is_hard": False}
         if self.device.type == "cuda":
             self.report.update(gpu=torch.cuda.get_device_name(self.device), capability=list(torch.cuda.get_device_capability(self.device)))
@@ -98,12 +99,15 @@ class Runtime:
 
     @contextmanager
     def stage(self, name):
-        release(self.device)
+        previous_stage = getattr(self, "current_stage", None)
+        self.current_stage = name
         cuda = self.device.type == "cuda"
         if cuda:
             torch.cuda.reset_peak_memory_stats(self.device)
         process = psutil.Process()
         record = {"name": name, "peak_sampled_rss_bytes": process.memory_info().rss}
+        if cuda:
+            record["free_device_bytes_before"] = torch.cuda.mem_get_info(self.device)[0]
         finished = threading.Event()
         def monitor():
             while not finished.wait(0.1):
@@ -128,14 +132,50 @@ class Runtime:
             record["peak_sampled_rss_bytes"] = max(record["peak_sampled_rss_bytes"], process.memory_info().rss)
             if cuda:
                 record.update(peak_allocated_bytes=torch.cuda.max_memory_allocated(self.device),
-                              peak_reserved_bytes=torch.cuda.max_memory_reserved(self.device))
+                              peak_reserved_bytes=torch.cuda.max_memory_reserved(self.device),
+                              free_device_bytes_after=torch.cuda.mem_get_info(self.device)[0])
             self.report["stages"].append(record)
+            self.current_stage = previous_stage
             self.write_report()
 
     def run_model(self, factory, path, callback, dtype=torch.float16, ignored=()):
-        model = load_model(factory, path, self.device, dtype, ignored)
+        path = Path(path)
+        cuda = self.device.type == "cuda"
+        model, completed = None, False
+        record = {"checkpoint": path.name, "dtype": str(dtype), "stage": getattr(self, "current_stage", None)}
+        phase, started = "load", time.perf_counter()
         try:
-            return callback(model)
+            with torch.profiler.record_function(f"pixalcuda.load/{path.name}"):
+                model = load_model(factory, path, self.device, dtype, ignored)
+                if cuda:
+                    torch.cuda.synchronize(self.device)
+            record["load_wall_seconds"] = time.perf_counter() - started
+            record["parameter_bytes"] = sum(parameter.numel() * parameter.element_size() for parameter in model.parameters())
+            phase, started = "callback", time.perf_counter()
+            if cuda:
+                beginning, ending = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+                beginning.record()
+            with torch.profiler.record_function(f"pixalcuda.callback/{path.name}"):
+                output = callback(model)
+                if cuda:
+                    ending.record()
+                    torch.cuda.synchronize(self.device)
+            record["callback_wall_seconds"] = time.perf_counter() - started
+            if cuda:
+                record["callback_cuda_interval_ms"] = beginning.elapsed_time(ending)
+            if hasattr(model, "last_cache_report"):
+                record["conditioning_cache"] = model.last_cache_report
+            record["status"], completed = "complete", True
+            return output
+        except BaseException as error:
+            record.update(status="failed", error=f"{type(error).__name__}: {error}")
+            record[f"{phase}_wall_seconds"] = time.perf_counter() - started
+            raise
         finally:
             del model
-            release(self.device)
+            started = time.perf_counter()
+            with torch.profiler.record_function("pixalcuda.model_cleanup"):
+                release(self.device, synchronize=not completed)
+            record["cleanup_wall_seconds"] = time.perf_counter() - started
+            self.report.setdefault("models", []).append(record)
+            self.write_report()

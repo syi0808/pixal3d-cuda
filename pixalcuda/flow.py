@@ -164,6 +164,11 @@ def sample_flow(model, noise, context, coordinates, params, concat=None):
             remaining -= projection_bytes
         prepared.append({"kv": block.cross_attn.cross_attn_block.prepare_context(context["global"]),
                          "projection": projection, "negative": block.cross_attn.unconditional()})
+    model.last_cache_report = {"budget_bytes": model.limits.conditioning_cache_mb * 1024 ** 2,
+                               "projection_bytes_per_block": projection_bytes,
+                               "cached_blocks": sum(item["projection"] is not None for item in prepared),
+                               "total_blocks": len(prepared),
+                               "used_bytes": model.limits.conditioning_cache_mb * 1024 ** 2 - remaining}
     steps = params.get("steps", 12)
     times = torch.linspace(1, 0, steps + 1, dtype=torch.float64)
     rescale_t = params.get("rescale_t", 3.0)

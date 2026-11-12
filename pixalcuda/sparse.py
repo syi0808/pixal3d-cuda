@@ -42,7 +42,15 @@ class SparseConv(nn.Module):
         self.weight = nn.Parameter(torch.empty(out_channels, 3, 3, 3, in_channels))
         self.bias = nn.Parameter(torch.zeros(out_channels))
         self.rows = limits.sparse_rows
+        self.prepack = bool(limits.sparse_prepack)
         nn.init.normal_(self.weight, std=(2 / (in_channels * 27)) ** 0.5)
+
+    def prepack_weights_(self):
+        kernels = self.weight.detach().reshape(len(self.bias), 27, -1).permute(1, 0, 2)
+        if not kernels.is_contiguous():
+            packed = kernels.contiguous().permute(1, 0, 2).reshape_as(self.weight)
+            self.weight = nn.Parameter(packed, requires_grad=self.weight.requires_grad)
+        return self
 
     def forward(self, features, topology):
         output = torch.zeros((len(features), len(self.bias)), device=features.device, dtype=torch.float32)

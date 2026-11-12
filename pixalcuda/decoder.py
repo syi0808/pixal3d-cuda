@@ -84,11 +84,15 @@ class SparseUpsample(nn.Module):
         if predictive:
             self.to_subdiv = nn.Linear(channels, 8)
 
-    def forward(self, features, coordinates, topology, guide=None):
+    def subdivide(self, features, coordinates, guide=None):
         mask = self.to_subdiv(features) > 0 if self.predictive else guide
         if mask is None or mask.shape != (len(features), 8):
             raise ValueError("Texture subdivision must use aligned shape masks")
         selection, children = subdivision(coordinates, mask, self.limits.max_voxels)
+        return selection, children, mask
+
+    def forward(self, features, coordinates, topology, guide=None):
+        selection, children, mask = self.subdivide(features, coordinates, guide)
         hidden = self.conv1(functional.silu(self.norm1(features)), topology)
         hidden = hidden.reshape(-1, hidden.shape[-1] // 8)[selection]
         skip = features.reshape(-1, features.shape[-1] // 8)[selection]
@@ -100,8 +104,9 @@ class SparseUpsample(nn.Module):
 
 class SparseDecoder(nn.Module):
     def __init__(self, texture=False, channels=(1024, 512, 256, 128, 64),
-                 block_counts=(4, 16, 8, 4, 0), limits=Limits()):
+                 block_counts=(4, 16, 8, 4, 0), limits=Limits(), verbose=True):
         super().__init__()
+        self.verbose = verbose
         self.from_latent = nn.Linear(32, channels[0])
         self.output_layer = nn.Linear(channels[-1], 6 if texture else 7)
         self.blocks = nn.ModuleList()
@@ -115,15 +120,21 @@ class SparseDecoder(nn.Module):
         features = self.from_latent(features.to(self.from_latent.weight.dtype))
         topology = neighbor_map(coordinates)
         masks = []
-        for level in self.blocks:
+        for level_index, level in enumerate(self.blocks):
             for block in level:
                 if isinstance(block, SparseNext):
                     features = block(features, topology)
                 else:
                     guide = None if guides is None else guides[len(masks)].to(coordinates.device)
+                    if coordinates_only and level_index == len(self.blocks) - 2:
+                        _, children, _ = block.subdivide(features, coordinates, guide)
+                        if self.verbose:
+                            print(f"    decoder level {len(masks) + 1}: {len(children):,} voxels (coordinates only)", flush=True)
+                        return children
                     features, coordinates, topology, mask = block(features, coordinates, topology, guide)
-                    masks.append(mask.cpu())
-                    print(f"    decoder level {len(masks)}: {len(coordinates):,} voxels", flush=True)
+                    masks.append(None if coordinates_only else mask.cpu())
+                    if self.verbose:
+                        print(f"    decoder level {len(masks)}: {len(coordinates):,} voxels", flush=True)
         if coordinates_only:
             return coordinates
         return self.output_layer(layer_norm(features, 1e-5)), coordinates, masks

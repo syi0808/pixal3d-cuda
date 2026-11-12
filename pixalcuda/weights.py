@@ -102,18 +102,35 @@ def load_model(factory, path, device, dtype, ignored=()):
     expected = model.state_dict()
     parameters = dict(model.named_parameters())
     buffers = dict(model.named_buffers())
+    checks = []
     if str(path).endswith(".safetensors"):
         with safe_open(path, framework="pt", device="cpu") as checkpoint:
             actual = set(checkpoint.keys())
             _check_keys(expected, actual, ignored)
             for key in expected:
-                _assign(model, key, checkpoint.get_tensor(key), expected[key], parameters, buffers, device, dtype)
+                checks.append(_assign(model, key, checkpoint.get_tensor(key), expected[key], parameters, buffers, device, dtype))
     else:
         checkpoint = torch.load(path, map_location="cpu", weights_only=True)
         _check_keys(expected, set(checkpoint), ignored)
         for key in expected:
-            _assign(model, key, checkpoint.pop(key), expected[key], parameters, buffers, device, dtype)
+            checks.append(_assign(model, key, checkpoint.pop(key), expected[key], parameters, buffers, device, dtype))
+    validate_materialized_tensors(checks)
+    from .sparse import SparseConv
+    for module in model.modules():
+        if isinstance(module, SparseConv) and module.prepack:
+            module.prepack_weights_()
     return model.eval().requires_grad_(False)
+
+
+def validate_materialized_tensors(checks):
+    checks = [check for check in checks if check is not None]
+    if not checks:
+        return
+    finite = torch.stack([check[2] for check in checks])
+    if not bool(finite.all()):
+        invalid = finite.cpu().tolist().index(False)
+        key, dtype, _ = checks[invalid]
+        raise FloatingPointError(f"Non-finite checkpoint tensor {key} after conversion to {dtype}; use a wider dtype")
 
 
 def _check_keys(expected, actual, ignored):
@@ -129,11 +146,11 @@ def _assign(model, key, tensor, expected, parameters, buffers, device, dtype):
     parent_name, _, attribute = key.rpartition(".")
     parent = model.get_submodule(parent_name) if parent_name else model
     tensor = tensor.to(device=device, dtype=dtype if tensor.is_floating_point() else tensor.dtype)
-    if tensor.is_floating_point() and not torch.isfinite(tensor).all():
-        raise FloatingPointError(f"Non-finite checkpoint tensor {key} after conversion to {tensor.dtype}; use a wider dtype")
+    check = (key, tensor.dtype, torch.isfinite(tensor).all()) if tensor.is_floating_point() else None
     if key in parameters:
         setattr(parent, attribute, torch.nn.Parameter(tensor, requires_grad=False))
     elif key in buffers:
         setattr(parent, attribute, tensor)
     else:
         raise ValueError(f"Unknown model tensor {key}")
+    return check
