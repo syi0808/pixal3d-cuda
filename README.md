@@ -89,19 +89,25 @@ pixal3d-cuda generate --image object.png --output-dir outputs/first --resume
 
 Settings/input mismatch is rejected. Use a new output directory for a different seed or setting. Resume checkpoints contain the input-derived tensors, so treat them as private. Put the output directory on Drive if it must survive Colab runtime loss. Interrupted model downloads use the normal Hugging Face cache; the cache also needs persistent storage to survive runtime deletion.
 
-## Posed four-view input and Modal
+## Mapped image/camera input and Modal
 
-The experimental CUDA multi-view path accepts one to four posed images plus
-`transforms.json`, uses the dedicated pinned MV flow weights, and averages
+The experimental CUDA multi-view path accepts N images mapped one-to-one to
+explicit cameras (indexed frames; orbit parameters or c2w matrices), uses the dedicated pinned MV flow weights, and averages
 camera-projected conditioning without running four separate generations.
 Framing must match the supplied calibration; arbitrary four photos are not
 automatically calibrated. See [MV input and validation](docs/multiview.md) and
 [the experimental Colab T4 MV notebook](notebooks/colab_t4_multiview_512.ipynb).
-Real pretrained four-view CUDA generation remains **unvalidated**.
+The old `--views-dir` format remains supported; the new form is
+`--images a.png b.png --transforms cameras.json`. There is no four-view model
+limit; Modal separately defaults to a 16-view operational limit.
+Real pretrained multi-view CUDA generation remains **unvalidated**.
 
 [The private Modal adapter](docs/modal.md) separates CPU prefetch/matting,
 offline GPU inference, and CPU mesh/UV/PBR export, with scale-to-zero and
 content-addressed job reuse. No paid Modal deployment has been performed.
+Infrastructure names, GPU/memory/timeouts and upload limits live in
+`deploy/modal.toml`; `--action plan` prints the local declarations without
+deploying. A manual-only GitHub Actions workflow supports dev/prod deployment.
 For the same GPU/CPU split outside Modal:
 
 ```bash
