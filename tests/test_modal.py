@@ -72,8 +72,9 @@ def test_cpu_matting_boundary_does_not_double_crop(tmp_path):
 
 
 @pytest.mark.parametrize("view_count", [0, 1, 3, 5, 16])
+@pytest.mark.parametrize("submitted", [False, True])
 @pytest.mark.filterwarnings("ignore:The .* function is executing locally:UserWarning")
-def test_private_job_deduplication_and_phase_handoff(tmp_path, monkeypatch, view_count):
+def test_private_job_deduplication_and_phase_handoff(tmp_path, monkeypatch, view_count, submitted):
     multiview = view_count > 0
     volumes = SimpleNamespace(reload=lambda: None, commit=lambda: None)
     class Records(dict):
@@ -106,6 +107,8 @@ def test_private_job_deduplication_and_phase_handoff(tmp_path, monkeypatch, view
         (directory / "upload" / name).write_bytes(path.read_bytes())
     (tmp_path / ("ready-mv.json" if multiview else "ready-sv.json")).write_text(json.dumps(
         {"revision": request["revision"], "rembg": False, "camera": True}))
+    if submitted:
+        records[job_id] = {"job_id": job_id, "status": "submitted"}
     calls = []
     infer = modal_app.infer_job
     export = modal_app.export_job
@@ -184,11 +187,12 @@ def test_local_plan_does_not_submit_jobs_or_disclose_secrets(monkeypatch, capsys
         raise AssertionError("Local plan must not look up or invoke remote functions")
     monkeypatch.setattr(modal_app.modal.Function, "from_name", forbidden)
     monkeypatch.setenv("MODAL_TOKEN_SECRET", "never-print-this-value")
-    monkeypatch.setenv("MODAL_ENVIRONMENT", "dev")
+    monkeypatch.setenv("MODAL_ENVIRONMENT", "main")
     modal_app.run_client(action="plan")
     output = capsys.readouterr().out
     assert "never-print-this-value" not in output
-    assert json.loads(output)["environment"] == "dev"
+    assert json.loads(output)["environment"] == "main"
     workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "modal-deploy.yml").read_text()
     assert "workflow_dispatch:" in workflow and "push:" not in workflow and "schedule:" not in workflow
-    assert "modal deploy -m deploy.modal_app" in workflow
+    assert "modal deploy --env main -m deploy.modal_app" in workflow
+    assert "inputs.environment" not in workflow and "options: [dev, prod]" not in workflow

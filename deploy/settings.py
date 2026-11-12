@@ -10,6 +10,7 @@ import tomllib
 
 @dataclass(frozen=True)
 class DeploySettings:
+    environment: str = "main"
     app_name: str = "pixal3d-cuda"
     weights_volume: str = "pixal3d-weights"
     jobs_volume: str = "pixal3d-jobs"
@@ -31,8 +32,12 @@ class DeploySettings:
     max_total_image_bytes: int = 64 * 1024 ** 2
     max_transforms_bytes: int = 64 * 1024
     max_image_pixels: int = 16_000_000
+    api_memory_mib: tuple[int, int] = (1024, 4096)
+    api_max_jobs_per_day: int = 10
 
     def __post_init__(self):
+        if self.environment != "main":
+            raise ValueError("This deployment uses only the main Modal environment")
         for name in ("app_name", "weights_volume", "jobs_volume", "jobs_dict", "hf_secret"):
             value = getattr(self, name)
             if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", value):
@@ -44,7 +49,7 @@ class DeploySettings:
         if (isinstance(self.cpu_cores, bool) or not isinstance(self.cpu_cores, (int, float))
                 or not math.isfinite(self.cpu_cores) or self.cpu_cores <= 0):
             raise ValueError("cpu_cores must be finite and positive")
-        for name in ("cpu_memory_mib", "gpu_memory_mib", "prefetch_memory_mib"):
+        for name in ("cpu_memory_mib", "gpu_memory_mib", "prefetch_memory_mib", "api_memory_mib"):
             value = getattr(self, name)
             if (not isinstance(value, (tuple, list)) or len(value) != 2
                     or any(type(item) is not int or item <= 0 for item in value) or value[0] > value[1]):
@@ -65,6 +70,8 @@ def load_settings(config_path=None, environ=None):
     config_path = Path(config_path) if config_path is not None else Path(__file__).with_name("modal.toml")
     values = tomllib.loads(config_path.read_text())
     environment = os.environ if environ is None else environ
+    if environment.get("MODAL_ENVIRONMENT", "main") != "main":
+        raise ValueError("Use MODAL_ENVIRONMENT=main; no separate dev/prod deployment is configured")
     if "PIXAL_GPU" in environment:
         values["gpu"] = environment["PIXAL_GPU"]
     try:

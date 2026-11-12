@@ -1,10 +1,13 @@
-"""Authenticated, scale-to-zero Modal workers; no public HTTP endpoint."""
+"""Single-environment Modal workers and a proxy-authenticated HTTP API."""
 
 import hashlib
 from dataclasses import asdict
+from datetime import datetime, timedelta, timezone
 import json
-import os
+import math
 from pathlib import Path
+import shutil
+import tempfile
 import time
 
 import modal
@@ -19,20 +22,21 @@ SETTINGS = load_settings()
 GPU = SETTINGS.gpu
 
 app = modal.App(SETTINGS.app_name)
-weights = modal.Volume.from_name(SETTINGS.weights_volume, create_if_missing=True, version=2)
-jobs = modal.Volume.from_name(SETTINGS.jobs_volume, create_if_missing=True, version=2)
-records = modal.Dict.from_name(SETTINGS.jobs_dict, create_if_missing=True)
+weights = modal.Volume.from_name(SETTINGS.weights_volume, create_if_missing=True, version=2, environment_name=SETTINGS.environment)
+jobs = modal.Volume.from_name(SETTINGS.jobs_volume, create_if_missing=True, version=2, environment_name=SETTINGS.environment)
+records = modal.Dict.from_name(SETTINGS.jobs_dict, create_if_missing=True, environment_name=SETTINGS.environment)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("git", "libglib2.0-0", "libgl1")
     .pip_install("torch==2.6.0", "torchvision==0.21.0", index_url="https://download.pytorch.org/whl/cu124")
-    .pip_install_from_pyproject(str(ROOT / "pyproject.toml"), optional_dependencies=["preprocess", "camera"])
+    .pip_install_from_pyproject(str(ROOT / "pyproject.toml"), optional_dependencies=["preprocess", "camera", "server"])
     .env({"PYTHONPATH": "/opt/pixal3d:/opt/pixal3d/deploy", "HF_HOME": "/weights/hf", "U2NET_HOME": "/weights/u2net", "PIXAL_GPU": GPU,
-          "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2",
+          "MODAL_ENVIRONMENT": SETTINGS.environment, "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2",
           "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})
     .add_local_dir(ROOT / "pixalcuda", "/opt/pixal3d/pixalcuda", copy=True, ignore=["__pycache__", "*.pyc"])
     .add_local_file(ROOT / "deploy" / "modal_app.py", "/opt/pixal3d/deploy/modal_app.py", copy=True)
     .add_local_file(ROOT / "deploy" / "settings.py", "/opt/pixal3d/deploy/settings.py", copy=True)
+    .add_local_file(ROOT / "deploy" / "http_api.py", "/opt/pixal3d/deploy/http_api.py", copy=True)
     .add_local_file(ROOT / "deploy" / "modal.toml", "/opt/pixal3d/deploy/modal.toml", copy=True)
     .add_local_file(ROOT / "pyproject.toml", "/opt/pixal3d/pyproject.toml", copy=True)
 )
@@ -52,7 +56,7 @@ def source_identity():
     from pixalcuda.weights import sha256_file
 
     return {**{path.name: sha256_file(path) for path in sorted((ROOT / "pixalcuda").glob("*.py"))},
-            **{f"deploy/{name}": sha256_file(ROOT / "deploy" / name) for name in ("modal_app.py", "settings.py")},
+            **{f"deploy/{name}": sha256_file(ROOT / "deploy" / name) for name in ("modal_app.py", "settings.py", "http_api.py")},
             "deploy/modal.toml": sha256_file(ROOT / "deploy" / "modal.toml"),
             "pyproject.toml": sha256_file(ROOT / "pyproject.toml")}
 
@@ -116,7 +120,7 @@ def validate_request_inputs(request, directory):
               timeout=SETTINGS.prefetch_timeout_seconds, retries=0,
               min_containers=SETTINGS.min_containers, max_containers=1, scaledown_window=SETTINGS.scaledown_window,
               include_source=False, volumes={"/weights": weights},
-              secrets=[modal.Secret.from_name(SETTINGS.hf_secret, required_keys=["HF_TOKEN"])])
+              secrets=[modal.Secret.from_name(SETTINGS.hf_secret, required_keys=["HF_TOKEN"], environment_name=SETTINGS.environment)])
 def prefetch(multiview=False, camera=True, rembg=True):
     from pixalcuda.runtime import atomic_json
     from pixalcuda.weights import ModelStore
@@ -145,7 +149,8 @@ def prepare_job(job_id, request):
     jobs.reload()
     weights.reload()
     if not records.put(job_id, {"status": "preparing", "job_id": job_id}, skip_if_exists=True):
-        return records[job_id]
+        if records[job_id]["status"] != "submitted" or not records.put(f"prepare:{job_id}", True, skip_if_exists=True):
+            return records[job_id]
     try:
         directory.mkdir(parents=True, exist_ok=True)
         mark(job_id, "preparing")
@@ -261,17 +266,88 @@ def build_request(image_path, views_dir, seed, texture_size, target_faces, camer
     return request, files
 
 
+def reserve_api_quota(job_id, now=None):
+    from deploy.http_api import DailyLimitExceeded
+
+    now = now or datetime.now(timezone.utc)
+    day = now.date().isoformat()
+    for slot in range(SETTINGS.api_max_jobs_per_day):
+        key = f"api-quota:{day}:{slot}"
+        if records.put(key, job_id, skip_if_exists=True) or records[key] == job_id:
+            return
+    tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    raise DailyLimitExceeded(max(1, math.ceil((tomorrow - now).total_seconds())))
+
+
+class HttpBackend:
+    def submit(self, images, transforms, options):
+        with tempfile.TemporaryDirectory(prefix="pixal-camera-") as temporary:
+            metadata_path = Path(temporary) / "cameras.json"
+            if transforms is not None:
+                metadata_path.write_text(json.dumps(transforms))
+            request, files = build_request(
+                "" if transforms is not None else images[0], "", options["seed"], options["texture_size"],
+                options["target_faces"], options["camera"], options["fov_degrees"],
+                not options["remove_background"], options["attempt"],
+                images=images if transforms is not None else None,
+                transforms=metadata_path if transforms is not None else None,
+            )
+        job_id = fingerprint(request)
+        previous = records.get(job_id)
+        if previous is not None:
+            return previous
+        reserve_api_quota(job_id)
+        jobs.reload()
+        directory = job_path(job_id)
+        upload = directory / "upload"
+        upload.mkdir(parents=True, exist_ok=True)
+        for path, name in files:
+            shutil.copyfile(path, upload / name)
+        jobs.commit()
+        record = {"job_id": job_id, "status": "submitted", "updated_at": time.time()}
+        if records.put(job_id, record, skip_if_exists=True):
+            try:
+                prepare_job.spawn(job_id, request)
+            except BaseException:
+                records[job_id] = {**record, "status": "failed", "error": "Dispatch failed; inspect Modal logs before a new attempt"}
+                raise
+        return records[job_id]
+
+    def status(self, job_id):
+        return records.get(job_id)
+
+    def copy_artifact(self, job_id, filename, destination):
+        if filename not in ("result.glb", "report.json"):
+            raise ValueError("Unsupported artifact")
+        jobs.reload()
+        shutil.copyfile(job_path(job_id) / "run" / filename, destination)
+
+
+@app.function(image=offline, cpu=(0.5, 1), memory=SETTINGS.api_memory_mib, timeout=120,
+              min_containers=0, max_containers=1, buffer_containers=0, scaledown_window=SETTINGS.scaledown_window,
+              include_source=False, volumes={"/jobs": jobs})
+@modal.concurrent(max_inputs=4)
+@modal.asgi_app(requires_proxy_auth=True)
+def api():
+    from deploy.http_api import create_app
+
+    return create_app(HttpBackend(), SETTINGS)
+
+
 def run_client(action: str = "generate", image_path: str = "", views_dir: str = "", multiview: bool = False,
          seed: int = 42, texture_size: int = 1024, target_faces: int = 100000, camera: str = "auto",
          fov_degrees: float = 49.13, no_rembg: bool = False, attempt: str = "", job_id: str = "",
          output_dir: str = "outputs/modal", wait_seconds: int = 3600, images=None, transforms=None):
     if action == "plan":
         print(json.dumps({"scope": "Local declarations only; no remote diff, deployment or spend cap",
-                          "environment": os.environ.get("MODAL_ENVIRONMENT", "active Modal profile"),
+                          "environment": SETTINGS.environment,
                           "resources": asdict(SETTINGS)}, indent=2))
         return
+    if action == "url":
+        print(modal.Function.from_name(SETTINGS.app_name, "api", environment_name=SETTINGS.environment).get_web_url())
+        return
     if action == "prefetch":
-        function = modal.Function.from_name(SETTINGS.app_name, "prefetch")
+        function = modal.Function.from_name(SETTINGS.app_name, "prefetch", environment_name=SETTINGS.environment)
         print(function.remote(multiview=multiview, camera=camera == "auto", rembg=not no_rembg))
         return
     if action == "generate":
@@ -282,9 +358,9 @@ def run_client(action: str = "generate", image_path: str = "", views_dir: str = 
             with jobs.batch_upload(force=True) as batch:
                 for path, name in files:
                     batch.put_file(str(path), f"/{job_id}/upload/{name}")
-            print(modal.Function.from_name(SETTINGS.app_name, "prepare_job").remote(job_id, request))
+            print(modal.Function.from_name(SETTINGS.app_name, "prepare_job", environment_name=SETTINGS.environment).remote(job_id, request))
     elif action != "status":
-        raise ValueError("Action must be plan, prefetch, generate or status")
+        raise ValueError("Action must be plan, url, prefetch, generate or status")
     job_path(job_id)
     print(f"Job: {job_id}", flush=True)
     deadline = time.monotonic() + wait_seconds
@@ -317,7 +393,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--action", choices=("plan", "prefetch", "generate", "status"), default="generate")
+    parser.add_argument("--action", choices=("plan", "url", "prefetch", "generate", "status"), default="generate")
     inputs = parser.add_mutually_exclusive_group()
     inputs.add_argument("--image-path", default="")
     inputs.add_argument("--views-dir", default="")

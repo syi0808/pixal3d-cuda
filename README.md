@@ -102,12 +102,14 @@ The old `--views-dir` format remains supported; the new form is
 limit; Modal separately defaults to a 16-view operational limit.
 Real pretrained multi-view CUDA generation remains **unvalidated**.
 
-[The private Modal adapter](docs/modal.md) separates CPU prefetch/matting,
+[The Modal adapter](docs/modal.md) separates CPU prefetch/matting,
 offline GPU inference, and CPU mesh/UV/PBR export, with scale-to-zero and
 content-addressed job reuse. No paid Modal deployment has been performed.
 Infrastructure names, GPU/memory/timeouts and upload limits live in
 `deploy/modal.toml`; `--action plan` prints the local declarations without
-deploying. A manual-only GitHub Actions workflow supports dev/prod deployment.
+deploying. A manual-only GitHub Actions workflow deploys only to `main`, with no
+separate development environment. Its Proxy Token-authenticated HTTPS API
+supports asynchronous job submission, status polling and GLB/report downloads.
 For the same GPU/CPU split outside Modal:
 
 ```bash

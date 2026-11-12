@@ -1,7 +1,8 @@
-# Low-credit Modal deployment
+# Single-environment Modal deployment
 
-**Adapter implemented and locally contract-tested, not deployed or GPU-tested
-on Modal yet.** Running the commands below provisions billable resources. Set
+**Workers and HTTP transport are locally contract-tested, not deployed or GPU-tested
+on Modal yet.** Live URL/authentication verification remains pending. Running
+the commands below provisions billable resources. Set
 an account budget and approve a small benchmark before exposing a service.
 
 ## Infrastructure as code
@@ -14,14 +15,15 @@ not a separate VM or Kubernetes deployment. This repository now contains:
 | `deploy/modal.toml` | App/resource names, GPU, CPU/RAM, timeouts, scale and upload limits |
 | `deploy/settings.py` | Strict local config validation; rejects unknown keys and nonzero minimum replicas |
 | `deploy/modal_app.py` | Image, persistent Volumes/Dict, Secret reference, CPU/GPU Functions and SDK client |
-| `.github/workflows/modal-deploy.yml` | Manual-only, tested dev/prod deployment through GitHub Actions |
+| `deploy/http_api.py` | Bounded asynchronous HTTP submission, status and artifact downloads |
+| `.github/workflows/modal-deploy.yml` | Manual-only deployment to the single `main` environment |
 
 Modal [updates an existing named App in place](https://modal.com/docs/guide/apps)
 when you redeploy it. Resources are declared by stable names; the config and
 code can be reviewed and versioned together. **This is IaC-like, not Terraform
 state management**: our `plan` action only prints/validates local declarations,
 not a remote state diff, price estimate, dry-run deployment or spending cap.
-Secret values, account budgets, environment creation and artifact retention
+Secret values, account budgets and artifact retention
 remain explicit operational setup, not silently provisioned by this code.
 
 Default policy stays GPU minimum zero, maximum one, idle two seconds, no
@@ -29,34 +31,35 @@ automatic retries or GPU-type fallback. Only T4/L4 are accepted. `PIXAL_GPU`
 optionally overrides the checked-in GPU for a benchmark; apply the same override
 to deployment and submission. A config/source change invalidates job reuse.
 
-Use native [Modal Environments](https://modal.com/docs/guide/environments) to
-isolate dev and prod Apps, Secrets, Volumes and Dicts without changing their
-names. Set `MODAL_ENVIRONMENT` consistently for deploy, prefetch and client
-requests; it is not an entry in the resource TOML.
+Configuration targets **only the existing `main` Modal environment**. No separate
+development environment is created. Resource and SDK lookups explicitly select
+`main`, and stale `MODAL_ENVIRONMENT=dev` settings are rejected before contacting
+Modal. Use `MODAL_ENVIRONMENT=main` and `modal deploy --env main`. Existing user
+resources in other environments are not migrated or deleted automatically.
 
 ## Architecture
 
 ```text
-authenticated client -> CPU prepare -> GPU infer -> CPU export -> persistent GLB
+HTTP/SDK client -> CPU API/prepare -> GPU infer -> CPU export -> persistent GLB
                          |               |             |
                   matting/validation   neural only   mesh/UV/PBR
                     weights Volume (CPU prefetch, GPU read-only)
                     jobs Volume + Dict (status/deduplication)
 ```
 
-`deploy/modal_app.py` deploys private Modal Functions, **not a public HTTP API**.
-The local client uploads inputs, submits work, polls from the user's machine,
-and downloads artifacts. Each phase commits its Volume before spawning the
-next phase; the GPU returns without waiting for CPU export. No paid CPU worker
-waits through the whole GPU job. Outputs outlive FunctionCall result retention.
+Deploying the App exposes a **Proxy Token-authenticated HTTPS API**, in
+addition to private SDK workers. The CPU API persists uploads and returns
+`202` plus a job ID after dispatching preparation; it does not wait for matting,
+GPU inference or CPU export. Each phase commits before spawning the next one.
+The GPU returns without waiting for CPU export; no orchestration worker stays
+paid for the entire generation. HTTP downloads run only on CPU.
 
-For a frontend, later add a thin **CPU** API: authenticated POST returns 202 +
-job ID, GET polls status, and GET/download uses an expiring object-storage URL.
-Keep inference off the HTTP request path; Modal's
-[HTTP timeout is 150 seconds](https://modal.com/docs/guide/webhook-timeouts).
-Do not expose a GPU-triggering public endpoint without authentication, per-user
-quotas, upload limits, and rate limiting. Those production API controls are
-**not** implemented by this private adapter.
+Inference stays outside Modal's
+[150-second HTTP request window](https://modal.com/docs/guide/webhook-timeouts).
+The API has its own 120-second function timeout. Poll job status rather than
+holding one request open through generation. Both API and workers scale to
+zero. Artifact copies finish with the Volume closed before HTTP streaming,
+avoiding reloads while another request has that Volume file open.
 
 ## Cost controls implemented
 
@@ -78,6 +81,11 @@ quotas, upload limits, and rate limiting. Those production API controls are
   starting settings, **not measured multi-view memory requirements**.
 - Only runtime/deployment source and dependency metadata are copied into the
   image; local outputs, weights, `.env` and other checkouts are excluded.
+- New HTTP jobs have a default **10 admissions per UTC day** shared across all
+  authorized callers, configured by `api_max_jobs_per_day`. Atomic persistent
+  quota slots deduplicate the same job; cache hits do not consume another slot.
+  Failed admissions after reservation count conservatively. Exhaustion returns
+  `429` with `Retry-After`. Administrative SDK calls do not use this HTTP quota.
 
 Concurrency/timeouts are **not dollar caps**. Platform failure/preemption can
 interrupt a job without running its Python error handler, leaving stale status.
@@ -89,21 +97,20 @@ adapter does not automatically retry/resume GPU jobs or delete old artifacts.
 From the CUDA checkout, using the exact source used for deployment:
 
 ```bash
-python -m pip install -e '.[modal]'
-python -m deploy.modal_app --action plan
+python -m pip install -e '.[modal,server]'
 modal setup
-modal environment create dev
-export MODAL_ENVIRONMENT=dev
+export MODAL_ENVIRONMENT=main
+python -m deploy.modal_app --action plan
 ```
 
-In the Modal dashboard's **dev environment**, create Secret `pixal3d-hf` with `HF_TOKEN`, a read token
+In the Modal dashboard's **main environment**, create Secret `pixal3d-hf` with `HF_TOKEN`, a read token
 whose account has DINOv3 access. Do not paste tokens into scripts or chat. The
 secret is attached only to the CPU prefetch function.
 
 The following **starts using your Modal account/credits**:
 
 ```bash
-modal deploy -m deploy.modal_app
+modal deploy --env main -m deploy.modal_app
 python -m deploy.modal_app --action prefetch --multiview
 python -m deploy.modal_app --images photo-a.png photo-b.png photo-c.png \
   --transforms cameras.json --no-rembg
@@ -134,21 +141,109 @@ same source. Deploy and submit with the same GPU, environment, config and source
 
 Use `--attempt retry-1` to intentionally pay for a fresh attempt of a failed
 request. Complete-cache hits do not regenerate. If you manually delete a job's
-Volume directory, also remove its Dict record; otherwise its cached status
-still points at the deleted artifacts. Establish a retention policy (for
+Volume directory, its cached status still points at the deleted artifacts.
+Use a new explicit attempt to regenerate; do not remove admission/prepare
+claims while a job might still be running. Establish a retention policy (for
 example delete intermediate `.pt` checkpoints after approved results, retain
 GLB/report seven days) before sustained use; no cleanup schedule is enabled.
 
+## Remote HTTPS API
+
+Yes, you can call the deployed server directly from `curl`, Python, another
+backend or any HTTP client. A VM/SSH connection is not required. Modal assigns
+the HTTPS URL at deployment; see its
+[Web Function URL behavior](https://modal.com/docs/guide/webhook-urls). Obtain
+the actual URL from the deploy output/dashboard, or as an administrator:
+
+```bash
+python -m deploy.modal_app --action url
+```
+
+Every route, including health, OpenAPI and docs, is protected by
+`@modal.asgi_app(requires_proxy_auth=True)`. Create a **Modal Proxy Token** in
+workspace settings. Send its ID/secret as `Modal-Key` and `Modal-Secret` headers,
+as documented in [Proxy Token authentication](https://modal.com/docs/guide/webhook-proxy-auth).
+This is distinct from the SDK/deployment token and from `HF_TOKEN`. No extra
+application API-key Secret is needed. Keep Proxy Tokens on trusted clients or
+backend servers, never in public frontend bundles, notebooks or Git.
+
+| Method | Route | Behavior |
+| --- | --- | --- |
+| GET | `/api/health` | CPU-only service metadata; does not launch generation |
+| POST | `/api/jobs` | Multipart upload; returns 202 and `job_id` without waiting for inference |
+| GET | `/api/jobs/{job_id}` | Shared-owner status and relative artifact URLs |
+| GET | `/api/jobs/{job_id}/result.glb` | Completed embedded-PBR GLB; 409 while unavailable |
+| GET | `/api/jobs/{job_id}/report.json` | Runtime report for completed/failed jobs, if produced |
+
+Set `BASE_URL` to the real deployed URL and load your Proxy Token into local
+`PIXAL_PROXY_KEY` / `PIXAL_PROXY_SECRET` environment variables. Verify health
+before spending credits on POST:
+
+```bash
+curl --fail-with-body "$BASE_URL/api/health" \
+  -H "Modal-Key: $PIXAL_PROXY_KEY" -H "Modal-Secret: $PIXAL_PROXY_SECRET"
+```
+
+For mapped images, repeat the `images` file field in the order addressed by
+`image_index`. Send camera JSON as **text**, using `<`, not the `@` file field:
+
+```bash
+curl --fail-with-body "$BASE_URL/api/jobs" \
+  -H "Modal-Key: $PIXAL_PROXY_KEY" -H "Modal-Secret: $PIXAL_PROXY_SECRET" \
+  -F "images=@photo-a.png" -F "images=@photo-b.png" -F "images=@photo-c.png" \
+  -F "transforms=<cameras.json" -F 'options={"remove_background":false}'
+```
+
+For unposed single-image mode, use one `image=@object.png` field and omit
+`transforms`. Never mix `image` and `images`. Options accept seed, texture size,
+face target, background removal and an explicit retry `attempt` tag. Single-image
+camera/FOV overrides must not accompany mapped images. Geometry remains 512;
+resolution, precision, step count and GPU-type overrides are not HTTP options.
+Uploads are validated on CPU before any GPU dispatch; URLs are not fetched.
+
+Use the returned `job_id` to poll every few seconds, not a long-lived request:
+
+```bash
+curl --fail-with-body "$BASE_URL/api/jobs/$JOB_ID" \
+  -H "Modal-Key: $PIXAL_PROXY_KEY" -H "Modal-Secret: $PIXAL_PROXY_SECRET"
+```
+
+After status becomes `complete`, download the actual GLB:
+
+```bash
+curl --fail "$BASE_URL/api/jobs/$JOB_ID/result.glb" \
+  -H "Modal-Key: $PIXAL_PROXY_KEY" -H "Modal-Secret: $PIXAL_PROXY_SECRET" \
+  --output result.glb
+```
+
+Exact duplicate inputs/settings reuse the same job and do not start another
+GPU run, even if the HTTP response was lost. A failed request is not silently
+retried; use a new `options.attempt` only after inspecting its status/logs.
+Deleted complete artifacts return 410; failed jobs with no runtime report
+return 404 for that report. There are no HTTP prefetch, arbitrary-file, or
+model-cache modification endpoints.
+
+This is a **shared-owner API**, not a multi-tenant SaaS authorization system.
+All valid Proxy Token callers share job visibility and the admission quota.
+The quota is not a dollar cap or a request-rate limit: authenticated polling,
+downloads and invalid uploads can still consume CPU. Configure account budgets;
+add per-user ownership/rate controls before offering this to untrusted users.
+
+Local tests exercise multipart validation, asynchronous dispatch, deduplication,
+quota, status and artifact transport. They do **not** emulate Modal's edge
+authentication. After actual deployment, verify that no/invalid Proxy Token gets
+401, a valid token can read health, and one approved real input produces a
+visually reviewed GLB. Those live checks have not been run yet.
+
 ## Manual GitHub deployment
 
-Create Modal environments `dev` and `prod` and the HF Secret in each environment
-you intend to use. In GitHub, create corresponding **Environments** and add
-`MODAL_TOKEN_ID` / `MODAL_TOKEN_SECRET` for a dedicated Modal deployment identity.
-These are Modal credentials, not the HF token. Configure required reviewers for
-the GitHub `prod` environment before using it.
+Add repository Actions Secrets `MODAL_TOKEN_ID` / `MODAL_TOKEN_SECRET` for a
+dedicated Modal deployment identity. These are SDK/deployment credentials, not
+the HF token or HTTP Proxy Token. The HF Secret lives only in Modal `main`.
+No separate GitHub or Modal development environment is required.
 
-Select **Actions -> Deploy Modal manually -> Run workflow**, choose a source
-revision and target environment. The workflow runs CPU tests and the local
+Select **Actions -> Deploy Modal manually -> Run workflow** and choose a source
+revision. The target is always `main`. The workflow runs CPU tests and the local
 declaration printout, then `modal deploy`. It uses Modal's documented
 [GitHub Actions deployment pattern](https://modal.com/docs/guide/continuous-deployment).
 It never runs on push/PR/schedule and never invokes prefetch or inference, so
