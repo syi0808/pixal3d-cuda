@@ -22,6 +22,8 @@ def test_checked_in_declarations_have_low_credit_defaults():
     {"app_name": ""}, {"max_upload_bytes": 65 * 1024 ** 2},
     {"environment": "dev"}, {"api_max_jobs_per_day": 0}, {"api_memory_mib": (4096, 1024)},
     {"geometry_1024_max_tokens": 0}, {"geometry_1024_max_voxels": True},
+    {"attention_queries": 0}, {"cross_attention_queries": -1}, {"cross_attention_queries": True},
+    {"ffn_rows": 0}, {"sparse_rows": 0},
 ])
 def test_invalid_or_unexpectedly_warm_declarations_are_rejected(changed):
     with pytest.raises(ValueError):

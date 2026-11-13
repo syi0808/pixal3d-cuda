@@ -16,7 +16,8 @@ import torch
 from torch.nn.attention import SDPBackend, sdpa_kernel
 
 from pixalcuda.decoder import SparseDecoder, SparseNext
-from pixalcuda.ops import Limits, attention
+from pixalcuda.flow import Block
+from pixalcuda.ops import Limits, attention, chunked_mlp, rope_phases
 from pixalcuda.runtime import atomic_json
 from pixalcuda.sparse import SparseConv, neighbor_map
 from pixalcuda.weights import sha256_file
@@ -51,6 +52,17 @@ def backend_context(name):
 
 def make_cases(arguments, device):
     cases = []
+    if "cross_attention" in arguments.cases:
+        cross_shape = (arguments.tokens, arguments.heads, arguments.channels // arguments.heads)
+        cross_queries = torch.randn(cross_shape, device=device).transpose(0, 1).unsqueeze(0)
+        cross_keys, cross_values = [torch.randn(arguments.context_tokens, arguments.heads, arguments.channels // arguments.heads,
+                                               device=device).transpose(0, 1).unsqueeze(0) for _ in range(2)]
+        expected = attention(cross_queries, cross_keys, cross_values, min(arguments.query_chunks))
+        for chunk in arguments.cross_query_chunks:
+            cases.append({"name": f"cross-attention-q{chunk}", "expected": expected,
+                          "parameters": {"cross_attention_queries": chunk},
+                          "operation": lambda chunk=chunk: attention(cross_queries, cross_keys, cross_values,
+                                                                     chunk or arguments.tokens)})
     if "attention" in arguments.cases:
         shape = (arguments.tokens, arguments.heads, arguments.channels // arguments.heads)
         queries, keys, values = [torch.randn(shape, device=device).transpose(0, 1).unsqueeze(0) for _ in range(3)]
@@ -64,6 +76,59 @@ def make_cases(arguments, device):
                         return attention(queries, keys, values, chunk)
                     cases.append({"name": f"attention-{backend}-q{chunk}-{layout}", "operation": operation,
                                   "expected": expected, "backend": backend})
+    if "ffn" in arguments.cases:
+        ffn_features = torch.randn(arguments.tokens, arguments.channels, device=device)
+        ffn_first = torch.nn.Linear(arguments.channels, arguments.ffn_hidden).to(device).eval().requires_grad_(False)
+        ffn_second = torch.nn.Linear(arguments.ffn_hidden, arguments.channels).to(device).eval().requires_grad_(False)
+        expected = chunked_mlp(ffn_features, ffn_first, ffn_second, min(arguments.ffn_rows))
+        for rows in arguments.ffn_rows:
+            cases.append({"name": f"ffn-rows{rows}", "expected": expected, "parameters": {"ffn_rows": rows},
+                          "operation": lambda rows=rows: chunked_mlp(ffn_features, ffn_first, ffn_second, rows)})
+    if "flow_block" in arguments.cases:
+        baseline = Limits(attention_queries=min(arguments.query_chunks), cross_attention_queries=min(arguments.query_chunks),
+                          ffn_rows=min(arguments.ffn_rows))
+        block = Block(arguments.channels, arguments.heads, arguments.context_channels, arguments.projection_channels,
+                      arguments.ffn_hidden, baseline).to(device).eval().requires_grad_(False)
+        block_features = torch.randn(arguments.tokens, arguments.channels, device=device)
+        block_modulation = torch.randn(6 * arguments.channels, device=device) * 0.1
+        block_context = {"global": torch.randn(1, arguments.context_tokens, arguments.context_channels, device=device),
+                         "proj": torch.randn(1, arguments.tokens, arguments.projection_channels, device=device)}
+        block_phases = rope_phases(grid_coordinates(arguments.tokens, device)[:, 1:], arguments.channels // arguments.heads)
+        block_prepared = {"kv": block.cross_attn.cross_attn_block.prepare_context(block_context["global"]),
+                          "projection": block.cross_attn.proj_linear(block_context["proj"]).reshape_as(block_features)}
+        def block_operation():
+            return block(block_features, block_modulation, block_context, block_phases, block_prepared, False)
+        expected = block_operation()
+        profiles = [("block-baseline", baseline)]
+        for chunk in arguments.query_chunks:
+            for rows in arguments.ffn_rows:
+                profiles.append((f"block-crossfull-q{chunk}-ffn{rows}",
+                                 Limits(attention_queries=chunk, cross_attention_queries=0, ffn_rows=rows)))
+        for name, limits in profiles:
+            def prepare(limits=limits):
+                block.self_attn.limits = limits
+                block.cross_attn.cross_attn_block.limits = limits
+                block.mlp.rows = limits.ffn_rows
+            cases.append({"name": name, "operation": block_operation, "prepare": prepare,
+                          "expected": expected, "parameters": asdict(limits)})
+    if "sparse_chunks" in arguments.cases:
+        if arguments.sparse_coordinate_checkpoint:
+            checkpoint = torch.load(arguments.sparse_coordinate_checkpoint, map_location="cpu", weights_only=True)
+            chunk_coordinates = checkpoint["value"]["coordinates"][:arguments.sparse_sample_limit].to(device)
+            del checkpoint
+        else:
+            chunk_coordinates = grid_coordinates(arguments.sparse_voxels, device)
+        chunk_features = torch.randn(len(chunk_coordinates), arguments.sparse_channels, device=device)
+        chunk_topology = neighbor_map(chunk_coordinates)
+        chunk_original = SparseConv(arguments.sparse_channels, arguments.sparse_channels,
+                                    Limits(sparse_rows=min(arguments.sparse_chunk_rows))).to(device).eval().requires_grad_(False)
+        expected = chunk_original(chunk_features, chunk_topology)
+        for rows in arguments.sparse_chunk_rows:
+            module = copy.deepcopy(chunk_original)
+            module.rows = rows
+            cases.append({"name": f"sparse-rows{rows}", "expected": expected,
+                          "parameters": {"sparse_rows": rows, "voxels": len(chunk_coordinates)},
+                          "operation": lambda module=module: module(chunk_features, chunk_topology)})
     if "sparse" in arguments.cases:
         coordinates = grid_coordinates(arguments.sparse_voxels, device)
         features = torch.randn(len(coordinates), arguments.sparse_channels, device=device)
@@ -165,7 +230,7 @@ def main(argv=None):
     parser.add_argument("--device", choices=("cuda", "cpu"), default="cuda")
     parser.add_argument("--output", default="outputs/operator-benchmark.json")
     parser.add_argument("--trace-dir")
-    parser.add_argument("--cases", nargs="+", choices=("attention", "sparse", "coordinates", "projection"),
+    parser.add_argument("--cases", nargs="+", choices=("attention", "sparse", "coordinates", "projection", "cross_attention", "ffn", "flow_block", "sparse_chunks"),
                         default=["attention", "sparse", "coordinates", "projection"])
     parser.add_argument("--tokens", type=int, default=4096)
     parser.add_argument("--channels", type=int, default=1536)
@@ -176,6 +241,14 @@ def main(argv=None):
     parser.add_argument("--sparse-rows", type=int, default=4096)
     parser.add_argument("--coordinate-voxels", type=int, default=128)
     parser.add_argument("--query-chunks", nargs="+", type=int, default=[256, 512, 1024, 2048])
+    parser.add_argument("--cross-query-chunks", nargs="+", type=int, default=[256, 1024, 0])
+    parser.add_argument("--context-tokens", type=int, default=5)
+    parser.add_argument("--context-channels", type=int, default=1024)
+    parser.add_argument("--ffn-hidden", type=int, default=8192)
+    parser.add_argument("--ffn-rows", nargs="+", type=int, default=[1024, 4096, 8192])
+    parser.add_argument("--sparse-chunk-rows", nargs="+", type=int, default=[4096, 16384])
+    parser.add_argument("--sparse-coordinate-checkpoint")
+    parser.add_argument("--sparse-sample-limit", type=int, default=262144)
     parser.add_argument("--sdpa-backends", nargs="+", choices=("auto", "math", "efficient", "flash"), default=["auto"])
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--repeats", type=int, default=5)
@@ -184,8 +257,10 @@ def main(argv=None):
     arguments = parser.parse_args(argv)
     positive = (arguments.tokens, arguments.channels, arguments.heads, arguments.projection_channels,
                 arguments.sparse_voxels, arguments.sparse_channels, arguments.sparse_rows,
-                arguments.coordinate_voxels, arguments.repeats, arguments.cpu_threads, *arguments.query_chunks)
-    if any(value <= 0 for value in positive) or arguments.warmup < 0 or arguments.channels % arguments.heads:
+                arguments.coordinate_voxels, arguments.repeats, arguments.cpu_threads, *arguments.query_chunks,
+                arguments.context_tokens, arguments.context_channels, arguments.ffn_hidden, arguments.sparse_sample_limit,
+                *arguments.ffn_rows, *arguments.sparse_chunk_rows)
+    if any(value <= 0 for value in positive) or any(value < 0 for value in arguments.cross_query_chunks) or arguments.warmup < 0 or arguments.channels % arguments.heads:
         parser.error("Sizes/repeats must be positive, warmup nonnegative, and channels divisible by heads")
     if arguments.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("A real NVIDIA CUDA GPU is required; --device cpu is a smoke test, not a T4 benchmark")
@@ -203,6 +278,9 @@ def main(argv=None):
               "source_revision": revision, "source_files": {path.name: sha256_file(path) for path in sorted((root / "pixalcuda").glob("*.py"))},
               "script_sha256": sha256_file(__file__), "configuration": vars(arguments), "cases": [],
               "defaults": asdict(Limits()), "float32_matmul_precision": torch.get_float32_matmul_precision()}
+    if arguments.sparse_coordinate_checkpoint:
+        report["sparse_geometry_source"] = {"sha256": sha256_file(arguments.sparse_coordinate_checkpoint),
+                                            "features": "Random FP32 features on a prefix of frozen decoded geometry; not a full decoder benchmark"}
     if device.type == "cuda":
         report.update(gpu=torch.cuda.get_device_name(device), capability=list(torch.cuda.get_device_capability(device)),
                       gpu_total_bytes=torch.cuda.get_device_properties(device).total_memory,
@@ -226,8 +304,12 @@ def main(argv=None):
             cases = make_cases(arguments, device)
             for case in cases:
                 record = {"name": case["name"], "status": "running"}
+                if "parameters" in case:
+                    record["parameters"] = case["parameters"]
                 report["cases"].append(record)
                 try:
+                    if "prepare" in case:
+                        case["prepare"]()
                     with backend_context(case.get("backend", "auto")):
                         if "expected" in case:
                             actual = case["operation"]()

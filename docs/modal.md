@@ -227,6 +227,31 @@ explicitly select `geometry_1024_max_tokens=32768` and
 memory guarantees; OOM/guard failures never fall back to 512 or fewer steps.
 `gpu_memory_mib` configures GPU-worker **host RAM**, not GPU VRAM capacity.
 
+Owner-controlled `attention_queries`, `cross_attention_queries`, `ffn_rows` and
+`sparse_rows` in `deploy/modal.toml` configure the deployed worker, independently
+of the CLI's conservative defaults. Cross-attention query count 0 means one
+full-query call; self-attention remains explicitly chunked. These are not HTTP
+options and changes invalidate source/config-addressed job reuse. FP32, geometry,
+step schedules and full-key attention are not changed by chunk tuning.
+
+For a bounded, explicitly paid, one-shot operator study, leave the production
+App stopped and run the temporary tuning App in the same `main` environment:
+
+```bash
+modal run --env main -m deploy.modal_tuning --run-id chunks-unique-name \
+  --source-job COMPLETED_1024_JOB_ID --output-dir outputs/modal-tuning
+```
+
+This does not deploy a development server/environment or expose an HTTP route.
+It uses one T4, zero retries, a 600-second GPU-function timeout and no HF Secret
+or weight downloads. It tests random FP32 operators/one transformer block using
+the source run's token count plus a prefix of its decoded geometry with random
+sparse features. It is not pretrained generation or a full-stage speedup claim.
+Two warmups and five timed repeats are separate from profiler captures. Reports
+and traces persist privately under `pixal3d-jobs/benchmarks/RUN_ID` and download
+locally; the temporary App ends with `modal run`. Do not run it concurrently
+with inference; each Function's max-container setting is not an App-wide GPU cap.
+
 Use the returned `job_id` to poll every few seconds, not a long-lived request:
 
 ```bash

@@ -103,7 +103,9 @@ def inference_limits(geometry_resolution=512, conditioning_cache_mb=128):
         raise ValueError("Geometry resolution must be 512 or 1024")
     if type(conditioning_cache_mb) is not int or not 0 <= conditioning_cache_mb <= 2048:
         raise ValueError("Conditioning cache must be an integer between 0 and 2048 MiB")
-    options = {"conditioning_cache_mb": conditioning_cache_mb}
+    options = {"conditioning_cache_mb": conditioning_cache_mb,
+               "attention_queries": SETTINGS.attention_queries, "cross_attention_queries": SETTINGS.cross_attention_queries,
+               "ffn_rows": SETTINGS.ffn_rows, "sparse_rows": SETTINGS.sparse_rows}
     if geometry_resolution == 1024:
         options.update(max_tokens=SETTINGS.geometry_1024_max_tokens, max_voxels=SETTINGS.geometry_1024_max_voxels)
     return Limits(**options)

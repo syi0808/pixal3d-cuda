@@ -36,6 +36,10 @@ class DeploySettings:
     api_max_jobs_per_day: int = 10
     geometry_1024_max_tokens: int = 32768
     geometry_1024_max_voxels: int = 6000000
+    attention_queries: int = 256
+    cross_attention_queries: int = 256
+    ffn_rows: int = 1024
+    sparse_rows: int = 4096
 
     def __post_init__(self):
         if self.environment != "main":
@@ -57,7 +61,9 @@ class DeploySettings:
                     or any(type(item) is not int or item <= 0 for item in value) or value[0] > value[1]):
                 raise ValueError(f"{name} must be [positive request MiB, limit MiB >= request]")
             object.__setattr__(self, name, tuple(value))
-        excluded = {"min_containers", "cpu_cores"}
+        if type(self.cross_attention_queries) is not int or self.cross_attention_queries < 0:
+            raise ValueError("cross_attention_queries must be a nonnegative integer; 0 means all queries")
+        excluded = {"min_containers", "cpu_cores", "cross_attention_queries"}
         for field in fields(self):
             value = getattr(self, field.name)
             if field.name not in excluded and field.type is int and (type(value) is not int or value <= 0):

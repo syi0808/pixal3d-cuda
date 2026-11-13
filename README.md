@@ -148,6 +148,7 @@ source. Intermediate checkpoints are private input-derived data.
 | Option | Default | Effect |
 | --- | ---: | --- |
 | `--attention-queries` | 256 | Bound query rows; all keys remain visible |
+| `--cross-attention-queries` | 256 | Independent flow cross-attention query rows; 0 handles all queries together |
 | `--ffn-rows` | 1024 | Bound FFN intermediate rows |
 | `--sparse-rows` | 4096 | Bound convolution gather/GEMM rows |
 | `--naf-queries` | 128 | Bound projected NAF queries |

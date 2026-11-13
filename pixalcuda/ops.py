@@ -11,6 +11,7 @@ from torch.nn import functional as functional
 @dataclass(frozen=True)
 class Limits:
     attention_queries: int = 256
+    cross_attention_queries: int = 256
     ffn_rows: int = 1024
     sparse_rows: int = 4096
     naf_queries: int = 128
@@ -20,9 +21,11 @@ class Limits:
     sparse_prepack: int = 0
 
     def __post_init__(self):
+        if type(self.cross_attention_queries) is not int or self.cross_attention_queries < 0:
+            raise ValueError("cross_attention_queries must be a nonnegative integer; 0 means all queries")
         if type(self.sparse_prepack) is not int or self.sparse_prepack not in (0, 1):
             raise ValueError("sparse_prepack must be 0 or 1")
-        if self.conditioning_cache_mb < 0 or any(value <= 0 for name, value in vars(self).items() if name not in ("conditioning_cache_mb", "sparse_prepack")):
+        if self.conditioning_cache_mb < 0 or any(value <= 0 for name, value in vars(self).items() if name not in ("conditioning_cache_mb", "sparse_prepack", "cross_attention_queries")):
             raise ValueError("All runtime limits must be positive")
 
 

@@ -153,6 +153,8 @@ def test_modal_geometry_profiles_keep_guards_explicit_and_cache_optional():
     assert high.max_tokens == modal_app.SETTINGS.geometry_1024_max_tokens
     assert high.max_voxels == modal_app.SETTINGS.geometry_1024_max_voxels
     assert high.conditioning_cache_mb == 1024
+    for name in ("attention_queries", "cross_attention_queries", "ffn_rows", "sparse_rows"):
+        assert getattr(high, name) == getattr(modal_app.SETTINGS, name)
 
 
 def test_modal_mapped_images_preserve_index_mapping_and_ignore_client_paths(tmp_path):

@@ -6,11 +6,62 @@ import torch
 
 from pixalcuda.conditioning import Dino
 from pixalcuda.decoder import SparseDecoder, SparseUpsample
-from pixalcuda.flow import Flow, sample_flow
-from pixalcuda.ops import Limits
+from pixalcuda.flow import Attention, FeedForward, Flow, sample_flow
+from pixalcuda.ops import Limits, attention
 from pixalcuda.runtime import Runtime
 from pixalcuda.sparse import SparseConv, neighbor_map
 from pixalcuda.weights import load_model, validate_materialized_tensors
+
+
+def test_cross_attention_has_independent_query_chunks_and_full_query_mode(monkeypatch):
+    torch.manual_seed(21)
+    limits = Limits(attention_queries=2, cross_attention_queries=0)
+    features, context = torch.randn(7, 12), torch.randn(1, 5, 8)
+    chunks = []
+    def record(queries, keys, values, query_chunk):
+        chunks.append((keys.shape[-2], query_chunk))
+        return attention(queries, keys, values, query_chunk)
+    monkeypatch.setattr("pixalcuda.flow.attention", record)
+    cross = Attention(12, 3, 8, limits)
+    self_attention = Attention(12, 3, limits=limits)
+    with torch.inference_mode():
+        full = cross(features, context)
+        prepared = cross.prepare_context(context)
+        torch.testing.assert_close(cross(features, context, prepared=prepared), full)
+        cross.limits = Limits(attention_queries=2, cross_attention_queries=3)
+        torch.testing.assert_close(cross(features, context), full)
+        self_attention(features)
+    assert chunks == [(5, 7), (5, 7), (5, 3), (7, 2)]
+
+
+@pytest.mark.parametrize("rows", [4, 8, 32])
+def test_larger_ffn_chunks_keep_all_rows_and_weights(rows):
+    torch.manual_seed(22)
+    model = FeedForward(12, 32, Limits(ffn_rows=1))
+    features = torch.randn(11, 12)
+    with torch.inference_mode():
+        expected = model(features)
+        model.rows = rows
+        torch.testing.assert_close(model(features), expected, atol=1e-6, rtol=1e-5)
+
+
+@pytest.mark.parametrize("rows", [4, 16, 64])
+def test_larger_sparse_chunks_preserve_tail_rows_and_contributions(rows):
+    torch.manual_seed(23)
+    model = SparseConv(4, 5, Limits(sparse_rows=1))
+    coordinates = torch.nn.functional.pad(torch.cartesian_prod(torch.arange(3), torch.arange(3), torch.arange(3)), (1, 0))
+    features = torch.randn(len(coordinates), 4)
+    topology = neighbor_map(coordinates)
+    with torch.inference_mode():
+        expected = model(features, topology)
+        model.rows = rows
+        torch.testing.assert_close(model(features, topology), expected, atol=1e-6, rtol=1e-5)
+
+
+@pytest.mark.parametrize("value", [-1, True, 1.5])
+def test_cross_attention_query_limit_rejects_invalid_values(value):
+    with pytest.raises(ValueError, match="cross_attention_queries"):
+        Limits(cross_attention_queries=value)
 
 
 @pytest.mark.parametrize("texture", [False, True])

@@ -51,9 +51,12 @@ class Attention(nn.Module):
         queries = self.q_rms_norm(queries)
         if phases is not None:
             queries, keys = apply_rope(queries, phases), apply_rope(keys, phases)
+        query_chunk = self.limits.attention_queries if context is None else self.limits.cross_attention_queries
+        if query_chunk == 0:
+            query_chunk = len(features)
         attended = attention(
             queries.transpose(0, 1).unsqueeze(0), keys.transpose(0, 1).unsqueeze(0),
-            values.transpose(0, 1).unsqueeze(0), self.limits.attention_queries,
+            values.transpose(0, 1).unsqueeze(0), query_chunk,
         ).squeeze(0).transpose(0, 1).reshape(len(features), -1)
         return self.to_out(attended)
 

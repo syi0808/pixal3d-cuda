@@ -34,3 +34,22 @@ def test_operator_benchmark_cpu_trace_records_actual_sdpa_dispatch(tmp_path):
         assert case["trace"]["sdpa_operators"]
         assert case["trace"]["operators"]
     assert len(list((tmp_path / "trace").glob("*.json"))) == 2
+
+
+def test_chunk_tuning_checks_cross_ffn_block_and_frozen_sparse_geometry(tmp_path):
+    checkpoint = tmp_path / "geometry.pt"
+    coordinates = torch.nn.functional.pad(torch.cartesian_prod(torch.arange(2), torch.arange(2), torch.arange(2)), (1, 0))
+    torch.save({"value": {"coordinates": coordinates}}, checkpoint)
+    report = main(["--device", "cpu", "--output", str(tmp_path / "chunks.json"),
+                   "--cases", "cross_attention", "ffn", "flow_block", "sparse_chunks",
+                   "--tokens", "8", "--channels", "24", "--heads", "3", "--projection-channels", "16",
+                   "--context-channels", "8", "--ffn-hidden", "32", "--ffn-rows", "2", "4",
+                   "--query-chunks", "4", "8", "--cross-query-chunks", "4", "8", "0",
+                   "--sparse-coordinate-checkpoint", str(checkpoint), "--sparse-channels", "4",
+                   "--sparse-chunk-rows", "4", "8", "--warmup", "0", "--repeats", "1"])
+    assert report["status"] == "complete" and len(report["cases"]) == 12
+    assert all(case["status"] == "complete" and "max_abs_error" in case for case in report["cases"])
+    assert report["sparse_geometry_source"]["sha256"]
+    assert report["cases"][2]["parameters"]["cross_attention_queries"] == 0
+    profiles = [case["parameters"] for case in report["cases"] if case["name"].startswith("block-crossfull")]
+    assert {(profile["attention_queries"], profile["ffn_rows"]) for profile in profiles} == {(4, 2), (4, 4), (8, 2), (8, 4)}
