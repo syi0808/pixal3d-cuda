@@ -31,10 +31,11 @@ def test_subdivision_preserves_child_bit_order():
         subdivision(coordinates, mask, 2)
 
 
-def test_requantize_512_has_explicit_32_grid_and_unique_tokens():
+@pytest.mark.parametrize("resolution, endpoint", [(512, 31), (1024, 63)])
+def test_requantize_has_explicit_geometry_grid_and_unique_tokens(resolution, endpoint):
     coordinates = torch.tensor([[0, 0, 0, 0], [0, 511, 511, 511], [0, 1, 1, 1]])
-    result = requantize(coordinates)
-    assert result.tolist() == [[0, 0, 0, 0], [0, 31, 31, 31]]
+    result = requantize(coordinates, resolution)
+    assert result.tolist() == [[0, 0, 0, 0], [0, endpoint, endpoint, endpoint]]
 
 
 def test_neighbor_map_rejects_duplicates():

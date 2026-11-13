@@ -21,6 +21,7 @@ def test_checked_in_declarations_have_low_credit_defaults():
     {"gpu_memory_mib": (16384, 8192)}, {"gpu_memory_mib": (0, 8192)}, {"scaledown_window": 1},
     {"app_name": ""}, {"max_upload_bytes": 65 * 1024 ** 2},
     {"environment": "dev"}, {"api_max_jobs_per_day": 0}, {"api_memory_mib": (4096, 1024)},
+    {"geometry_1024_max_tokens": 0}, {"geometry_1024_max_voxels": True},
 ])
 def test_invalid_or_unexpectedly_warm_declarations_are_rejected(changed):
     with pytest.raises(ValueError):

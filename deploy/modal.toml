@@ -22,3 +22,5 @@ max_transforms_bytes = 65536
 max_image_pixels = 16000000
 api_memory_mib = [1024, 4096]
 api_max_jobs_per_day = 10
+geometry_1024_max_tokens = 32768
+geometry_1024_max_voxels = 6000000

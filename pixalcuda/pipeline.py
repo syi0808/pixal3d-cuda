@@ -1,4 +1,4 @@
-"""Fixed 512 geometry cascade with full PBR texture generation."""
+"""Bounded 512/1024 geometry cascades with full PBR texture generation."""
 
 from dataclasses import asdict
 from pathlib import Path
@@ -30,6 +30,7 @@ def finish_export(output_dir, runtime=None):
     runtime = runtime or Runtime.restore(output_dir, "cpu")
     runtime.device = torch.device("cpu")
     runtime.report["postprocess_device"] = str(runtime.device)
+    geometry_resolution = runtime.report["identity"]["geometry_resolution"]
     try:
         with runtime.stage("pbr_export"):
             mesh = runtime.load("mesh")
@@ -37,7 +38,7 @@ def finish_export(output_dir, runtime=None):
                 decoded = runtime.load("shape_decoded")
                 if decoded is None:
                     raise ValueError("GPU shape decoder checkpoint is missing")
-                vertices, faces = decoder_output_to_mesh(decoded["attributes"].numpy(), decoded["coordinates"].numpy(), resolution=512)
+                vertices, faces = decoder_output_to_mesh(decoded["attributes"].numpy(), decoded["coordinates"].numpy(), resolution=geometry_resolution)
                 vertices, faces, cleanup = clean_mesh(vertices, faces, runtime.report["identity"]["target_faces"], return_report=True)
                 mesh = {"vertices": torch.from_numpy(vertices), "faces": torch.from_numpy(faces), "cleanup": cleanup}
                 runtime.save("mesh", mesh)
@@ -48,7 +49,8 @@ def finish_export(output_dir, runtime=None):
                 raise ValueError("GPU texture decoder checkpoint is missing")
             destination = runtime.directory / "result.glb"
             validation = export_pbr(mesh["vertices"].numpy(), mesh["faces"].numpy(), texture["coordinates"][:, 1:].numpy(),
-                                    texture["attributes"].numpy(), destination, runtime.report["identity"]["texture_size"])
+                                    texture["attributes"].numpy(), destination, runtime.report["identity"]["texture_size"],
+                                    geometry_resolution=geometry_resolution)
             runtime.report.update(status="complete", output=str(destination), validation=validation)
         runtime.write_report()
         return destination
@@ -70,7 +72,10 @@ class Pipeline:
     @torch.inference_mode()
     def generate(self, image_path, output_dir, seed=42, texture_size=1024, target_faces=100000,
                  camera="auto", fov_degrees=49.13, remove_background=True, resume=False,
-                 *, views_dir=None, num_views=None, defer_export=False, images=None, camera_metadata=None):
+                 *, views_dir=None, num_views=None, defer_export=False, images=None, camera_metadata=None,
+                 geometry_resolution=512):
+        if type(geometry_resolution) is not int or geometry_resolution not in (512, 1024):
+            raise ValueError("Geometry resolution must be 512 or 1024")
         if sum((bool(image_path), bool(views_dir), images is not None)) != 1:
             raise ValueError("Supply exactly one of image_path, views_dir or mapped images")
         if images is None and camera_metadata is not None:
@@ -91,7 +96,7 @@ class Pipeline:
         identity = {"input_sha256": None if multiview else sha256_file(image_path),
                     "conditioning_mode": "multiview_average" if multiview else "single",
                     "views": manifest.identity if multiview else None,
-                    "seed": seed, "geometry_resolution": 512,
+                    "seed": seed, "geometry_resolution": geometry_resolution,
                     "texture_size": texture_size, "target_faces": target_faces,
                     "camera": "posed" if multiview else camera,
                     "fov_degrees": None if multiview else fov_degrees, "remove_background": remove_background,
@@ -99,7 +104,7 @@ class Pipeline:
                     "flow_precision": "float32", "sparse_decoder_precision": "float32",
                     "limits": asdict(self.limits), "pixal_revision": getattr(self.store, "revision", PIXAL_REVISION),
                     "dino_revision": DINO_REVISION, "moge_revision": MOGE_REVISION, "naf_sha256": NAF_SHA256,
-                    "runtime_schema": 1, "torch": torch.__version__, "cuda_runtime": torch.version.cuda,
+                    "runtime_schema": 2, "torch": torch.__version__, "cuda_runtime": torch.version.cuda,
                     "source_files": {path.name: sha256_file(path) for path in sorted(Path(__file__).parent.glob("*.py"))}}
         if self.store.directory is not None:
             identity["local_checkpoints"] = {
@@ -172,15 +177,18 @@ class Pipeline:
                 if hr_coordinates is None:
                     decoded = runtime.run_model(lambda: SparseDecoder(limits=self.limits), self.store.checkpoint("shape_decoder"),
                         lambda model: model(lr_latent.to(self.device), structure.to(self.device), coordinates_only=True), dtype=torch.float32)
-                    hr_coordinates = requantize(decoded, 512).cpu()
+                    hr_coordinates = requantize(decoded, geometry_resolution).cpu()
                     self.check_tokens(hr_coordinates)
                     runtime.save("coordinates", hr_coordinates)
                     del decoded
             del lr_latent
+            runtime.report["active_counts"] = {"structure_tokens": len(structure), "refinement_tokens": len(hr_coordinates)}
             with runtime.stage("hr_conditioning"):
                 hr_context = runtime.load("hr_conditioning")
                 if hr_context is None:
-                    hr_context = {name: value.cpu() for name, value in self.condition(encoded["1024"], image, 1024, hr_coordinates.to(self.device), camera_params).items()}
+                    hr_context = {name: value.cpu() for name, value in self.condition(
+                        encoded["1024"], image, 1024, hr_coordinates.to(self.device), camera_params,
+                        latent_resolution=geometry_resolution // 16).items()}
                     runtime.save("hr_conditioning", hr_context)
             texture_context = hr_context
             if multiview:
@@ -188,7 +196,8 @@ class Pipeline:
                     texture_context = runtime.load("texture_conditioning")
                     if texture_context is None:
                         texture_context = {name: value.cpu() for name, value in self.condition(
-                            encoded["1024"], image, 1024, hr_coordinates.to(self.device), camera_params, naf_target=1024).items()}
+                            encoded["1024"], image, 1024, hr_coordinates.to(self.device), camera_params,
+                            naf_target=1024, latent_resolution=geometry_resolution // 16).items()}
                         runtime.save("texture_conditioning", texture_context)
             del encoded
             with runtime.stage("shape_hr"):
@@ -210,6 +219,7 @@ class Pipeline:
                     shape_decoded = {"attributes": output.float().cpu(), "coordinates": coordinates.cpu(), "guides": guides}
                     runtime.save("shape_decoded", shape_decoded)
                     del output, coordinates, denormalized
+                runtime.report["active_counts"]["shape_voxels"] = len(shape_decoded["coordinates"])
             with runtime.stage("texture_flow"):
                 texture = runtime.load("texture")
                 if texture is None:
@@ -230,6 +240,7 @@ class Pipeline:
                     texture_data = {"attributes": (output.float() * 0.5 + 0.5).cpu(), "coordinates": coordinates.cpu()}
                     runtime.save("texture_decoded", texture_data)
                     del output, coordinates, latent
+                runtime.report["active_counts"]["texture_voxels"] = len(texture_data["coordinates"])
             release(self.device)
             if defer_export:
                 runtime.report["status"] = "awaiting_export"
@@ -244,13 +255,14 @@ class Pipeline:
             runtime.write_report()
             raise
 
-    def condition(self, encoded, image, size, coordinates, camera, naf_target=512):
+    def condition(self, encoded, image, size, coordinates, camera, naf_target=512, latent_resolution=32):
         if isinstance(image, PreparedViews):
             return self.runtime.run_model(lambda: NAF(self.limits), self.store.naf(),
-                lambda model: build_multiview_conditioning(encoded, image, coordinates, 32, size,
+                lambda model: build_multiview_conditioning(encoded, image, coordinates, latent_resolution, size,
                                                            self.device, model, naf_target), dtype=torch.float32)
         return self.runtime.run_model(lambda: NAF(self.limits), self.store.naf(),
-            lambda model: build_conditioning(encoded.to(self.device), image_tensor(image, size, self.device), coordinates, 32, camera, naf=model), dtype=torch.float32)
+            lambda model: build_conditioning(encoded.to(self.device), image_tensor(image, size, self.device),
+                                             coordinates, latent_resolution, camera, naf=model), dtype=torch.float32)
 
     def noise(self, shape, seed):
         generator = torch.Generator(device=self.device).manual_seed(seed)
@@ -258,7 +270,7 @@ class Pipeline:
 
     def check_tokens(self, coordinates):
         if not 0 < len(coordinates) <= self.limits.max_tokens:
-            raise MemoryError(f"Active tokens={len(coordinates):,}, limit={self.limits.max_tokens:,}. No geometry tokens were pruned and resolution remains 512.")
+            raise MemoryError(f"Active tokens={len(coordinates):,}, limit={self.limits.max_tokens:,}. No geometry tokens were pruned or resolution fallback applied.")
 
     @staticmethod
     def denormalize(latent, normalization):

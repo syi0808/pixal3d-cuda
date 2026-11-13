@@ -100,13 +100,27 @@ def test_http_images_and_camera_mapping_are_forwarded_in_upload_order(count):
 
 
 @pytest.mark.parametrize("options", [{"seed": True}, {"seed": -1}, {"texture_size": 123}, {"target_faces": 0},
-                                     {"resolution": 256}, {"remove_background": "false"}, {"attempt": "../retry"}])
+                                     {"resolution": 256}, {"remove_background": "false"}, {"attempt": "../retry"},
+                                     {"geometry_resolution": 256}, {"geometry_resolution": True},
+                                     {"conditioning_cache_mb": -1}, {"conditioning_cache_mb": 2049},
+                                     {"conditioning_cache_mb": True}, {"conditioning_cache_mb": 512.0}])
 def test_http_rejects_invalid_or_unsupported_settings_before_submission(options):
     backend = Backend()
     with TestClient(create_app(backend, DeploySettings())) as client:
         response = client.post("/api/jobs", files={"image": ("input.png", image_bytes(), "image/png")},
                                data={"options": json.dumps(options)})
         assert response.status_code == 422 and not backend.calls
+
+
+@pytest.mark.parametrize("budget", [0, 512, 1024, 2048])
+def test_http_geometry_and_projection_cache_options_are_forwarded(budget):
+    backend = Backend()
+    with TestClient(create_app(backend, DeploySettings())) as client:
+        response = client.post("/api/jobs", files={"image": ("input.png", image_bytes(), "image/png")},
+                               data={"options": json.dumps({"geometry_resolution": 1024, "conditioning_cache_mb": budget})})
+        assert response.status_code == 202
+        assert backend.calls[0]["options"]["geometry_resolution"] == 1024
+        assert backend.calls[0]["options"]["conditioning_cache_mb"] == budget
 
 
 def test_http_requires_unambiguous_single_or_mapped_inputs():

@@ -67,7 +67,8 @@ class Runtime:
                        "device": str(self.device), "torch": torch.__version__, "stages": [], "models": [],
                        "memory_limit_is_hard": False}
         if self.device.type == "cuda":
-            self.report.update(gpu=torch.cuda.get_device_name(self.device), capability=list(torch.cuda.get_device_capability(self.device)))
+            self.report.update(gpu=torch.cuda.get_device_name(self.device), capability=list(torch.cuda.get_device_capability(self.device)),
+                               gpu_total_bytes=torch.cuda.get_device_properties(self.device).total_memory)
         self.write_report()
 
     def write_report(self):

@@ -27,7 +27,8 @@ def test_modal_request_cache_covers_all_images_cameras_settings_and_source(tmp_p
     assert original["multiview"]
     assert all(".." not in record["name"] for record in original["inputs"])
     assert modal_app.fingerprint(original) == modal_app.fingerprint(modal_app.build_request(**options)[0])
-    for update in ({"seed": 1}, {"texture_size": 512}, {"attempt": "retry-1"}, {"no_rembg": False}):
+    for update in ({"seed": 1}, {"texture_size": 512}, {"attempt": "retry-1"}, {"no_rembg": False},
+                   {"geometry_resolution": 1024}, {"conditioning_cache_mb": 512}, {"conditioning_cache_mb": 1024}):
         changed, _ = modal_app.build_request(**{**options, **update})
         assert modal_app.fingerprint(changed) != modal_app.fingerprint(original)
     altered = copy.deepcopy(metadata)
@@ -50,7 +51,9 @@ def test_modal_single_image_and_validation(tmp_path):
     assert not request["multiview"] and request["cameras"] is None
     assert files == [(path, "input.png")]
     for changed in ({"views_dir": tmp_path}, {"image_path": ""}, {"texture_size": 7}, {"target_faces": 0},
-                    {"camera": "guess"}, {"fov_degrees": float("nan")}):
+                    {"camera": "guess"}, {"fov_degrees": float("nan")}, {"geometry_resolution": 256},
+                    {"geometry_resolution": True}, {"conditioning_cache_mb": -1},
+                    {"conditioning_cache_mb": 2049}, {"conditioning_cache_mb": True}):
         with pytest.raises(ValueError):
             modal_app.build_request(**{**options, **changed})
     for invalid in ("../job", "z" * 64, "a" * 63):
@@ -119,8 +122,9 @@ def test_private_job_deduplication_and_phase_handoff(tmp_path, monkeypatch, view
     assert calls == [job_id]
     pipeline_calls = []
     class Pipeline:
-        def __init__(self, device):
+        def __init__(self, device, limits):
             assert device == "cuda"
+            assert limits.conditioning_cache_mb == request["options"]["conditioning_cache_mb"]
 
         def generate(self, image, output, **options):
             pipeline_calls.append((image, output, options))
@@ -140,6 +144,15 @@ def test_private_job_deduplication_and_phase_handoff(tmp_path, monkeypatch, view
     assert records[job_id]["bytes"] > 0
     assert modal_app.prepare_job.local(job_id, request)["status"] == "complete"
     assert len(pipeline_calls) == 1
+
+
+def test_modal_geometry_profiles_keep_guards_explicit_and_cache_optional():
+    low = modal_app.inference_limits(512, 0)
+    high = modal_app.inference_limits(1024, 1024)
+    assert low.max_tokens == 16384 and low.max_voxels == 1500000 and low.conditioning_cache_mb == 0
+    assert high.max_tokens == modal_app.SETTINGS.geometry_1024_max_tokens
+    assert high.max_voxels == modal_app.SETTINGS.geometry_1024_max_voxels
+    assert high.conditioning_cache_mb == 1024
 
 
 def test_modal_mapped_images_preserve_index_mapping_and_ignore_client_paths(tmp_path):

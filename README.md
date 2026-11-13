@@ -3,7 +3,7 @@
 [![CPU contracts](https://github.com/syi0808/pixal3d-cuda/actions/workflows/tests.yml/badge.svg)](https://github.com/syi0808/pixal3d-cuda/actions/workflows/tests.yml)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/syi0808/pixal3d-cuda/blob/main/notebooks/colab_t4_512.ipynb)
 
-A separate, memory-bounded **PyTorch/CUDA Pixal3D runtime targeting Colab T4**, with fixed **512 geometry** and **embedded PBR-textured GLB** output. No dependency on the MLX checkout; no training or replacement model weights.
+A separate, memory-bounded **PyTorch/CUDA Pixal3D runtime targeting Colab T4**, with **512 geometry by default, opt-in 1024 geometry**, and **embedded PBR-textured GLB** output. No dependency on the MLX checkout; no training or replacement model weights.
 
 **Experimental, with real Colab and Modal T4 acceptance:** the latest Modal run generated the pinned shoe through the authenticated HTTP API, offline T4 inference, CPU export and GLB download. With weights prefetched, GPU stages took **246.92 s**, CPU export **60.69 s**, and the client observed completion after **464.97 s**, including cold workers and preprocessing. Peak PyTorch allocation/reservation was **5.46/5.50 GiB**. The GLB embeds 1024×1024 base-color and metallic/roughness textures. Small visible surface cracks remain; this is not production-quality, general 16 GB fit or quality-parity validation. See [full evidence and limitations](docs/validation.md).
 
@@ -50,6 +50,24 @@ image → foreground crop → MoGe-2 camera
 512 denotes the geometry grid, **not** a dense 512³ allocation, input resolution, or texture size. The implementation preserves the MLX fork's established 512 cascade, including 1024-named refinement/texture weights; it does not simply remove the refinement stage. NAF output sampling uses the reference fork's bounded 512 feature setting. End-to-end quality parity with the reference has not been established.
 
 All four flow schedules retain the official 12 steps. No quantization, automatic resolution fallback, geometry-token pruning, or step reduction. On an explicit resource guard, generation fails with a report rather than silently changing the requested output.
+
+The opt-in `--geometry-resolution 1024` uses a 64³ refinement latent grid,
+64-grid camera projection, and 1024-grid mesh extraction/texture sampling with
+the same pinned refinement/texture checkpoints. Geometry and texture size are
+independent options. The exported GLB records its geometry grid in mesh metadata;
+validation no longer assumes every file came from 512 geometry. Legacy GLBs
+without that metadata report an unknown grid rather than an inferred value.
+For local CUDA generation, explicitly review/increase guards for the larger grid:
+
+```bash
+pixal3d-cuda generate --image object.png --geometry-resolution 1024 \
+  --conditioning-cache-mb 512 --max-tokens 32768 --max-voxels 6000000 \
+  --output-dir outputs/geometry1024-cache512
+```
+
+Larger guards are not a memory guarantee. Use a fresh output directory for each
+cache/geometry setting; resume fingerprints include both. Current 1024 T4
+acceptance and the 512/1024 MiB cache comparison are pending measurement.
 
 ## Linux CLI
 
@@ -134,6 +152,7 @@ source. Intermediate checkpoints are private input-derived data.
 | `--max-tokens` | 16384 | Fail before flow on oversized sparse sets |
 | `--max-voxels` | 1500000 | Fail before oversized subdivision |
 | `--texture-size` | 1024 | 512/1024/2048 PBR output textures |
+| `--geometry-resolution` | 512 | Geometry grid: 512 or experimental 1024; independent of texture size |
 | `--target-faces` | 100000 | Simplification target, not a strict triangle cap |
 
 Smaller chunks can reduce temporary allocations but take longer. Guards are not allocator limits; increasing them may OOM. Neither PyTorch memory reports nor this runtime promise a hard GPU/process memory cap. `report.json` separates per-stage peak allocated/reserved CUDA bytes from sampled process RSS. RSS sampling can miss brief peaks. Different devices/backends are not bitwise reproducible.

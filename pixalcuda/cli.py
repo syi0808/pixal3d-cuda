@@ -46,6 +46,7 @@ def main(argv=None):
     generation.add_argument("--num-views", type=int, help="Use a positive prefix of the mapped images")
     generation.add_argument("--output-dir", default="outputs/run")
     generation.add_argument("--seed", type=int, default=42)
+    generation.add_argument("--geometry-resolution", type=int, choices=(512, 1024), default=512)
     generation.add_argument("--texture-size", type=int, choices=(512, 1024, 2048), default=1024)
     generation.add_argument("--target-faces", type=int, default=100000)
     generation.add_argument("--camera", choices=("auto", "fixed"))
@@ -90,6 +91,7 @@ def main(argv=None):
             not arguments.no_rembg, arguments.resume, views_dir=arguments.views_dir, num_views=arguments.num_views,
             defer_export=arguments.defer_export,
             images=arguments.images, camera_metadata=camera_metadata,
+            geometry_resolution=arguments.geometry_resolution,
         )
         print(f"Saved {'GPU checkpoints' if arguments.defer_export else 'PBR GLB'}: {output}")
 

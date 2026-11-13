@@ -79,6 +79,8 @@ def subdivision(coordinates, mask, max_voxels):
 
 
 def requantize(coordinates, output_resolution=512):
+    if type(output_resolution) is not int or output_resolution not in (512, 1024):
+        raise ValueError("Geometry resolution must be 512 or 1024")
     result = coordinates.clone()
     result[:, 1:] = torch.round((coordinates[:, 1:].double() + 0.5) / 512 * (output_resolution // 16 - 1)).to(result.dtype)
     return torch.unique(result, dim=0, sorted=True)

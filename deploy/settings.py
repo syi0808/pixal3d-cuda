@@ -34,6 +34,8 @@ class DeploySettings:
     max_image_pixels: int = 16_000_000
     api_memory_mib: tuple[int, int] = (1024, 4096)
     api_max_jobs_per_day: int = 10
+    geometry_1024_max_tokens: int = 32768
+    geometry_1024_max_voxels: int = 6000000
 
     def __post_init__(self):
         if self.environment != "main":

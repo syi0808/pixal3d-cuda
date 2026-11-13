@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from pixalcuda.cameras import orbit_camera_metadata
+from pixalcuda.mesh import decoder_output_to_mesh
 from pixalcuda.pipeline import Pipeline, dense_coordinates, finish_export
 from pixalcuda.runtime import Runtime
 
@@ -29,11 +30,16 @@ class ControlledStore:
 
 @pytest.mark.parametrize("input_mode", ["single", "directory", "mapped"])
 @pytest.mark.parametrize("defer_export", [False, True])
-def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_path, monkeypatch, input_mode, defer_export):
+@pytest.mark.parametrize("geometry_resolution", [512, 1024])
+def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_path, monkeypatch, input_mode, defer_export, geometry_resolution):
     multiview = input_mode != "single"
     calls = []
     conditioning_calls = []
     decoded_coordinates = dense_coordinates(3, "cpu")
+    def extract(attributes, coordinates, resolution):
+        assert resolution == geometry_resolution
+        return decoder_output_to_mesh(attributes, coordinates, resolution=resolution)
+    monkeypatch.setattr("pixalcuda.pipeline.decoder_output_to_mesh", extract)
     def run_model(runtime, factory, path, callback, **options):
         name = Path(path).name
         calls.append(name)
@@ -66,8 +72,8 @@ def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_p
         if name == "structure":
             return torch.zeros(1, 8, 16, 16, 16)
         return torch.zeros(8, 32)
-    def condition(pipeline, encoded, image, size, coordinates, camera, naf_target=512):
-        conditioning_calls.append((size, naf_target))
+    def condition(pipeline, encoded, image, size, coordinates, camera, naf_target=512, latent_resolution=32):
+        conditioning_calls.append((size, naf_target, latent_resolution))
         if multiview:
             encoded = encoded[0]
         return {"global": encoded[:, :5], "proj": torch.zeros(1, len(coordinates), 2048)}
@@ -79,7 +85,8 @@ def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_p
     store = ControlledStore()
     store.multiview = multiview
     pipeline = Pipeline("cpu", store=store)
-    options = {"texture_size": 512, "camera": "fixed", "remove_background": False, "defer_export": defer_export}
+    options = {"texture_size": 512, "camera": "fixed", "remove_background": False, "defer_export": defer_export,
+               "geometry_resolution": geometry_resolution}
     if multiview:
         metadata = orbit_camera_metadata()
         if input_mode == "mapped":
@@ -109,9 +116,15 @@ def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_p
     report = json.loads((output / "report.json").read_text())
     assert report["status"] == "complete"
     assert report["validation"]["embedded_pbr"]
+    assert report["validation"]["geometry_resolution"] == geometry_resolution
+    assert report["identity"]["geometry_resolution"] == geometry_resolution
+    assert report["active_counts"]["shape_voxels"] == len(decoded_coordinates)
+    assert report["active_counts"]["texture_voxels"] == len(decoded_coordinates)
     assert len(report["stages"]) == (12 if multiview else 11)
     assert report["identity"]["conditioning_mode"] == ("multiview_average" if multiview else "single")
-    assert ((1024, 1024) in conditioning_calls) == multiview
+    assert (512, 512, 32) in conditioning_calls
+    assert (1024, 512, geometry_resolution // 16) in conditioning_calls
+    assert ((1024, 1024, geometry_resolution // 16) in conditioning_calls) == multiview
     assert "shape_hr" in calls and "texture" in calls
     calls.clear()
     pipeline.generate(None if multiview else image, output, **options, resume=True)
@@ -120,7 +133,15 @@ def test_complete_pipeline_wiring_and_resume_with_controlled_model_outputs(tmp_p
     assert not calls
     report = json.loads((output / "report.json").read_text())
     assert "mesh_cleanup" in report
+    with pytest.raises(ValueError, match="changed"):
+        pipeline.generate(None if multiview else image, output, **{**options, "geometry_resolution": 1536 - geometry_resolution}, resume=True)
     if multiview:
         Image.new("RGB", (32, 32), "blue").save(tmp_path / metadata["frames"][-1]["file_path"])
         with pytest.raises(ValueError, match="changed"):
             pipeline.generate(None, output, **options, resume=True)
+
+
+@pytest.mark.parametrize("resolution", [256, 2048, True, 1024.0])
+def test_unsupported_geometry_is_rejected_before_loading_models(tmp_path, resolution):
+    with pytest.raises(ValueError, match="Geometry resolution"):
+        Pipeline("cpu", store=ControlledStore()).generate(tmp_path / "missing.png", tmp_path / "run", geometry_resolution=resolution)

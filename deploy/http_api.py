@@ -28,6 +28,8 @@ class JobOptions(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     seed: int = Field(default=42, ge=0, le=2 ** 63 - 1)
+    geometry_resolution: Literal[512, 1024] = 512
+    conditioning_cache_mb: int = Field(default=128, ge=0, le=2048, description="Per-flow projection cache budget in MiB")
     texture_size: Literal[512, 1024, 2048] = 1024
     target_faces: int = Field(default=100000, ge=4, le=1_000_000)
     camera: Literal["auto", "fixed"] = "auto"
@@ -77,7 +79,7 @@ def public_job(record):
 
 def create_app(backend, settings):
     """Create the application; production authentication is enforced at Modal's edge."""
-    app = FastAPI(title="Pixal3D CUDA", description="Proxy-authenticated asynchronous 512/PBR generation")
+    app = FastAPI(title="Pixal3D CUDA", description="Proxy-authenticated asynchronous 512/1024 PBR generation")
     body_limit = settings.max_total_image_bytes + settings.max_transforms_bytes + 128 * 1024
     app.add_middleware(BodyLimitMiddleware, limit=body_limit)
     storage_lock = asyncio.Lock()
@@ -91,6 +93,7 @@ def create_app(backend, settings):
     @app.get("/api/health")
     async def health():
         return {"status": "ok", "environment": settings.environment, "geometry_resolution": 512,
+                "supported_geometry_resolutions": [512, 1024], "max_conditioning_cache_mb": 2048,
                 "max_views": settings.max_views, "max_new_jobs_per_utc_day": settings.api_max_jobs_per_day}
 
     @app.post("/api/jobs", status_code=202, openapi_extra={

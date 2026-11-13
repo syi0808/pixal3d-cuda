@@ -198,10 +198,32 @@ curl --fail-with-body "$BASE_URL/api/jobs" \
 
 For unposed single-image mode, use one `image=@object.png` field and omit
 `transforms`. Never mix `image` and `images`. Options accept seed, texture size,
-face target, background removal and an explicit retry `attempt` tag. Single-image
-camera/FOV overrides must not accompany mapped images. Geometry remains 512;
-resolution, precision, step count and GPU-type overrides are not HTTP options.
+face target, background removal, `geometry_resolution` (512 default or 1024),
+`conditioning_cache_mb` (128 default, integer 0-2048 MiB) and an explicit retry
+`attempt` tag. The cache budget covers per-flow static image projections; zero
+disables that projection cache, not the existing global-context K/V cache.
+Single-image camera/FOV overrides must not accompany mapped images. Precision,
+step count, chunk sizes, resource guards and GPU type are not HTTP options.
 Uploads are validated on CPU before any GPU dispatch; URLs are not fetched.
+
+For example, one 1024-geometry request with a 512 MiB projection cache:
+
+```bash
+curl --fail-with-body "$BASE_URL/api/jobs" \
+  -H "Modal-Key: $PIXAL_PROXY_KEY" -H "Modal-Secret: $PIXAL_PROXY_SECRET" \
+  -F "image=@object.png" \
+  -F 'options={"geometry_resolution":1024,"conditioning_cache_mb":512}'
+```
+
+The administrative SDK client accepts the matching `--geometry-resolution` and
+`--conditioning-cache-mb` flags. Cache/geometry settings participate in the job
+hash and runtime resume identity, so different budgets cannot accidentally reuse
+another case's completed result or intermediate checkpoints. The 512 profile
+keeps 16,384-token/1,500,000-voxel guards. For 1024, checked-in declarations
+explicitly select `geometry_1024_max_tokens=32768` and
+`geometry_1024_max_voxels=6000000`. These are starting guard values, not measured
+memory guarantees; OOM/guard failures never fall back to 512 or fewer steps.
+`gpu_memory_mib` configures GPU-worker **host RAM**, not GPU VRAM capacity.
 
 Use the returned `job_id` to poll every few seconds, not a long-lived request:
 

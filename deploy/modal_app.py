@@ -96,9 +96,23 @@ def validate_image_files(files, multiview):
             source.load()
 
 
+def inference_limits(geometry_resolution=512, conditioning_cache_mb=128):
+    from pixalcuda.ops import Limits
+
+    if type(geometry_resolution) is not int or geometry_resolution not in (512, 1024):
+        raise ValueError("Geometry resolution must be 512 or 1024")
+    if type(conditioning_cache_mb) is not int or not 0 <= conditioning_cache_mb <= 2048:
+        raise ValueError("Conditioning cache must be an integer between 0 and 2048 MiB")
+    options = {"conditioning_cache_mb": conditioning_cache_mb}
+    if geometry_resolution == 1024:
+        options.update(max_tokens=SETTINGS.geometry_1024_max_tokens, max_voxels=SETTINGS.geometry_1024_max_voxels)
+    return Limits(**options)
+
+
 def validate_request_inputs(request, directory):
     from pixalcuda.cameras import uploaded_camera_metadata, view_filename
 
+    inference_limits(request["options"]["geometry_resolution"], request["options"]["conditioning_cache_mb"])
     inputs = request["inputs"]
     if not request["multiview"] and len(inputs) != 1:
         raise ValueError("Single-image mode requires exactly one image")
@@ -199,9 +213,10 @@ def infer_job(job_id):
             raise ValueError("Deployed GPU worker no longer matches this request")
         mark(job_id, "running_gpu")
         options = {**request["options"], "remove_background": False, "defer_export": True}
+        limits = inference_limits(options["geometry_resolution"], options.pop("conditioning_cache_mb"))
         if request["multiview"]:
             options["views_dir"] = directory / "prepared"
-        Pipeline("cuda").generate(None if request["multiview"] else directory / "prepared" / "input.png",
+        Pipeline("cuda", limits=limits).generate(None if request["multiview"] else directory / "prepared" / "input.png",
                                   directory / "run", **options)
         mark(job_id, "queued_export")
         call = export_job.spawn(job_id)
@@ -228,11 +243,12 @@ def export_job(job_id):
 
 
 def build_request(image_path, views_dir, seed, texture_size, target_faces, camera, fov_degrees, no_rembg, attempt,
-                  *, images=None, transforms=None):
+                  *, images=None, transforms=None, geometry_resolution=512, conditioning_cache_mb=128):
     from pixalcuda.cameras import uploaded_camera_metadata, view_filename
     from pixalcuda.multiview import read_mapped_views, read_views
     from pixalcuda.weights import MULTIVIEW_REVISION, PIXAL_REVISION, sha256_file
 
+    inference_limits(geometry_resolution, conditioning_cache_mb)
     if sum((bool(image_path), bool(views_dir), images is not None)) != 1:
         raise ValueError("Supply exactly one of --image-path, --views-dir or --images")
     if (images is not None) != bool(transforms):
@@ -258,10 +274,11 @@ def build_request(image_path, views_dir, seed, texture_size, target_faces, camer
     else:
         files = [(Path(image_path).expanduser().resolve(), "input.png")]
     validate_image_files(files, multiview)
-    request = {"schema": 2, "source": source_identity(), "gpu": GPU, "multiview": multiview,
+    request = {"schema": 3, "source": source_identity(), "gpu": GPU, "multiview": multiview,
                "revision": MULTIVIEW_REVISION if multiview else PIXAL_REVISION, "cameras": cameras,
                "inputs": [{"name": name, "sha256": sha256_file(path)} for path, name in files], "attempt": attempt,
                "options": {"seed": seed, "texture_size": texture_size, "target_faces": target_faces,
+                           "geometry_resolution": geometry_resolution, "conditioning_cache_mb": conditioning_cache_mb,
                            "camera": camera, "fov_degrees": fov_degrees, "remove_background": not no_rembg}}
     return request, files
 
@@ -291,6 +308,7 @@ class HttpBackend:
                 not options["remove_background"], options["attempt"],
                 images=images if transforms is not None else None,
                 transforms=metadata_path if transforms is not None else None,
+                geometry_resolution=options["geometry_resolution"], conditioning_cache_mb=options["conditioning_cache_mb"],
             )
         job_id = fingerprint(request)
         previous = records.get(job_id)
@@ -337,7 +355,8 @@ def api():
 def run_client(action: str = "generate", image_path: str = "", views_dir: str = "", multiview: bool = False,
          seed: int = 42, texture_size: int = 1024, target_faces: int = 100000, camera: str = "auto",
          fov_degrees: float = 49.13, no_rembg: bool = False, attempt: str = "", job_id: str = "",
-         output_dir: str = "outputs/modal", wait_seconds: int = 3600, images=None, transforms=None):
+         output_dir: str = "outputs/modal", wait_seconds: int = 3600, images=None, transforms=None,
+         geometry_resolution: int = 512, conditioning_cache_mb: int = 128):
     if action == "plan":
         print(json.dumps({"scope": "Local declarations only; no remote diff, deployment or spend cap",
                           "environment": SETTINGS.environment,
@@ -352,7 +371,8 @@ def run_client(action: str = "generate", image_path: str = "", views_dir: str = 
         return
     if action == "generate":
         request, files = build_request(image_path, views_dir, seed, texture_size, target_faces, camera,
-                                      fov_degrees, no_rembg, attempt, images=images, transforms=transforms)
+                                      fov_degrees, no_rembg, attempt, images=images, transforms=transforms,
+                                      geometry_resolution=geometry_resolution, conditioning_cache_mb=conditioning_cache_mb)
         job_id = fingerprint(request)
         if job_id not in records:
             with jobs.batch_upload(force=True) as batch:
@@ -401,6 +421,8 @@ if __name__ == "__main__":
     parser.add_argument("--transforms")
     parser.add_argument("--multiview", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--geometry-resolution", type=int, choices=(512, 1024), default=512)
+    parser.add_argument("--conditioning-cache-mb", type=int, default=128, help="Per-flow projection cache budget, 0-2048 MiB")
     parser.add_argument("--texture-size", type=int, choices=(512, 1024, 2048), default=1024)
     parser.add_argument("--target-faces", type=int, default=100000)
     parser.add_argument("--camera", choices=("auto", "fixed"), default="auto")

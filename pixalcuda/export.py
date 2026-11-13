@@ -17,7 +17,9 @@ def clean_mesh(vertices, faces, target_faces=100000, return_report=False):
     return (vertices, faces, report) if return_report else (vertices, faces)
 
 
-def export_pbr(vertices, faces, voxel_coordinates, attributes, destination, texture_size=1024):
+def export_pbr(vertices, faces, voxel_coordinates, attributes, destination, texture_size=1024, *, geometry_resolution=512):
+    if type(geometry_resolution) is not int or geometry_resolution not in (512, 1024):
+        raise ValueError("Geometry resolution must be 512 or 1024")
     if texture_size not in (512, 1024, 2048):
         raise ValueError("Supported texture sizes are 512, 1024, and 2048")
     if not np.isfinite(attributes).all() or len(attributes) == 0:
@@ -30,7 +32,7 @@ def export_pbr(vertices, faces, voxel_coordinates, attributes, destination, text
     covered = np.where(mask)
     positions = (unwrapped[triangles[face_indices[covered]]] * barycentric[covered][..., None]).sum(1)
     sampled = np.empty((len(positions), attributes.shape[1]), dtype=np.float32)
-    sampler = VoxelSampler(voxel_coordinates, attributes)
+    sampler = VoxelSampler(voxel_coordinates, attributes, grid_size=geometry_resolution)
     for start in range(0, len(positions), 32768):
         sampled[start:start + 32768] = sampler.sample(positions[start:start + 32768])
     rgba = np.zeros((texture_size, texture_size, 4), dtype=np.uint8)
@@ -53,6 +55,7 @@ def export_pbr(vertices, faces, voxel_coordinates, attributes, destination, text
         vertices=unwrapped * np.array([-1, 1, -1]), faces=triangles, process=False,
         vertex_normals=normals[mapping] * np.array([-1, 1, -1]),
         visual=trimesh.visual.TextureVisuals(uv=export_uvs, material=material),
+        metadata={"geometry_resolution": geometry_resolution},
     )
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -74,6 +77,9 @@ def validate_glb(path):
     if kind != 0x4E4F534A:
         raise ValueError("Missing glTF JSON chunk")
     document = json.loads(data[20:20 + length])
+    geometry_resolution = document["meshes"][0].get("extras", {}).get("geometry_resolution")
+    if geometry_resolution is not None and (type(geometry_resolution) is not int or geometry_resolution not in (512, 1024)):
+        raise ValueError("Unsupported geometry resolution metadata")
     primitive = document["meshes"][0]["primitives"][0]
     material = document["materials"][primitive["material"]]["pbrMetallicRoughness"]
     for name in ("baseColorTexture", "metallicRoughnessTexture"):
@@ -90,4 +96,4 @@ def validate_glb(path):
     ):
         raise ValueError("Exported GLB must contain finite unit vertex normals")
     return {"glb_bytes": len(data), "triangles": sum(len(mesh.faces) for mesh in meshes), "embedded_pbr": True,
-            "unit_normals": True, "geometry_resolution": 512}
+            "unit_normals": True, "geometry_resolution": geometry_resolution}
