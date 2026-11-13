@@ -89,6 +89,27 @@ def test_http_submit_poll_and_download_are_separate_from_generation():
         assert client.get(f"/api/jobs/{JOB_ID}/result.glb").status_code == 410
 
 
+@pytest.mark.parametrize("allowed", [False, True])
+def test_background_removal_requires_operator_and_request_opt_in(allowed):
+    backend = Backend()
+    with TestClient(create_app(backend, replace(DeploySettings(), allow_rmbg=allowed))) as client:
+        health = client.get("/api/health").json()
+        assert health["rmbg_enabled"] is allowed and health["background_removal_default"] is False
+        response = client.post("/api/jobs", files={"image": ("input.png", image_bytes(), "image/png")})
+        assert response.status_code == 202 and backend.calls[-1]["options"]["remove_background"] is False
+        backend.calls.clear()
+        response = client.post("/api/jobs", files={"image": ("input.png", image_bytes(), "image/png")},
+                               data={"options": json.dumps({"remove_background": True})})
+        assert response.status_code == (202 if allowed else 422)
+        if allowed:
+            assert backend.calls[-1]["options"]["remove_background"] is True
+        else:
+            assert not backend.calls and "license" in response.json()["detail"]
+        response = client.post("/api/jobs", files={"image": ("input.png", image_bytes(), "image/png")},
+                               data={"options": json.dumps({"allow_rmbg": True})})
+        assert response.status_code == 422
+
+
 @pytest.mark.parametrize("count", [1, 3, 5, 16])
 def test_http_images_and_camera_mapping_are_forwarded_in_upload_order(count):
     backend = Backend()

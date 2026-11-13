@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -36,7 +37,12 @@ class Report:
 
 
 @pytest.mark.parametrize("multiview", [False, True])
-def test_native_worker_delegates_models_conditioning_and_export(tmp_path, monkeypatch, multiview):
+@pytest.mark.parametrize("remove_background", [False, True])
+def test_native_worker_delegates_models_conditioning_and_export(tmp_path, monkeypatch, multiview, remove_background):
+    def forbidden_model(**options):
+        raise AssertionError("Pipeline initialization must not eagerly load background-removal weights")
+    rembg_module = SimpleNamespace(BiRefNet=forbidden_model)
+    monkeypatch.setitem(sys.modules, "pixal3d.pipelines.rembg", rembg_module)
     snapshot = tmp_path / "snapshot"
     snapshot.mkdir()
     config_file = "pipeline_mv.json" if multiview else "pipeline.json"
@@ -44,7 +50,7 @@ def test_native_worker_delegates_models_conditioning_and_export(tmp_path, monkey
     (snapshot / config_file).write_text(json.dumps(config))
     image = tmp_path / "input.png"
     Image.new("RGBA", (20, 32), (80, 30, 20, 128)).save(image)
-    identity = {"inputs": [{"path": str(image)}], "multiview": multiview, "remove_background": True,
+    identity = {"inputs": [{"path": str(image)}], "multiview": multiview, "remove_background": remove_background,
                 "low_vram": True, "geometry_resolution": 1024, "texture_size": 4096, "target_faces": 1000000,
                 "seed": 42, "max_tokens": 49152, "camera": "fixed", "fov_degrees": 49.13, "save_reference": True}
     if multiview:
@@ -65,6 +71,8 @@ def test_native_worker_delegates_models_conditioning_and_export(tmp_path, monkey
     def init(**options):
         calls.append(("init", options))
         assert Path(options["model_path"]).is_dir()
+        config = json.loads((Path(options["model_path"]) / config_file).read_text())
+        native.rembg_model = rembg_module.BiRefNet(**config["args"]["rembg_model"]["args"])
         return native
     def load_views(directory, rembg):
         metadata = json.loads((Path(directory) / "transforms.json").read_text())
@@ -81,10 +89,15 @@ def test_native_worker_delegates_models_conditioning_and_export(tmp_path, monkey
         return glb
     assert not (Path(pipeline.__file__).parent / "flow.py").exists()
     assert not (Path(pipeline.__file__).parent / "export.py").exists()
-    bundle = {"pixal": str(snapshot), "config_file": config_file, "rembg": "/pinned/rembg", "dino": "/pinned/dino"}
+    bundle = {"pixal": str(snapshot), "config_file": config_file, "dino": "/pinned/dino"}
+    if remove_background:
+        bundle["rembg"] = "/pinned/rembg"
     report = Report(tmp_path)
     result = upstream_worker.execute({"identity": identity, "bundle": bundle}, tmp_path, entry, export, report)
     assert result.is_file() and report.data["status"] == "complete"
+    assert rembg_module.BiRefNet is forbidden_model and native.rembg_model.model is None
+    assert report.data["background_removal"]["requested"] is remove_background
+    assert not report.data["background_removal"]["loaded"]
     assert report.data["conditioning"]["tex_1024"]["naf_target_size"] == 1024
     assert all(config["model_name"] == "/pinned/dino" for config in configs.values())
     generation = next(options for name, options in calls if name in ("run", "run_mv"))
@@ -153,7 +166,8 @@ def test_individual_native_build_layers_select_only_one_extension(tmp_path, monk
 
 
 @pytest.mark.parametrize("multiview", [False, True])
-def test_offline_native_prefetch_includes_configs_and_official_backbone_distribution(tmp_path, monkeypatch, multiview):
+@pytest.mark.parametrize("rembg", [False, True])
+def test_offline_native_prefetch_includes_configs_and_official_backbone_distribution(tmp_path, monkeypatch, multiview, rembg):
     calls = []
     def snapshot(repo, **options):
         calls.append((repo, options))
@@ -167,9 +181,11 @@ def test_offline_native_prefetch_includes_configs_and_official_backbone_distribu
     monkeypatch.setattr(upstream_weights, "snapshot_download", snapshot)
     monkeypatch.setattr(upstream_weights, "naf_weights", lambda: tmp_path / "naf.pth")
     monkeypatch.setattr(upstream_weights, "hf_hub_download", lambda *arguments, **options: str(tmp_path / "moge.pt"))
-    result = upstream_weights.UpstreamStore(multiview=multiview).resolve()
+    result = upstream_weights.UpstreamStore(multiview=multiview).resolve(**({"rembg": True} if rembg else {}))
     assert all(options["local_files_only"] is True for repo, options in calls)
     assert calls[1][0] == "camenduru/dinov3-vitl16-pretrain-lvd1689m"
+    assert ("rembg" in result) is rembg
+    assert any(repo == "briaai/RMBG-2.0" for repo, options in calls) is rembg
     assert len(calls[0][1]["allow_patterns"]) == 15
     assert result["config_file"] == ("pipeline_mv.json" if multiview else "pipeline.json")
     assert ("moge" in result) != multiview
@@ -224,6 +240,10 @@ def test_default_cli_is_native_and_removed_entry_points_are_rejected(tmp_path, m
     assert calls[0]["low_vram"] is True and calls[0]["attention_backend"] == "sdpa"
     assert calls[0]["optimizations"].share_dino and calls[0]["optimizations"].sparse_projection
     assert calls[1]["geometry_resolution"] == 1024 and calls[1]["texture_size"] == 4096
+    assert calls[1]["remove_background"] is False
+    calls.clear()
+    main(["generate", "--image", str(tmp_path / "input.png"), "--remove-background"])
+    assert calls[1]["remove_background"] is True
     calls.clear()
     main(["generate", "--image", str(tmp_path / "input.png"), "--reference"])
     assert not calls[0]["optimizations"].share_dino and calls[0]["optimizations"].conditioning_cache_mb == 0
@@ -237,6 +257,7 @@ def test_default_cli_is_native_and_removed_entry_points_are_rejected(tmp_path, m
 @pytest.mark.parametrize("arguments", [
     ["--geometry-resolution", "512"], ["--conditioning-cache-mb", "-1"], ["--defer-export"],
     ["--num-views", "0"], ["--num-views", "2"], ["--transforms", "not-opened.json"],
+    ["--remove-background", "--no-rembg"],
 ])
 def test_cli_rejects_removed_flags_or_invalid_modes_before_execution(arguments):
     from pixalcuda.cli import main
@@ -253,6 +274,7 @@ def test_benchmark_is_dry_run_without_model_downloads_or_cuda(tmp_path, monkeypa
     monkeypatch.setattr(torch.cuda, "is_available", forbidden)
     plan = benchmark_upstream.main(["--image", str(tmp_path / "not-opened.png"), "--output-dir", str(tmp_path / "not-created")])
     assert plan["execute"] is False and not (tmp_path / "not-created").exists()
+    assert plan["remove_background"] is False
 
 
 def test_explicit_no_matting_preserves_framing_and_composites_alpha(tmp_path):

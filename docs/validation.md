@@ -3,7 +3,42 @@
 > The pretrained GPU results below apply only to the archived v0.1.x runtime.
 > The official v0.2 rewrite has CPU contract tests but no native GPU acceptance yet.
 
+## Optional RMBG default policy
+
+Subsequent 2026-11-13 update: RMBG-2.0 is excluded from default snapshot downloads,
+pipeline initialization, CLI generation and HTTP requests. The server additionally
+uses `allow_rmbg=false`: clients cannot force its use or enable this operator flag
+through HTTP. Explicit licensed opt-in remains possible, without a second 3D
+runtime or a silent replacement model. Existing cached matting weights are not
+automatically used or deleted.
+
+**190 CPU tests passed.** Tests run the pinned original `from_pretrained` and
+RGBA `preprocess_image` method bodies with tiny sampler/model doubles, verify
+zero eager matting construction, device/offload behavior, factory restoration,
+SV/MV optional downloads, accurate ready markers and pre-admission rejection.
+These are not pretrained GPU or full-asset quality tests.
+
+Main was redeployed in 44.458 seconds using the cached native layers. Observed:
+authenticated health 200, unauthenticated health 401,
+`background_removal_default=false`, `rmbg_enabled=false`, and an explicit matting
+request rejected with 422. Default **CPU prefetch passed** with `rembg=false` and
+automatic-camera weights ready. The earlier RMBG access 403 is therefore no
+longer a default cache-readiness blocker. No GPU generation was submitted in
+this update, and zero active containers were observed afterward.
+
+Default single-image RGB/RGBA keeps supplied framing and composites alpha on
+black, without automatic matting/crop; mapped views retain calibrated framing.
+Use already prepared images, not raw photos expecting automatic extraction.
+This is an intentional preprocessing-default change, not an original default
+preprocessing-parity claim. The previous GPU/kernel-validation limitations below
+still apply; no new GLB or speedup is claimed.
+
+[Policy and license opt-in](background-removal.md),
+[sanitized evidence](evidence/optional-rembg-2026-11-13.json).
+
 ## v0.2 Modal main rollout
+
+The initial checkpoint below predates the optional-RMBG policy above.
 
 2026-11-13: the CUDA 12.4/Python 3.12/Torch 2.6 SM89 image built successfully,
 including nvdiffrast, CuMesh, FlexGEMM, o_voxel and NATTEN 0.21.0. Build failures

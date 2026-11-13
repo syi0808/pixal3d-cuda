@@ -9,8 +9,8 @@ v0.2부터 기본/대체 backend 구분 없이 공식 Pixal3D 경로 하나만 �
 
 - 공식 low-VRAM / SDPA / FlexGEMM / BF16 flow / FP16 decoder를 사용한다.
 - 원본 texture NAF 1024와 CUDA remesh/PBR exporter를 유지한다.
-- Modal SM89 native 이미지 빌드와 main HTTP/인증은 통과했다. pretrained 생성은
-  RMBG-2.0 접근 403에 막혀 있으며 원본 CLI 동등성/속도 개선은 아직 미검증이다.
+- Modal SM89 native 이미지 빌드와 main HTTP/인증은 통과했다. RMBG 기본 의존성은
+  제거했지만 pretrained 생성, 원본 CLI 동등성/속도 개선은 아직 미검증이다.
 - CPU 계약 테스트는 wiring/입력/상태/출력 구조만 검증한다.
 - DINO 공유/특징 cache, active projection, flow-scoped conditioning cache를 적용했다.
   pinned 원본 함수와의 CPU 비교를 추가했지만 pretrained GPU 동등성은 미검증이다.

@@ -40,6 +40,8 @@ frame 0은 canonical front가 권장되며 다른 경우 출력 기준 frame이 
 밖으로 나갈 수 없다.
 
 입력 이미지는 카메라에 맞춰 framing되어 있어야 하며 recrop하지 않는다. alpha가
-있으면 존중하고, matting은 원본 BiRefNet 경로를 사용한다. `--no-rembg`로 생략할 수 있다.
+있으면 존중한다. 기본값은 matting 없음이며 이미 배경이 제거된 입력을 사용해야 한다.
+RMBG-2.0은 별도 라이선스 검토 후 `--remove-background`로만 선택하며 서버 opt-in도
+필요하다. [배경 제거 정책](background-removal.md)을 참조한다.
 임의의 여러 사진에 자동 카메라 calibration을 제공하는 기능은 아니다.
 기본 출력은 1024 geometry / 4096 texture / 원본 remesh다.

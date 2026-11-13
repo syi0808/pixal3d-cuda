@@ -39,6 +39,7 @@ def main(argv=None):
     parser.add_argument("--profiles", nargs="+", choices=("optimized", "reference"), default=["optimized", "reference"])
     parser.add_argument("--geometry-resolution", type=int, choices=(1024, 1536), default=1024)
     parser.add_argument("--texture-size", type=int, choices=(1024, 4096), default=4096)
+    parser.add_argument("--remove-background", action="store_true", help="Requires server allow_rmbg and separate RMBG-2.0 license review")
     parser.add_argument("--timeout-seconds", type=int, default=2100)
     parser.add_argument("--execute", action="store_true", help="Actually upload and generate; may consume Modal credits")
     arguments = parser.parse_args(argv)
@@ -50,7 +51,7 @@ def main(argv=None):
     plan = {"execute": arguments.execute, "base_url": arguments.base_url.rstrip("/"),
             "image_sha256": sha256_file(arguments.image), "profiles": arguments.profiles,
             "geometry_resolution": arguments.geometry_resolution, "texture_size": arguments.texture_size,
-            "target_faces": 1000000, "seed": 42, "sequential": True}
+            "target_faces": 1000000, "seed": 42, "sequential": True, "remove_background": arguments.remove_background}
     print(json.dumps(plan, indent=2), flush=True)
     if not arguments.execute:
         return plan
@@ -71,12 +72,15 @@ def main(argv=None):
         metadata = health.json()
         if metadata.get("runtime") != "official" or metadata.get("gpu") != "L4":
             raise RuntimeError("Endpoint does not identify the declared official L4 runtime")
+        if arguments.remove_background and not metadata.get("rmbg_enabled", False):
+            raise RuntimeError("RMBG-2.0 is disabled on the server; no generation submitted")
         atomic_json(arguments.output_dir / "health.json", {"unauthenticated_status": unauthenticated.status_code, **metadata})
         for profile in arguments.profiles:
             destination = arguments.output_dir / profile
             destination.mkdir()
             options = {"seed": 42, "geometry_resolution": arguments.geometry_resolution, "texture_size": arguments.texture_size,
-                       "target_faces": 1000000, "reference": profile == "reference", "attempt": attempt + "-" + profile}
+                       "target_faces": 1000000, "reference": profile == "reference", "attempt": attempt + "-" + profile,
+                       "remove_background": arguments.remove_background}
             started = time.monotonic()
             with arguments.image.open("rb") as source:
                 submitted = client.post(base + "/api/jobs", headers=headers,

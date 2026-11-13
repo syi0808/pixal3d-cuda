@@ -13,8 +13,9 @@ bounded static conditioning reuse are now enabled; `--reference` disables these
 hooks in the same official pipeline. The MLX checkout is not modified.
 
 **Status: native SM89 image built and Modal main HTTP/authentication verified;
-pretrained generation is blocked by RMBG-2.0 access (HTTP 403).** See
-[deployment evidence and remaining checks](docs/validation.md#v02-modal-main-rollout).
+pretrained generation remains unvalidated. RMBG-2.0 is now disabled/optional,
+not a default download or initialization dependency.** See
+[deployment evidence and remaining checks](docs/validation.md#optional-rmbg-default-policy).
 Historical T4 GLBs/timings belong to the
 archived implementation and are not acceptance evidence for this rewrite.
 
@@ -56,8 +57,10 @@ sources outside this repository, then explicitly compiles native extensions.
 It does not launch cloud compute. The CUDA 12.4/Python 3.12/SM89 recipe built on Modal;
 this is not validation of every local/Colab environment or pretrained execution.
 The upstream example wheels target another GPU/Python ABI and are deliberately
-not reused. Model access and each model's license must be reviewed separately,
-including BiRefNet/RMBG-2.0. The wrapper pins local model paths and the NAF source;
+not reused. Model access and each model's license must be reviewed separately.
+Default inputs must already be prepared/framed; RGBA alpha is composited on black
+without automatic crop/matting. See [optional background removal and license opt-in](docs/background-removal.md).
+The wrapper pins local model paths and the NAF source;
 it does not change their network computations.
 
 Mapped inputs retain the image/camera mapping API:

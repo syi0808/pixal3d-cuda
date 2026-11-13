@@ -16,6 +16,7 @@ import psutil
 import torch
 
 from .pipeline import validate_pbr_glb
+from .background import deferred_background_removal
 from .optimizations import OptimizationOptions, OptimizationSession
 from .runtime import atomic_json
 from .upstream_sources import lock, verify_source
@@ -147,14 +148,18 @@ def execute(request, directory, entry, exporter, report, optimization_session=No
     for config in entry.IMAGE_COND_CONFIGS.values():
         config["model_name"] = bundle["dino"]
     with report.stage("load_pipeline"):
-        local = local_pipeline_config(bundle, directory / "pipeline-config")
-        pipeline = entry.init_pipeline(model_path=str(local), low_vram=identity["low_vram"])
+        local = local_pipeline_config(bundle, directory / "pipeline-config", rembg=identity["remove_background"])
+        with deferred_background_removal() as removers:
+            pipeline = entry.init_pipeline(model_path=str(local), low_vram=identity["low_vram"])
         if optimization_session is not None:
             optimization_session.install(pipeline, identity["multiview"])
     report.data["conditioning"] = {name: {key: config[key] for key in ("image_size", "grid_resolution", "naf_target_size") if key in config}
                                    for name, config in entry.IMAGE_COND_CONFIGS.items()}
     with report.stage("preprocess_camera"):
         prepared = mapped_input(entry, pipeline, identity, directory) if identity["multiview"] else single_input(entry, pipeline, identity, bundle, directory)
+    report.data["background_removal"] = {"requested": identity["remove_background"],
+                                         "model": "briaai/RMBG-2.0" if identity["remove_background"] else None,
+                                         "loaded": any(remover.model is not None for remover in removers)}
     options = {"seed": identity["seed"], "return_latent": True,
                "pipeline_type": f"{identity['geometry_resolution']}_cascade", "max_num_tokens": identity["max_tokens"]}
     with report.stage("denoise_decode"):

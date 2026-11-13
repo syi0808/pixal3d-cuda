@@ -1,8 +1,10 @@
 # Official runtime on Modal main
 
 **Deployed to main on 2026-11-13:** native SM89 image build and authenticated HTTP
-smoke checks pass. Pretrained generation is not accepted yet: the configured
-HF token receives HTTP 403 for RMBG-2.0. See [rollout evidence](validation.md#v02-modal-main-rollout).
+smoke checks pass. Pretrained generation is not accepted yet. RMBG-2.0 is now
+disabled by default, so its previous access 403 is not a default prefetch
+requirement. See [optional background removal](background-removal.md) and
+[rollout evidence](validation.md#v02-modal-main-rollout).
 Old T4 evidence
 applies only to [the previous revision](https://github.com/syi0808/pixal3d-cuda/tree/a6ce8a3c4a68e377569b7965035a8f00d74ff9b0).
 
@@ -14,7 +16,7 @@ applies only to [the previous revision](https://github.com/syi0808/pixal3d-cuda/
 - `deploy/modal_app.py`: CUDA 12.4 devel image, Torch 2.6/cu124, native extension
   source builds; CPU prefetch/copy/HTTP workers and a native GPU worker.
 - CPU prepare validates/copies uploads **without matting/cropping**. GPU worker
-  uses the original BiRefNet/camera/conditioning pipeline and original CUDA
+  defaults to supplied framing/alpha, with original camera/conditioning and CUDA
   remesh/PBR exporter. No separate CPU export worker is dispatched.
 
 There is no dev environment and no automatic GPU upgrade/fallback. The new
@@ -29,7 +31,8 @@ Review the L4 cost and model licenses/access before deliberately submitting a
 generation job. The deployed app remains scale-to-zero while idle.
 Existing Modal authentication, `pixal3d-hf` secret (`HF_TOKEN`), Proxy Token,
 `.env` Proxy credentials and weights/jobs volumes are reusable; do not print or
-commit credentials. RMBG-2.0 / camenduru DINO access may differ from old weights.
+commit credentials. RMBG-2.0 is separately licensed and is not downloaded or
+initialized unless explicitly enabled. No other matting model is substituted.
 
 ```bash
 python -m deploy.modal_app --action plan
@@ -39,7 +42,7 @@ python -m deploy.modal_app --action url
 ```
 
 Deploy compiles CPU/CUDA code; it does not run asset generation. Prefetch downloads
-pinned snapshots on CPU, including model JSONs, official DINO, BiRefNet, NAF and
+pinned snapshots on CPU, including model JSONs, official DINO, NAF and
 optional MoGe. Old ready markers fail the new runtime/lock checks and must be
 replaced by the new prefetch. Immutable cached files can still be reused.
 
@@ -54,6 +57,10 @@ HTTP routes and Proxy authentication remain unchanged:
 - `GET /api/health`: `runtime=official`, revision, `[1024,1536]`, L4, SDPA/low-VRAM.
 - `POST /api/jobs`: multipart `image` **or** mapped `images` + `transforms`; optional JSON `options`.
 - `GET /api/jobs/{id}`, `/result.glb`, `/report.json`.
+
+Background removal defaults to false in the HTTP and administrative clients.
+The checked-in `allow_rmbg=false` rejects explicit removal requests before job
+admission. Health reports this policy; see the [two-sided opt-in procedure](background-removal.md).
 
 New defaults are `geometry_resolution=1024`, `texture_size=4096`,
 `target_faces=1000000`. There is no `conditioning_cache_mb` compatibility field

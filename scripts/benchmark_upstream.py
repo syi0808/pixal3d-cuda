@@ -23,6 +23,7 @@ def main(argv=None):
     parser.add_argument("--profiles", nargs="+", choices=("reference", "reuse", "projected", "optimized", "standard"), default=["reference", "optimized"])
     parser.add_argument("--conditioning-cache-mb", type=int, default=256)
     parser.add_argument("--save-reference", action="store_true")
+    parser.add_argument("--remove-background", action="store_true", help="Opt in to RMBG-2.0 after reviewing its separate license")
     parser.add_argument("--execute", action="store_true", help="Actually run local CUDA generation; no Modal calls")
     arguments = parser.parse_args(argv)
     if not 1 <= arguments.repeats <= 10:
@@ -38,7 +39,8 @@ def main(argv=None):
             "profiles": arguments.profiles, "repeats": arguments.repeats,
             "optimizations": {name: asdict(configurations[name]) for name in arguments.profiles},
             "geometry_resolution": arguments.geometry_resolution, "texture_size": arguments.texture_size,
-            "seed": 42, "process_policy": "Fresh worker per asset; kernel/autotune cache may persist. Not a warm-forward benchmark."}
+            "seed": 42, "remove_background": arguments.remove_background,
+            "process_policy": "Fresh worker per asset; kernel/autotune cache may persist. Not a warm-forward benchmark."}
     print(json.dumps(plan, indent=2))
     if not arguments.execute:
         return plan
@@ -55,7 +57,8 @@ def main(argv=None):
             started = time.perf_counter()
             try:
                 Pipeline(low_vram=profile != "standard", optimizations=configurations[profile], save_reference=arguments.save_reference).generate(arguments.image, destination, seed=42,
-                    geometry_resolution=arguments.geometry_resolution, texture_size=arguments.texture_size)
+                    geometry_resolution=arguments.geometry_resolution, texture_size=arguments.texture_size,
+                    remove_background=arguments.remove_background)
                 report = json.loads((destination / "report.json").read_text())
                 record = {"profile": profile, "round": round_index, "status": "complete",
                           "wall_seconds": time.perf_counter() - started, "report": str(destination / "report.json"),

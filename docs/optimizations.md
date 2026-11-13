@@ -70,6 +70,6 @@ optimized(cache 포함), standard(전체 GPU 상주)다. 기본은 reference/opt
 
 NAF selected-query/타일 분할, native sparse autotuning, compile/CUDA graphs,
 T4 precision 호환화는 적용하지 않았다. NATTEN/CUDA 및 pretrained 기준선 없이
-연산을 바꾸지 않기 위한 구분이다. Modal SM89 빌드는 통과했지만 pretrained 생성과
-tensor/GLB 비교는 RMBG-2.0 접근 403으로 대기 중이다.
+연산을 바꾸지 않기 위한 구분이다. Modal SM89 빌드는 통과했고 RMBG 기본 의존성은
+제거했지만 pretrained 생성과 tensor/GLB 비교는 아직 미검증이다.
 [실제 배포/진단 범위](validation.md#v02-modal-main-rollout)를 참조한다.

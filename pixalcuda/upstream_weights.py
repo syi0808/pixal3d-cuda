@@ -17,7 +17,9 @@ class UpstreamStore:
         self.multiview = multiview
         self.revision = lock()["models"]["multiview" if multiview else "single"]["revision"]
 
-    def resolve(self, camera=True):
+    def resolve(self, camera=True, rembg=False):
+        if type(rembg) is not bool:
+            raise ValueError("rembg must be boolean; RMBG-2.0 requires explicit opt-in after license review")
         models = lock()["models"]
         mode = "multiview" if self.multiview else "single"
         offline = os.environ.get("HF_HUB_OFFLINE", "0") == "1"
@@ -33,7 +35,7 @@ class UpstreamStore:
             if not (snapshot / filename).is_file():
                 raise FileNotFoundError(f"Official model snapshot is incomplete: {snapshot / filename}")
         resolved = {"pixal": str(snapshot), "config_file": config_file, "revision": self.revision}
-        for name in ("dino", "rembg"):
+        for name in (("dino", "rembg") if rembg else ("dino",)):
             model = models[name]
             resolved[name] = snapshot_download(model["repo"], revision=model["revision"],
                                                allow_patterns=["*.json", "*.py", "model.safetensors"], local_files_only=offline)
@@ -44,10 +46,12 @@ class UpstreamStore:
         return resolved
 
 
-def local_pipeline_config(bundle, destination):
+def local_pipeline_config(bundle, destination, rembg=False):
+    if rembg and not bundle.get("rembg"):
+        raise ValueError("Explicit background removal requires prefetched RMBG-2.0 weights")
     source = Path(bundle["pixal"])
     config = json.loads((source / bundle["config_file"]).read_text())
-    config["args"]["rembg_model"]["args"]["model_name"] = bundle["rembg"]
+    config["args"]["rembg_model"]["args"]["model_name"] = bundle["rembg"] if rembg else None
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "ckpts").symlink_to(source / "ckpts", target_is_directory=True)

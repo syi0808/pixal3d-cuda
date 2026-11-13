@@ -33,7 +33,7 @@ class JobOptions(BaseModel):
     target_faces: int = Field(default=1000000, ge=4, le=1_000_000)
     camera: Literal["auto", "fixed"] = "auto"
     fov_degrees: float = Field(default=49.13, ge=1, le=150)
-    remove_background: bool = True
+    remove_background: bool = False
     reference: bool = False
     attempt: str = Field(default="", max_length=64, pattern=r"^[A-Za-z0-9_.-]*$")
 
@@ -99,6 +99,7 @@ def create_app(backend, settings):
                 "supported_geometry_resolutions": [1024, 1536],
                 "upstream_revision": lock()["sources"]["pixal3d"]["revision"], "low_vram": settings.low_vram,
                 "attention_backend": settings.attention_backend, "gpu": settings.gpu, "max_tokens": settings.max_tokens,
+                "background_removal_default": False, "rmbg_enabled": settings.allow_rmbg,
                 "optimizations": asdict(OptimizationOptions(settings.share_dino, settings.dino_cache_mb,
                                                             settings.sparse_projection, settings.conditioning_cache_mb)),
                 "max_views": settings.max_views, "max_new_jobs_per_utc_day": settings.api_max_jobs_per_day}
@@ -135,6 +136,10 @@ def create_app(backend, settings):
                 options = JobOptions.model_validate(json.loads(form.get("options", "{}")))
             except (ValueError, ValidationError):
                 raise HTTPException(422, "Invalid options JSON or unsupported generation settings") from None
+            try:
+                settings.validate_background_removal(options.remove_background)
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from None
             transforms = form.get("transforms")
             if bool(mapped) != (transforms is not None):
                 raise HTTPException(422, "Mapped images require transforms; single image must not include transforms")

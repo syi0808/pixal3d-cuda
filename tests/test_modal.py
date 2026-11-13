@@ -15,6 +15,7 @@ from pixalcuda.upstream_sources import lock
 
 
 def test_modal_request_cache_covers_all_images_cameras_settings_and_source(tmp_path, monkeypatch):
+    monkeypatch.setattr(modal_app, "SETTINGS", replace(modal_app.SETTINGS, allow_rmbg=True))
     metadata = orbit_camera_metadata()
     for frame in metadata["frames"]:
         Image.new("RGBA", (16, 16), (255, 0, 0, 180)).save(tmp_path / frame["file_path"])
@@ -135,6 +136,31 @@ def test_official_geometry_profiles_are_explicit():
     assert modal_app.inference_options(1536)["low_vram"] is True
     with pytest.raises(ValueError, match="not a 512"):
         modal_app.inference_options(512)
+
+
+@pytest.mark.parametrize("rembg", [False, True])
+@pytest.mark.filterwarnings("ignore:The .* function is executing locally:UserWarning")
+def test_prefetch_records_optional_weights_accurately(tmp_path, monkeypatch, rembg):
+    calls = []
+    store = SimpleNamespace(revision="pinned", resolve=lambda **options: calls.append(options))
+    monkeypatch.setattr("pixalcuda.upstream_weights.UpstreamStore", lambda **options: store)
+    monkeypatch.setattr(modal_app, "WEIGHTS_ROOT", tmp_path)
+    monkeypatch.setattr(modal_app, "weights", SimpleNamespace(commit=lambda: None))
+    monkeypatch.setattr(modal_app, "SETTINGS", replace(modal_app.SETTINGS, allow_rmbg=True))
+    marker = modal_app.prefetch.local(**({"rembg": True} if rembg else {}))
+    assert calls == [{"camera": True, "rembg": rembg}]
+    assert marker["rembg"] is rembg and json.loads((tmp_path / "ready-sv.json").read_text()) == marker
+
+
+@pytest.mark.filterwarnings("ignore:The .* function is executing locally:UserWarning")
+def test_disabled_rmbg_is_rejected_before_any_prefetch_or_image_upload(monkeypatch):
+    def forbidden(**options):
+        raise AssertionError("Disabled model must not start downloads")
+    monkeypatch.setattr("pixalcuda.upstream_weights.UpstreamStore", forbidden)
+    with pytest.raises(ValueError, match="RMBG-2.0 is disabled"):
+        modal_app.prefetch.local(rembg=True)
+    with pytest.raises(ValueError, match="RMBG-2.0 is disabled"):
+        modal_app.build_request("not-opened.png", "", 42, 4096, 1000000, "auto", 49.13, False, "")
 
 
 def test_modal_mapped_images_preserve_index_mapping_and_ignore_client_paths(tmp_path):

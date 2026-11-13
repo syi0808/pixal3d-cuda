@@ -42,6 +42,7 @@ class DeploySettings:
     sparse_projection: bool = True
     conditioning_cache_mb: int = 256
     save_reference: bool = False
+    allow_rmbg: bool = False
 
     def __post_init__(self):
         if self.environment != "main":
@@ -63,8 +64,8 @@ class DeploySettings:
                     or any(type(item) is not int or item <= 0 for item in value) or value[0] > value[1]):
                 raise ValueError(f"{name} must be [positive request MiB, limit MiB >= request]")
             object.__setattr__(self, name, tuple(value))
-        if type(self.low_vram) is not bool or type(self.save_reference) is not bool or self.attention_backend not in ("sdpa", "flash_attn"):
-            raise ValueError("Invalid upstream low_vram/save_reference/attention_backend setting")
+        if any(type(value) is not bool for value in (self.low_vram, self.save_reference, self.allow_rmbg)) or self.attention_backend not in ("sdpa", "flash_attn"):
+            raise ValueError("Invalid upstream low_vram/save_reference/allow_rmbg/attention_backend setting")
         if self.attention_backend == "flash_attn":
             raise ValueError("The baseline image builds SDPA only; install and validate FlashAttention before enabling it")
         from pixalcuda.optimizations import OptimizationOptions
@@ -80,6 +81,12 @@ class DeploySettings:
             raise ValueError("gpu_timeout_seconds must exceed the worker cleanup margin of 30 seconds")
         if self.max_upload_bytes > self.max_total_image_bytes:
             raise ValueError("Per-image upload limit must not exceed the aggregate limit")
+
+    def validate_background_removal(self, requested):
+        if type(requested) is not bool:
+            raise ValueError("Background removal must be boolean")
+        if requested and not self.allow_rmbg:
+            raise ValueError("RMBG-2.0 is disabled on this server; supply prepared RGB/RGBA. An operator must review its license before enabling allow_rmbg")
 
 
 def load_settings(config_path=None, environ=None):

@@ -1,0 +1,54 @@
+{
+  "schema": "pixalcuda.optional-rembg.v1",
+  "date": "2026-11-13",
+  "defaults": {
+    "python_remove_background": false,
+    "http_remove_background": false,
+    "download_include_rembg": false,
+    "modal_allow_rmbg": false,
+    "modal_prefetch_rembg": false
+  },
+  "local_cpu_tests": {
+    "passed": 190,
+    "warnings": 1,
+    "coverage": [
+      "Default SV/MV snapshot resolution excludes RMBG-2.0",
+      "Pipeline configuration clears even a preexisting matting-model path by default",
+      "Disabled adapter never constructs matting weights during CUDA/CPU movement or accidental calls",
+      "Explicit adapter defers construction until first actual use and retains upstream offload semantics",
+      "Temporary upstream factory replacement is restored on successful and failed initialization",
+      "Pinned original from_pretrained and RGBA preprocess_image method bodies run with tiny model/sampler doubles, without matting weights",
+      "HTTP and administrative paths reject removal before admission/downloads unless the operator explicitly enables it",
+      "Default CLI, benchmark and HTTP acceptance requests opt out of matting"
+    ],
+    "pretrained_gpu_generation_test": false
+  },
+  "modal_main": {
+    "deployment_url": "https://modal.com/apps/syi0808/main/deployed/pixal3d-cuda",
+    "deployment_seconds": 44.458,
+    "native_extension_rebuild_observed": false,
+    "api_url": "https://syi0808--pixal3d-cuda-api.us-east.modal.run",
+    "unauthenticated_health": 401,
+    "authenticated_health": 200,
+    "health_background_removal_default": false,
+    "health_rmbg_enabled": false,
+    "explicit_rmbg_request_status": 422,
+    "cpu_prefetch": {
+      "status": "passed",
+      "runtime": "official",
+      "single_view_revision": "0b31f9160aa400719af409098bff7936a932f726",
+      "camera": true,
+      "rembg": false,
+      "gpu_requested": false
+    },
+    "generation_jobs_submitted": 0,
+    "active_containers_observed_after_checks": 0
+  },
+  "limits": [
+    "Default images must already be framed/prepared; no automatic background segmentation or crop is performed",
+    "Reference/optimized quality and speed are not established by these checks",
+    "Other model licenses and full-service commercial clearance are not assessed here",
+    "No other matting provider is silently substituted"
+  ],
+  "mlx_checkout_modified": false
+}

@@ -7,8 +7,9 @@ v0.2는 기존 신경망 포팅을 더 고치는 대신, 고정된 공식 Pixal3
 않고 외부 디렉터리에 설치한다. 기존 MLX 저장소도 수정하지 않는다.
 
 CPU 계약 테스트, Modal SM89 native 이미지 빌드와 main HTTP/인증 검증을 완료했다.
-**RMBG-2.0 접근 403으로 pretrained 생성, 원본 CLI와의 수치·품질 동등성,
-성능 개선은 검증하지 않았다.** [배포 기록](validation.md#v02-modal-main-rollout)을 참조한다.
+**pretrained 생성, 원본 CLI와의 수치·품질 동등성, 성능 개선은 미검증이다.**
+RMBG-2.0은 이제 기본 다운로드/초기화에서 제외했으며, 이전의 403은 기본 경로의
+필수 접근 조건이 아니다. [배포 기록](validation.md#v02-modal-main-rollout)을 참조한다.
 과거 7 GiB T4 측정은 legacy
 런타임의 숫자이며 새 런타임의 기대값으로 재사용하지 않는다.
 
@@ -21,7 +22,7 @@ CPU 계약 테스트, Modal SM89 native 이미지 빌드와 main HTTP/인증 검
 3. 원본 texture NAF **1024**, BF16 flow / FP16 decoder torso, 모든 원본 sampler
    설정, CuMesh hole filling, remesh/UV/PBR 경로를 유지한다.
 4. 모델·backend를 바꾸지 않는 dependency injection만 사용한다: pinned DINO/
-   BiRefNet 경로, local NAF repository/검증된 원본 가중치, local pipeline config.
+   명시적 opt-in 때만 BiRefNet 경로, local NAF repository/검증된 원본 가중치, local pipeline config.
    원본 checkout 파일은 수정하지 않는다. 이후 적용한 job-scoped 재사용/투영 hook과
    reference 제어는 [최적화 구현](optimizations.md)에 별도로 기록한다.
 5. worker는 별도 프로세스에서 실행한다. CUDA 전역 backend 설정, upstream의
@@ -33,9 +34,11 @@ CPU 계약 테스트, Modal SM89 native 이미지 빌드와 main HTTP/인증 검
 조정은 upstream 동작 그대로이며 요청/실제 grid와 fallback 여부를 보고한다.
 `max_num_tokens`는 최종 voxel hard limit이나 OOM 방지 보장이 아니다.
 
-`--no-rembg`는 원본 matting/crop을 우회하고 주어진 framing에서 alpha를
+새 기본값인 `remove_background=false` (`--no-rembg`)는 원본 matting/crop을 우회하고 주어진 framing에서 alpha를
 검정 배경에 합성한다. 원본 자동 전처리와 동일하다고 주장하지 않는다. mapped
 입력은 crop하지 않으며 원본 `load_views`로 변환한다. MV별 가중치를 사용한다.
+RMBG 가중치는 기본 prefetch에서 제외하며 pipeline 초기화도 lazy adapter로
+차단한다. [명시적 라이선스 opt-in](background-removal.md) 때만 사용할 수 있다.
 
 ## T4는 별도 호환화 프로젝트
 
@@ -104,10 +107,10 @@ device-used VRAM/RSS의 100 ms 샘플링을 추가했으며 세부 SS/LR/HR/text
 검증하는 데 사용한다. original CLI와 비교할 때 camera/초기 noise/전처리/후처리
 설정을 고정하고, 최종 GLB hash만으로 품질·수치 동등성을 판정하지 않는다.
 
-native 이미지 빌드와 main HTTP 검증은 완료했다. 다음 순서는 RMBG-2.0 접근 복구 →
-CPU weight prefetch → 공식 CLI 및 wrapper의 동일 1024 단일 이미지 생성 →
-raw geometry/PBR 확인 → 반복 baseline이다. 모델 접근 차단으로 pretrained 단계는
-아직 실행하지 않았다.
+native 이미지 빌드, main HTTP 검증과 RMBG를 제외한 기본 CPU prefetch는 완료했다.
+다음 순서는 동일하게 준비된 입력으로 공식 CLI 및 wrapper의 1024 단일 이미지 생성 →
+raw geometry/PBR 확인 → 반복 baseline이다. RMBG 기본 의존성은 제거했지만 실제
+pretrained 생성은 여전히 별도 검증이며 이번 정책 변경에서는 GPU 생성을 실행하지 않았다.
 
 ## 단일 runtime과 과거 이력
 

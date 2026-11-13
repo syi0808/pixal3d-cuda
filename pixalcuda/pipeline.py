@@ -67,7 +67,7 @@ class Pipeline:
         self.timeout_seconds = timeout_seconds
 
     def generate(self, image_path, output_dir, seed=42, texture_size=4096, target_faces=1000000,
-                 camera="auto", fov_degrees=49.13, remove_background=True, resume=False,
+                 camera="auto", fov_degrees=49.13, remove_background=False, resume=False,
                  *, views_dir=None, num_views=None, images=None, camera_metadata=None, geometry_resolution=1024):
         validate_options(geometry_resolution, texture_size, target_faces)
         if sum((bool(image_path), bool(views_dir), images is not None)) != 1:
@@ -128,7 +128,7 @@ class Pipeline:
         store = self.store or UpstreamStore(multiview=multiview)
         if store.multiview != multiview:
             raise ValueError("Dedicated MV weights are required for mapped inputs")
-        bundle = store.resolve(camera=camera == "auto")
+        bundle = store.resolve(camera=camera == "auto", rembg=remove_background)
         request = {"identity": identity, "fingerprint": fingerprint, "bundle": bundle, "upstream_root": str(self.root)}
         atomic_json(request_path, request)
         atomic_json(directory / "report.json", {"schema": identity["schema"], "identity": identity, "status": "starting", "stages": []})

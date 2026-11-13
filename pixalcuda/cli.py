@@ -36,6 +36,7 @@ def main(argv=None):
     download = commands.add_parser("download")
     download.add_argument("--multiview", action="store_true")
     download.add_argument("--skip-camera", action="store_true")
+    download.add_argument("--include-rembg", action="store_true", help="Opt in to RMBG-2.0 weights after reviewing its separate license")
     generation = commands.add_parser("generate")
     inputs = generation.add_mutually_exclusive_group(required=True)
     inputs.add_argument("--image")
@@ -52,7 +53,10 @@ def main(argv=None):
     generation.add_argument("--target-faces", type=int, default=1000000)
     generation.add_argument("--camera", choices=("auto", "fixed"))
     generation.add_argument("--fov-degrees", type=float)
-    generation.add_argument("--no-rembg", action="store_true")
+    background = generation.add_mutually_exclusive_group()
+    background.add_argument("--remove-background", action="store_true", help="Opt in to RMBG-2.0 after reviewing its separate license")
+    background.add_argument("--no-rembg", dest="remove_background", action="store_false")
+    generation.set_defaults(remove_background=False)
     generation.add_argument("--resume", action="store_true")
     generation.add_argument("--standard", action="store_true", help="Keep original models on GPU instead of upstream low-VRAM mode")
     generation.add_argument("--attention-backend", choices=("sdpa", "flash_attn"), default="sdpa")
@@ -69,7 +73,7 @@ def main(argv=None):
         return doctor()
     from .upstream_weights import UpstreamStore
     if arguments.command == "download":
-        print(json.dumps(UpstreamStore(multiview=arguments.multiview).resolve(camera=not arguments.skip_camera), indent=2))
+        print(json.dumps(UpstreamStore(multiview=arguments.multiview).resolve(camera=not arguments.skip_camera, rembg=arguments.include_rembg), indent=2))
         return
     if bool(arguments.images) != bool(arguments.transforms):
         parser.error("--images and --transforms must be supplied together")
@@ -104,7 +108,7 @@ def main(argv=None):
         arguments.image, arguments.output_dir, seed=arguments.seed, texture_size=arguments.texture_size,
         target_faces=arguments.target_faces, camera=arguments.camera or "auto",
         fov_degrees=arguments.fov_degrees if arguments.fov_degrees is not None else 49.13,
-        remove_background=not arguments.no_rembg, resume=arguments.resume, geometry_resolution=arguments.geometry_resolution,
+        remove_background=arguments.remove_background, resume=arguments.resume, geometry_resolution=arguments.geometry_resolution,
         views_dir=arguments.views_dir, images=arguments.images, camera_metadata=metadata, num_views=arguments.num_views)
     print(f"Saved official PBR GLB: {result}")
 

@@ -49,6 +49,7 @@ def test_native_acceptance_runs_sequentially_and_never_retries(tmp_path, monkeyp
         assert request.headers["Modal-Key"] == "fake-key"
         if request.method == "POST":
             assert len(submissions) == len(completed)
+            assert b'"remove_background": false' in request.content
             reference = bool(submissions)
             assert f'"reference": {str(reference).lower()}'.encode() in request.content
             job_id = str(len(submissions)) * 64

@@ -129,6 +129,7 @@ def validate_request_inputs(request, directory):
     from pixalcuda.cameras import uploaded_camera_metadata, view_filename
 
     inference_options(request["options"]["geometry_resolution"], request["options"]["reference"])
+    SETTINGS.validate_background_removal(request["options"]["remove_background"])
     inputs = request["inputs"]
     if not request["multiview"] and len(inputs) != 1:
         raise ValueError("Single-image mode requires exactly one image")
@@ -151,14 +152,15 @@ def validate_request_inputs(request, directory):
               min_containers=SETTINGS.min_containers, max_containers=1, scaledown_window=SETTINGS.scaledown_window,
               include_source=False, volumes={"/weights": weights},
               secrets=[modal.Secret.from_name(SETTINGS.hf_secret, required_keys=["HF_TOKEN"], environment_name=SETTINGS.environment)])
-def prefetch(multiview=False, camera=True, rembg=True):
+def prefetch(multiview=False, camera=True, rembg=False):
     from pixalcuda.runtime import atomic_json
     from pixalcuda.upstream_weights import UpstreamStore
     from pixalcuda.upstream_sources import lock
 
+    SETTINGS.validate_background_removal(rembg)
     store = UpstreamStore(multiview=multiview)
-    store.resolve(camera=camera)
-    marker = {"runtime": "official", "lock": lock(), "revision": store.revision, "camera": camera and not multiview, "rembg": True}
+    store.resolve(camera=camera, rembg=rembg)
+    marker = {"runtime": "official", "lock": lock(), "revision": store.revision, "camera": camera and not multiview, "rembg": rembg}
     atomic_json(WEIGHTS_ROOT / ("ready-mv.json" if multiview else "ready-sv.json"), marker)
     weights.commit()
     return marker
@@ -223,6 +225,7 @@ def infer_job(job_id):
             raise ValueError("Deployed GPU worker no longer matches this request")
         mark(job_id, "running_gpu")
         options = {**request["options"]}
+        SETTINGS.validate_background_removal(options["remove_background"])
         limits = inference_options(options["geometry_resolution"], options.pop("reference"))
         if request["multiview"]:
             options["views_dir"] = directory / "prepared"
@@ -243,6 +246,9 @@ def build_request(image_path, views_dir, seed, texture_size, target_faces, camer
     from pixalcuda.weights import MULTIVIEW_REVISION, PIXAL_REVISION, sha256_file
 
     inference_options(geometry_resolution, reference)
+    if type(no_rembg) is not bool:
+        raise ValueError("no_rembg must be boolean")
+    SETTINGS.validate_background_removal(not no_rembg)
     validate_options(geometry_resolution, texture_size, target_faces)
     if sum((bool(image_path), bool(views_dir), images is not None)) != 1:
         raise ValueError("Supply exactly one of --image-path, --views-dir or --images")
@@ -349,7 +355,7 @@ def api():
 
 def run_client(action: str = "generate", image_path: str = "", views_dir: str = "", multiview: bool = False,
          seed: int = 42, texture_size: int = 4096, target_faces: int = 1000000, camera: str = "auto",
-         fov_degrees: float = 49.13, no_rembg: bool = False, attempt: str = "", job_id: str = "",
+         fov_degrees: float = 49.13, no_rembg: bool = True, attempt: str = "", job_id: str = "",
          output_dir: str = "outputs/modal", wait_seconds: int = 3600, images=None, transforms=None,
          geometry_resolution: int = 1024, reference: bool = False):
     if action == "plan":
@@ -422,7 +428,10 @@ if __name__ == "__main__":
     parser.add_argument("--target-faces", type=int, default=1000000)
     parser.add_argument("--camera", choices=("auto", "fixed"), default="auto")
     parser.add_argument("--fov-degrees", type=float, default=49.13)
-    parser.add_argument("--no-rembg", action="store_true")
+    background = parser.add_mutually_exclusive_group()
+    background.add_argument("--remove-background", dest="no_rembg", action="store_false", help="Requires server allow_rmbg and separate license review")
+    background.add_argument("--no-rembg", dest="no_rembg", action="store_true")
+    parser.set_defaults(no_rembg=True)
     parser.add_argument("--attempt", default="")
     parser.add_argument("--job-id", default="")
     parser.add_argument("--output-dir", default="outputs/modal")
