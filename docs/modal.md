@@ -234,6 +234,13 @@ full-query call; self-attention remains explicitly chunked. These are not HTTP
 options and changes invalidate source/config-addressed job reuse. FP32, geometry,
 step schedules and full-key attention are not changed by chunk tuning.
 
+Warm T4 operator probes selected a candidate service profile of
+`attention_queries=1024`, `cross_attention_queries=0`, `ffn_rows=8192` and
+`sparse_rows=16384`. This profile is checked into the server declarations;
+full 1024/PBR acceptance is pending. Health exposes `execution_chunks` without
+launching a GPU so callers can inspect the deployed profile. The CLI retains
+256/256/1024/4096 defaults unless the matching flags are explicitly supplied.
+
 For a bounded, explicitly paid, one-shot operator study, leave the production
 App stopped and run the temporary tuning App in the same `main` environment:
 

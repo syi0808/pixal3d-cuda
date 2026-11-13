@@ -36,10 +36,10 @@ class DeploySettings:
     api_max_jobs_per_day: int = 10
     geometry_1024_max_tokens: int = 32768
     geometry_1024_max_voxels: int = 6000000
-    attention_queries: int = 256
-    cross_attention_queries: int = 256
-    ffn_rows: int = 1024
-    sparse_rows: int = 4096
+    attention_queries: int = 1024
+    cross_attention_queries: int = 0
+    ffn_rows: int = 8192
+    sparse_rows: int = 16384
 
     def __post_init__(self):
         if self.environment != "main":

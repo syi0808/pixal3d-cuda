@@ -55,6 +55,8 @@ def test_http_submit_poll_and_download_are_separate_from_generation():
     backend = Backend()
     with TestClient(create_app(backend, DeploySettings())) as client:
         assert client.get("/api/health").json()["environment"] == "main"
+        assert client.get("/api/health").json()["execution_chunks"] == {
+            "attention_queries": 1024, "cross_attention_queries": 0, "ffn_rows": 8192, "sparse_rows": 16384}
         schema = client.get("/openapi.json").json()
         assert schema["security"] == [{"ModalKey": [], "ModalSecret": []}]
         body = schema["paths"]["/api/jobs"]["post"]["requestBody"]["content"]["multipart/form-data"]["schema"]
@@ -103,7 +105,7 @@ def test_http_images_and_camera_mapping_are_forwarded_in_upload_order(count):
                                      {"resolution": 256}, {"remove_background": "false"}, {"attempt": "../retry"},
                                      {"geometry_resolution": 256}, {"geometry_resolution": True},
                                      {"conditioning_cache_mb": -1}, {"conditioning_cache_mb": 2049},
-                                     {"conditioning_cache_mb": True}, {"conditioning_cache_mb": 512.0}])
+                                     {"conditioning_cache_mb": True}, {"conditioning_cache_mb": 512.0}, {"attention_queries": 2048}])
 def test_http_rejects_invalid_or_unsupported_settings_before_submission(options):
     backend = Backend()
     with TestClient(create_app(backend, DeploySettings())) as client:

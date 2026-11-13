@@ -94,6 +94,8 @@ def create_app(backend, settings):
     async def health():
         return {"status": "ok", "environment": settings.environment, "geometry_resolution": 512,
                 "supported_geometry_resolutions": [512, 1024], "max_conditioning_cache_mb": 2048,
+                "execution_chunks": {name: getattr(settings, name) for name in
+                                     ("attention_queries", "cross_attention_queries", "ffn_rows", "sparse_rows")},
                 "max_views": settings.max_views, "max_new_jobs_per_utc_day": settings.api_max_jobs_per_day}
 
     @app.post("/api/jobs", status_code=202, openapi_extra={
