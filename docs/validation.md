@@ -1,7 +1,41 @@
 # Validation status
 
-> The pretrained GPU results below apply only to the archived v0.1.x runtime.
-> The official v0.2 rewrite has CPU contract tests but no native GPU acceptance yet.
+> Current v0.2 native L4 acceptance is recorded first. Historical T4 results
+> apply only to the archived v0.1.x runtime, not the official rewrite.
+
+## v0.2 L4 performance pilot
+
+2026-11-14 KST, CUDA revision `02f84c942844558d03daa0205f2295d27f156aa1`:
+one optimized run followed by one reference run completed through Modal main's
+authenticated HTTP API on an actual NVIDIA L4. Both used the same prepared
+512x512 RGBA shoe, automatic camera, seed 42, geometry 1024, texture 4096,
+1M target faces, original 12-step schedules, low-VRAM/SDPA and native export.
+No RMBG model was loaded, and no OOM/retry/quality or hardware fallback occurred.
+
+Downloaded GLBs passed embedded PBR validation and actual Blender import/render
+with both 4096x4096 maps linked. Reference: 38,137,548 bytes / 986,734 triangles;
+optimized: 37,274,032 bytes / 971,472 triangles. All saved native tensors were
+finite. This is single-input execution/material-packaging acceptance, not
+production quality, mapped-view, T4, 1536, or original standalone CLI parity.
+
+Stage sums excluding diagnostic tensor saving were 606.280 s reference and
+530.435 s optimized. Denoise/decode was effectively unchanged (160.006/159.905 s).
+The apparent 12.51% reduction is **not accepted as equivalent-output speedup**:
+strict tensor comparison failed because coordinate/raw mesh shapes differed.
+The two native FlexGEMM autotuners also chose different SPLITK values for one
+key. The pilot cannot attribute divergence to hooks versus native variability.
+No tolerances were relaxed. See [timings, memory and follow-up priorities](performance.md).
+
+Hardware allocation waits are excluded: approximately 84 minutes for optimized,
+26 minutes 58 seconds for reference. L4 was retained at the user's request;
+no more expensive GPU was substituted. These waits are not model latency.
+
+After diagnostics, `save_reference=false` was restored and main redeployed in
+20.750 s without recompiling native layers. Authenticated health returned 200,
+unauthenticated health 401; RMBG remains disabled and min=0/max GPU=1 are unchanged.
+Local CPU suite: **190 passed, one unrelated Starlette/httpx warning**.
+Input images, GLBs and reference tensors stay outside Git. The separate MLX
+checkout was not modified. [Sanitized evidence](evidence/modal-l4-native-2026-11-14.performance.json).
 
 ## Optional RMBG default policy
 
@@ -30,15 +64,17 @@ Default single-image RGB/RGBA keeps supplied framing and composites alpha on
 black, without automatic matting/crop; mapped views retain calibrated framing.
 Use already prepared images, not raw photos expecting automatic extraction.
 This is an intentional preprocessing-default change, not an original default
-preprocessing-parity claim. The previous GPU/kernel-validation limitations below
-still apply; no new GLB or speedup is claimed.
+preprocessing-parity claim. No GPU generation was performed in that policy
+update; the subsequent L4 pilot above supersedes its generation status only.
 
 [Policy and license opt-in](background-removal.md),
 [sanitized evidence](evidence/optional-rembg-2026-11-13.json).
 
 ## v0.2 Modal main rollout
 
-The initial checkpoint below predates the optional-RMBG policy above.
+The initial checkpoint below predates both optional RMBG and the L4 pilot above.
+Its blocked/unvalidated statements describe that earlier checkpoint, not current
+single-image execution acceptance.
 
 2026-11-13: the CUDA 12.4/Python 3.12/Torch 2.6 SM89 image built successfully,
 including nvdiffrast, CuMesh, FlexGEMM, o_voxel and NATTEN 0.21.0. Build failures

@@ -1,0 +1,921 @@
+{
+  "schema": "pixalcuda.native-performance.v1",
+  "date": "2026-11-14",
+  "timezone": "Asia/Seoul",
+  "runtime_revision": "02f84c942844558d03daa0205f2295d27f156aa1",
+  "method": {
+    "samples_per_profile": 1,
+    "order": [
+      "optimized",
+      "reference"
+    ],
+    "gpu": "L4",
+    "sequential": true,
+    "automatic_retries": 0,
+    "fallbacks": 0,
+    "standalone_original_cli_comparison": false,
+    "fresh_child_process_per_asset": true,
+    "weights_prefetched": true,
+    "jit_autotune_os_cache_state_controlled": false,
+    "diagnostic_save_reference_enabled_for_both": true,
+    "stage_sum_exclusions": [
+      "save_reference stage",
+      "GPU allocation/container startup",
+      "imports and hardware checks outside stages",
+      "HTTP upload/status/transport/download"
+    ],
+    "diagnostic_caveat": "Subtracting tensor-save duration does not undo its memory/cache effects before export; production disables saving."
+  },
+  "input": {
+    "mode": "RGBA",
+    "size": [
+      512,
+      512
+    ],
+    "alpha_min_max": [
+      0,
+      255
+    ],
+    "framing": "prepared foreground; alpha composited on black; no automatic crop/matting",
+    "sha256": "84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12"
+  },
+  "controlled_identity": {
+    "schema": "pixalcuda.upstream.v1",
+    "upstream_lock": {
+      "schema": 1,
+      "sources": {
+        "pixal3d": {
+          "url": "https://github.com/TencentARC/Pixal3D.git",
+          "revision": "f7cf38429b0bd264f1995f0f8743a88b1c728b94"
+        },
+        "trellis2": {
+          "url": "https://github.com/microsoft/TRELLIS.2.git",
+          "revision": "75fbf0183001ed9876c8dbb35de6b68552ee08bd"
+        },
+        "flexgemm": {
+          "url": "https://github.com/JeffreyXiang/FlexGEMM.git",
+          "revision": "6dd94a859c26ee8246888502eada3dd8ad85532e"
+        },
+        "cumesh": {
+          "url": "https://github.com/JeffreyXiang/CuMesh.git",
+          "revision": "12289e1062f0603f2f0d0771b02e1395d247f26f"
+        },
+        "nvdiffrast": {
+          "url": "https://github.com/NVlabs/nvdiffrast.git",
+          "revision": "253ac4fcea7de5f396371124af597e6cc957bfae"
+        },
+        "naf": {
+          "url": "https://github.com/valeoai/NAF.git",
+          "revision": "37f2dfc180f2de53d98bd601109c0da0dd6b0f43"
+        },
+        "utils3d": {
+          "url": "https://github.com/EasternJournalist/utils3d.git",
+          "revision": "3fab839f0be9931dac7c8488eb0e1600c236e183"
+        }
+      },
+      "models": {
+        "single": {
+          "repo": "TencentARC/Pixal3D",
+          "revision": "0b31f9160aa400719af409098bff7936a932f726"
+        },
+        "multiview": {
+          "repo": "TencentARC/Pixal3D",
+          "revision": "b0cb2e1b794cab9aa0ac38a95d794a4d9337437f"
+        },
+        "dino": {
+          "repo": "camenduru/dinov3-vitl16-pretrain-lvd1689m",
+          "revision": "3c276edd87d6f6e569ff0c4400e086807d0f3881"
+        },
+        "rembg": {
+          "repo": "briaai/RMBG-2.0",
+          "revision": "2fd7b4b0f2393ddb39a267fb62df6c010928a6c6"
+        },
+        "moge": {
+          "repo": "Ruicheng/moge-2-vitl",
+          "revision": "39c4d5e957afe587e04eec59dc2bcc3be5ecd968"
+        }
+      }
+    },
+    "runtime_sources": {
+      "__init__.py": "32e278d0b8b1519b6cf905142748d099871bdd00d2c6fb13de9b4faa6cb82bdb",
+      "background.py": "3b00fedf4c31bdf108cbe0ec6c2ca4eef23304f6129a805ed04d1b9cff814ce0",
+      "cameras.py": "bbd95bd9d8c99f59e5e08bd144a59bb63411b008e1839f9c6bd3ba7c4846fb9d",
+      "cli.py": "e1b8e93d1b0d77bdc6d43b310080e9b5db00761eed76cc6f54cbf6ceea8e75ed",
+      "multiview.py": "9dac451da9dbeb53b8835a8de383b5565dde5fce14c69f9790b0b762b3c04bac",
+      "optimizations.py": "747e8ba428c472bac2bae49c8ecc2828bb53a3ddbf92b9d062b238ee31795434",
+      "pipeline.py": "293bee3a1598253c40dab8b277aea1a6524716154b6f24a6e3d9ef1314ed57e9",
+      "runtime.py": "79637d918799dfbad9eb4044b88c7c105d8a7996085b49afed38f7d5a5dcffdc",
+      "upstream_sources.py": "ffdfc5155c675e55c1c808f9276c252e9721cc1c155f5f3ce875fd73c79103b3",
+      "upstream_weights.py": "beed2f75641d243caf99aed4630e6fcdc1f7d1381944b4d6b66bc1b3249e62ac",
+      "upstream_worker.py": "45342260d4b1b9a2ce6d3c4e705eb65babe78d4267d886cb35f6d8126e390f95",
+      "weights.py": "5724eebffa5d4f93e077b3c6c8ba4b6f8e9991f0bdeb39b95e8cfe1d476be146"
+    },
+    "inputs": [
+      {
+        "sha256": "84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12"
+      }
+    ],
+    "local_weight_hashes": {},
+    "cameras": null,
+    "multiview": false,
+    "geometry_resolution": 1024,
+    "texture_size": 4096,
+    "target_faces": 1000000,
+    "seed": 42,
+    "camera": "auto",
+    "fov_degrees": 49.13,
+    "remove_background": false,
+    "low_vram": true,
+    "attention_backend": "sdpa",
+    "max_tokens": 49152
+  },
+  "control_checks": {
+    "normalized_identity_equal": true,
+    "computed_camera_equal": true,
+    "pipeline_json_equal": true,
+    "pipeline_json_sha256": "f85c7a3ddd517073de7ce2b7b7171d668977dcfddb405e51c3f4b9cbf927d314"
+  },
+  "profiles": {
+    "reference": {
+      "report": {
+        "schema": "pixalcuda.upstream.v1",
+        "status": "complete",
+        "stages": [
+          {
+            "name": "load_pipeline",
+            "peak_sampled_rss_bytes": 23816830976,
+            "device_peak_sampled_used_bytes": 205127680,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 134.97397097500001,
+            "peak_allocated_bytes": 0,
+            "peak_reserved_bytes": 0,
+            "rss_bytes_after": 23262519296
+          },
+          {
+            "name": "preprocess_camera",
+            "peak_sampled_rss_bytes": 26386841600,
+            "device_peak_sampled_used_bytes": 3466199040,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 10.695013351,
+            "peak_allocated_bytes": 3023483392,
+            "peak_reserved_bytes": 3166699520,
+            "rss_bytes_after": 26386825216
+          },
+          {
+            "name": "denoise_decode",
+            "peak_sampled_rss_bytes": 27977134080,
+            "device_peak_sampled_used_bytes": 16239951872,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 160.00584305400002,
+            "peak_allocated_bytes": 15268107776,
+            "peak_reserved_bytes": 15929966592,
+            "rss_bytes_after": 27977117696
+          },
+          {
+            "name": "save_reference",
+            "peak_sampled_rss_bytes": 28215865344,
+            "device_peak_sampled_used_bytes": 6607732736,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 0.46214103900001646,
+            "peak_allocated_bytes": 321830400,
+            "peak_reserved_bytes": 6297747456,
+            "rss_bytes_after": 28215848960
+          },
+          {
+            "name": "remesh_pbr_export",
+            "peak_sampled_rss_bytes": 28727435264,
+            "device_peak_sampled_used_bytes": 7496925184,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 300.60524144000004,
+            "peak_allocated_bytes": 4435268096,
+            "peak_reserved_bytes": 6297747456,
+            "rss_bytes_after": 28201062400
+          }
+        ],
+        "gpu": "NVIDIA L4",
+        "capability": [
+          8,
+          9
+        ],
+        "gpu_total_bytes": 23689363456,
+        "torch": "2.6.0+cu124",
+        "cuda_runtime": "12.4",
+        "conditioning": {
+          "ss": {
+            "image_size": 512,
+            "grid_resolution": 16
+          },
+          "shape_512": {
+            "image_size": 512,
+            "grid_resolution": 32,
+            "naf_target_size": 512
+          },
+          "shape_1024": {
+            "image_size": 1024,
+            "grid_resolution": 64,
+            "naf_target_size": 512
+          },
+          "tex_1024": {
+            "image_size": 1024,
+            "grid_resolution": 64,
+            "naf_target_size": 1024
+          }
+        },
+        "background_removal": {
+          "requested": false,
+          "model": null,
+          "loaded": false
+        },
+        "camera": {
+          "camera_angle_x": 0.6342361302062468,
+          "distance": 1.523488998413086,
+          "mesh_scale": 1.0
+        },
+        "actual_geometry_resolution": 1024,
+        "upstream_resolution_fallback": false,
+        "validation": {
+          "embedded_pbr": true,
+          "bytes": 38137548,
+          "sha256": "a58cdfe8628fa22c3d1e4fd192c2acaa1177639e44e3eb4a61ff71e9328a1587"
+        },
+        "postprocess_device": "cuda",
+        "optimizations": {
+          "options": {
+            "share_dino": false,
+            "dino_cache_mb": 0,
+            "sparse_projection": false,
+            "conditioning_cache_mb": 0
+          },
+          "dino_feature_cache": {
+            "budget_bytes": 0,
+            "hits": 0,
+            "misses": 0,
+            "evictions": 0,
+            "oversized": 0,
+            "used_bytes": 0,
+            "peak_bytes": 0
+          },
+          "backbone_loads": 0,
+          "shared_backbone_hits": 0,
+          "active_projections": [],
+          "flow_caches": []
+        },
+        "private_reference_saved": true
+      },
+      "stage_sum_excluding_reference_save_seconds": 606.2800688200001,
+      "peaks_bytes": {
+        "peak_allocated_bytes": 15268107776,
+        "peak_reserved_bytes": 15929966592,
+        "device_peak_sampled_used_bytes": 16239951872,
+        "peak_sampled_rss_bytes": 28727435264
+      },
+      "private_tensor_structure": {
+        "shape.features": {
+          "shape": [
+            10579,
+            32
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "shape.coordinates": {
+          "shape": [
+            10579,
+            4
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "texture.features": {
+          "shape": [
+            10579,
+            32
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "texture.coordinates": {
+          "shape": [
+            10579,
+            4
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "mesh.vertices": {
+          "shape": [
+            3183134,
+            3
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "mesh.faces": {
+          "shape": [
+            7177646,
+            3
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "mesh.attrs": {
+          "shape": [
+            3177500,
+            6
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "mesh.coords": {
+          "shape": [
+            3177500,
+            3
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "render_witness": {
+        "status": "complete",
+        "blender_version": "5.1.2",
+        "engine": "CYCLES",
+        "device": "CPU",
+        "samples": 32,
+        "resolution": 640,
+        "input": "result.glb (private; not committed)",
+        "input_sha256": "a58cdfe8628fa22c3d1e4fd192c2acaa1177639e44e3eb4a61ff71e9328a1587",
+        "script_sha256": "a5a99cd36c88559e78cf7643a71003887f7a5b520cda7c312d4ed98379a0426e",
+        "asset_triangles": 986734,
+        "modifiers_added": false,
+        "import_shading": "NORMALS",
+        "uv_texture_sampling": "linear per-shading-point",
+        "color_management": "AgX",
+        "materials": [
+          {
+            "name": "Material_0",
+            "principled_bsdf": true,
+            "textures": [
+              {
+                "name": "Image_0",
+                "size": [
+                  4096,
+                  4096
+                ],
+                "color_space": "sRGB",
+                "interpolation": "Linear"
+              },
+              {
+                "name": "Image_1",
+                "size": [
+                  4096,
+                  4096
+                ],
+                "color_space": "Non-Color",
+                "interpolation": "Linear"
+              }
+            ],
+            "base_color_linked": true,
+            "roughness_linked": true,
+            "metallic_linked": true
+          }
+        ],
+        "renders": [
+          {
+            "view": "three-quarter",
+            "image": "three-quarter.png (private; not committed)",
+            "seconds": 5.46147545799613,
+            "image_sha256": "91b733f54e0a9e31cb654e62f41c557e939fb2677b6ae75c218cd917d75f49d8"
+          }
+        ],
+        "elapsed_seconds": 7.356071667018114,
+        "staging_floor_in_exported_glb": false
+      }
+    },
+    "optimized": {
+      "report": {
+        "schema": "pixalcuda.upstream.v1",
+        "status": "complete",
+        "stages": [
+          {
+            "name": "load_pipeline",
+            "peak_sampled_rss_bytes": 23833976832,
+            "device_peak_sampled_used_bytes": 204537856,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 117.22932637899999,
+            "peak_allocated_bytes": 0,
+            "peak_reserved_bytes": 0,
+            "rss_bytes_after": 19631218688
+          },
+          {
+            "name": "preprocess_camera",
+            "peak_sampled_rss_bytes": 22640582656,
+            "device_peak_sampled_used_bytes": 3465609216,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 8.89326983700002,
+            "peak_allocated_bytes": 3023483392,
+            "peak_reserved_bytes": 3166699520,
+            "rss_bytes_after": 22640566272
+          },
+          {
+            "name": "denoise_decode",
+            "peak_sampled_rss_bytes": 26805481472,
+            "device_peak_sampled_used_bytes": 15668936704,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 159.90487014100003,
+            "peak_allocated_bytes": 14274895360,
+            "peak_reserved_bytes": 15359541248,
+            "rss_bytes_after": 26805465088
+          },
+          {
+            "name": "save_reference",
+            "peak_sampled_rss_bytes": 27055960064,
+            "device_peak_sampled_used_bytes": 7007698944,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 0.44138807699999916,
+            "peak_allocated_bytes": 371894272,
+            "peak_reserved_bytes": 6698303488,
+            "rss_bytes_after": 27055943680
+          },
+          {
+            "name": "remesh_pbr_export",
+            "peak_sampled_rss_bytes": 27744649216,
+            "device_peak_sampled_used_bytes": 7926251520,
+            "memory_sampling_interval_seconds": 0.1,
+            "elapsed_seconds": 244.407617755,
+            "peak_allocated_bytes": 4505078784,
+            "peak_reserved_bytes": 6698303488,
+            "rss_bytes_after": 27014889472
+          }
+        ],
+        "gpu": "NVIDIA L4",
+        "capability": [
+          8,
+          9
+        ],
+        "gpu_total_bytes": 23689363456,
+        "torch": "2.6.0+cu124",
+        "cuda_runtime": "12.4",
+        "conditioning": {
+          "ss": {
+            "image_size": 512,
+            "grid_resolution": 16
+          },
+          "shape_512": {
+            "image_size": 512,
+            "grid_resolution": 32,
+            "naf_target_size": 512
+          },
+          "shape_1024": {
+            "image_size": 1024,
+            "grid_resolution": 64,
+            "naf_target_size": 512
+          },
+          "tex_1024": {
+            "image_size": 1024,
+            "grid_resolution": 64,
+            "naf_target_size": 1024
+          }
+        },
+        "background_removal": {
+          "requested": false,
+          "model": null,
+          "loaded": false
+        },
+        "camera": {
+          "camera_angle_x": 0.6342361302062468,
+          "distance": 1.523488998413086,
+          "mesh_scale": 1.0
+        },
+        "actual_geometry_resolution": 1024,
+        "upstream_resolution_fallback": false,
+        "validation": {
+          "embedded_pbr": true,
+          "bytes": 37274032,
+          "sha256": "f360bc5a9a32c33155635cae9703f39fbb28789ed15262a287f24de0d2af3d1d"
+        },
+        "postprocess_device": "cuda",
+        "optimizations": {
+          "options": {
+            "share_dino": true,
+            "dino_cache_mb": 128,
+            "sparse_projection": true,
+            "conditioning_cache_mb": 256
+          },
+          "dino_feature_cache": {
+            "budget_bytes": 134217728,
+            "hits": 2,
+            "misses": 2,
+            "evictions": 0,
+            "oversized": 0,
+            "used_bytes": 0,
+            "peak_bytes": 36741120
+          },
+          "backbone_loads": 1,
+          "shared_backbone_hits": 3,
+          "active_projections": [
+            {
+              "grid_resolution": 32,
+              "dense_points": 32768,
+              "projected_points": 2500,
+              "naf_target_size": [
+                512,
+                512
+              ]
+            },
+            {
+              "grid_resolution": 64,
+              "dense_points": 262144,
+              "projected_points": 10577,
+              "naf_target_size": [
+                512,
+                512
+              ]
+            },
+            {
+              "grid_resolution": 64,
+              "dense_points": 262144,
+              "projected_points": 10577,
+              "naf_target_size": [
+                1024,
+                1024
+              ]
+            }
+          ],
+          "flow_caches": [
+            {
+              "model": "sparse_structure_flow_model",
+              "budget_bytes": 268435456,
+              "hits": 787,
+              "misses": 533,
+              "snapshot_checks": 30,
+              "snapshot_skips": 0,
+              "snapshot_bytes": 0,
+              "output_bytes": 0,
+              "peak_bytes": 261931008
+            },
+            {
+              "model": "shape_slat_flow_model_512",
+              "budget_bytes": 268435456,
+              "hits": 889,
+              "misses": 371,
+              "snapshot_checks": 28,
+              "snapshot_skips": 0,
+              "snapshot_bytes": 0,
+              "output_bytes": 0,
+              "peak_bytes": 265644160
+            },
+            {
+              "model": "shape_slat_flow_model_1024",
+              "budget_bytes": 268435456,
+              "hits": 565,
+              "misses": 695,
+              "snapshot_checks": 28,
+              "snapshot_skips": 0,
+              "snapshot_bytes": 0,
+              "output_bytes": 0,
+              "peak_bytes": 250220816
+            },
+            {
+              "model": "tex_slat_flow_model_1024",
+              "budget_bytes": 268435456,
+              "hits": 385,
+              "misses": 335,
+              "snapshot_checks": 11,
+              "snapshot_skips": 0,
+              "snapshot_bytes": 0,
+              "output_bytes": 0,
+              "peak_bytes": 250220816
+            }
+          ]
+        },
+        "private_reference_saved": true
+      },
+      "stage_sum_excluding_reference_save_seconds": 530.435084112,
+      "peaks_bytes": {
+        "peak_allocated_bytes": 14274895360,
+        "peak_reserved_bytes": 15359541248,
+        "device_peak_sampled_used_bytes": 15668936704,
+        "peak_sampled_rss_bytes": 27744649216
+      },
+      "private_tensor_structure": {
+        "shape.features": {
+          "shape": [
+            10577,
+            32
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "shape.coordinates": {
+          "shape": [
+            10577,
+            4
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "texture.features": {
+          "shape": [
+            10577,
+            32
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "texture.coordinates": {
+          "shape": [
+            10577,
+            4
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "mesh.vertices": {
+          "shape": [
+            3281016,
+            3
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "mesh.faces": {
+          "shape": [
+            7763820,
+            3
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "mesh.attrs": {
+          "shape": [
+            3275885,
+            6
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "mesh.coords": {
+          "shape": [
+            3275885,
+            3
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "render_witness": {
+        "status": "complete",
+        "blender_version": "5.1.2",
+        "engine": "CYCLES",
+        "device": "CPU",
+        "samples": 32,
+        "resolution": 640,
+        "input": "result.glb (private; not committed)",
+        "input_sha256": "f360bc5a9a32c33155635cae9703f39fbb28789ed15262a287f24de0d2af3d1d",
+        "script_sha256": "a5a99cd36c88559e78cf7643a71003887f7a5b520cda7c312d4ed98379a0426e",
+        "asset_triangles": 971472,
+        "modifiers_added": false,
+        "import_shading": "NORMALS",
+        "uv_texture_sampling": "linear per-shading-point",
+        "color_management": "AgX",
+        "materials": [
+          {
+            "name": "Material_0",
+            "principled_bsdf": true,
+            "textures": [
+              {
+                "name": "Image_0",
+                "size": [
+                  4096,
+                  4096
+                ],
+                "color_space": "sRGB",
+                "interpolation": "Linear"
+              },
+              {
+                "name": "Image_1",
+                "size": [
+                  4096,
+                  4096
+                ],
+                "color_space": "Non-Color",
+                "interpolation": "Linear"
+              }
+            ],
+            "base_color_linked": true,
+            "roughness_linked": true,
+            "metallic_linked": true
+          }
+        ],
+        "renders": [
+          {
+            "view": "three-quarter",
+            "image": "three-quarter.png (private; not committed)",
+            "seconds": 4.999117666011443,
+            "image_sha256": "1041d337ced955b9f1e076320a231f95a96add6c7cc4b94f6a6177bb58249918"
+          }
+        ],
+        "elapsed_seconds": 6.533843999990495,
+        "staging_floor_in_exported_glb": false
+      }
+    }
+  },
+  "comparison": {
+    "observed_stage_sum_reduction_percent": 12.509892475208161,
+    "observed_stage_sum_ratio_reference_over_optimized": 1.1429863653060808,
+    "denoise_decode_reduction_seconds": 0.10097291299999256,
+    "tensor_comparison": {
+      "passed": false,
+      "atol": 1e-06,
+      "rtol": 1e-05,
+      "tensors": {
+        "shape.coordinates": {
+          "passed": false,
+          "reason": "shape/dtype mismatch"
+        },
+        "shape.features": {
+          "passed": false,
+          "reason": "shape/dtype mismatch"
+        },
+        "texture.coordinates": {
+          "passed": false,
+          "reason": "shape/dtype mismatch"
+        },
+        "texture.features": {
+          "passed": false,
+          "reason": "shape/dtype mismatch"
+        },
+        "mesh.vertices": {
+          "passed": false,
+          "reason": "shape/dtype mismatch"
+        },
+        "mesh.faces": {
+          "passed": false,
+          "reason": "shape/dtype mismatch"
+        },
+        "mesh.attrs": {
+          "passed": false,
+          "reason": "shape/dtype mismatch"
+        },
+        "mesh.coords": {
+          "passed": false,
+          "reason": "shape/dtype mismatch"
+        }
+      },
+      "scope": "Native tensor parity only; not a visual-quality, remesh or PBR bake equivalence result."
+    },
+    "shape_coordinate_set_overlap": {
+      "reference": 10579,
+      "optimized": 10577,
+      "intersection": 10577,
+      "union": 10579,
+      "jaccard": 0.999810946214198
+    },
+    "autotuner_choices": {
+      "choices_logged_per_profile": {
+        "reference": 18,
+        "optimized": 18
+      },
+      "differences": {
+        "sparse_submanifold_conv_fwd_masked_implicit_gemm_splitk with key (2^13, 512, 512, 27)": {
+          "reference": "{'SPLITK': 1}",
+          "optimized": "{'SPLITK': 2}"
+        }
+      }
+    },
+    "equivalent_output_speedup_accepted": false,
+    "divergence_cause_identified": false,
+    "limitations": [
+      "One prepared single-view shoe; no interleaved repetitions or statistical speedup result",
+      "Raw tensor shape mismatch fails structural parity before floating-point tolerances",
+      "Different native autotuner choices are a confound, not proof that hooks are correct or incorrect",
+      "Remesh timing is not the same workload when native geometry differs",
+      "Successful render/embedded materials do not prove production visual quality, watertightness or final GLB equivalence",
+      "No mapped-view, 1536, T4, standalone original CLI or hot-model acceptance"
+    ]
+  },
+  "allocation_wait": {
+    "optimized_dispatch_and_startup_approximate_minutes": 84,
+    "optimized_exact_running_transition_captured": false,
+    "reference_queued_to_running_seconds": 1617.6872606277466,
+    "reference_running_to_complete_seconds": 626.7990963459015,
+    "scope": "Allocation/dispatch/startup are separate from measured model stages; GPU type was not upgraded."
+  },
+  "health_latency": {
+    "schema": "pixalcuda.http-latency.v1",
+    "records": [
+      {
+        "round": 0,
+        "profile": "observed_cold",
+        "seconds": 8.444275832996937,
+        "status": 200,
+        "generation_submitted": false
+      },
+      {
+        "round": 0,
+        "profile": "immediate_warm",
+        "seconds": 0.41284808301134035,
+        "status": 200,
+        "generation_submitted": false
+      },
+      {
+        "round": 0,
+        "profile": "immediate_warm",
+        "seconds": 0.4106510419806,
+        "status": 200,
+        "generation_submitted": false
+      },
+      {
+        "round": 0,
+        "profile": "immediate_warm",
+        "seconds": 0.41412541599129327,
+        "status": 200,
+        "generation_submitted": false
+      },
+      {
+        "round": 1,
+        "profile": "observed_cold",
+        "seconds": 6.190199917007703,
+        "status": 200,
+        "generation_submitted": false
+      },
+      {
+        "round": 1,
+        "profile": "immediate_warm",
+        "seconds": 0.22221879198332317,
+        "status": 200,
+        "generation_submitted": false
+      },
+      {
+        "round": 1,
+        "profile": "immediate_warm",
+        "seconds": 0.2603356250037905,
+        "status": 200,
+        "generation_submitted": false
+      },
+      {
+        "round": 1,
+        "profile": "immediate_warm",
+        "seconds": 0.2690940000175033,
+        "status": 200,
+        "generation_submitted": false
+      }
+    ],
+    "cold_median_seconds": 7.31723787500232,
+    "warm_median_seconds": 0.33987252099905163,
+    "scope": "Client wall time for health only, including network and HTTP connection effects; not model inference or throughput",
+    "gpu_jobs_submitted": 0
+  },
+  "after_diagnostics": {
+    "deployment_seconds": 20.75,
+    "native_rebuild_observed": false,
+    "declared_settings_and_observed_stats": {
+      "environment": "main",
+      "gpu": "L4",
+      "min_containers": 0,
+      "max_gpu_containers": 1,
+      "scaledown_window": 2,
+      "gpu_timeout_seconds": 1800,
+      "save_reference": false,
+      "allow_rmbg": false,
+      "infer_job_stats": "FunctionCurrentStats(backlog=0, num_total_runners=0, num_running_inputs=0, input_headroom=0)"
+    },
+    "health": {
+      "unauthenticated_status": 401,
+      "authenticated_status": 200,
+      "status": "ok",
+      "runtime": "official",
+      "environment": "main",
+      "geometry_resolution": 1024,
+      "supported_geometry_resolutions": [
+        1024,
+        1536
+      ],
+      "upstream_revision": "f7cf38429b0bd264f1995f0f8743a88b1c728b94",
+      "low_vram": true,
+      "attention_backend": "sdpa",
+      "gpu": "L4",
+      "max_tokens": 49152,
+      "background_removal_default": false,
+      "rmbg_enabled": false,
+      "optimizations": {
+        "share_dino": true,
+        "dino_cache_mb": 128,
+        "sparse_projection": true,
+        "conditioning_cache_mb": 256
+      },
+      "max_views": 16,
+      "max_new_jobs_per_utc_day": 10
+    },
+    "active_containers_observed": 0,
+    "additional_generation_submitted": false
+  },
+  "local_tests": {
+    "passed": 190,
+    "warnings": 1,
+    "seconds": 2.04,
+    "warning": "Unrelated Starlette/httpx TestClient deprecation"
+  },
+  "mlx_checkout_modified": false,
+  "data_policy": "Credentials, account financial data, private filesystem paths, input image, native tensors, GLBs and rendered pixels are not committed."
+}

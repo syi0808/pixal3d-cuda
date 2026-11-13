@@ -3,7 +3,8 @@
 2026-11-13 적용. 별도 runtime이나 이전 포팅 연산을 추가하지 않는다. 고정된
 공식 클래스에 worker/job 수명의 hook을 설치하고 완료/실패 시 복원한다.
 가중치, dtype, 12-step schedule, texture NAF 1024, native decoder와 remesh/PBR는
-바꾸지 않는다. 실제 pretrained GPU 속도·품질은 아직 미검증이다.
+바꾸지 않는다. 이후 실제 L4 pilot에서 두 profile의 PBR GLB 생성은 성공했지만
+strict native tensor parity는 실패했다. [측정과 한계](performance.md)를 참조한다.
 
 ## 적용 항목
 
@@ -71,5 +72,6 @@ optimized(cache 포함), standard(전체 GPU 상주)다. 기본은 reference/opt
 NAF selected-query/타일 분할, native sparse autotuning, compile/CUDA graphs,
 T4 precision 호환화는 적용하지 않았다. NATTEN/CUDA 및 pretrained 기준선 없이
 연산을 바꾸지 않기 위한 구분이다. Modal SM89 빌드는 통과했고 RMBG 기본 의존성은
-제거했지만 pretrained 생성과 tensor/GLB 비교는 아직 미검증이다.
-[실제 배포/진단 범위](validation.md#v02-modal-main-rollout)를 참조한다.
+제거했다. L4 단일 입력에서 실제 생성/렌더와 raw tensor 비교를 실행했으며,
+동등성 실패와 변동 요인을 [실제 배포/진단 범위](validation.md#v02-l4-performance-pilot)에
+기록한다. 반복 가속, 원본 CLI/GLB 동등성과 mapped-view 품질은 검증하지 않았다.

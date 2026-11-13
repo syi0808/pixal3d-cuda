@@ -1,7 +1,9 @@
 # Official runtime on Modal main
 
 **Deployed to main on 2026-11-13:** native SM89 image build and authenticated HTTP
-smoke checks pass. Pretrained generation is not accepted yet. RMBG-2.0 is now
+smoke checks pass. On 2026-11-14 KST, both profiles completed actual single-image
+1024/4K PBR generation on L4, but strict native tensor parity failed. See the
+[performance pilot and limitations](performance.md). RMBG-2.0 is
 disabled by default, so its previous access 403 is not a default prefetch
 requirement. See [optional background removal](background-removal.md) and
 [rollout evidence](validation.md#v02-modal-main-rollout).
@@ -22,7 +24,8 @@ applies only to [the previous revision](https://github.com/syi0808/pixal3d-cuda/
 There is no dev environment and no automatic GPU upgrade/fallback. The new
 declaration explicitly changes the hardware target from T4 to L4. Deployment
 does not start asset generation. T4 is rejected by the BF16 baseline.
-Native L4 model fit/inference still need validation. The 64 GiB host RAM limit
+Native L4 model fit/inference passed for one prepared shoe, not every input,
+mapped views or 1536. The 64 GiB host RAM limit
 is not a VRAM allowance. Upstream loads all models on CPU even in low-VRAM mode.
 
 ## Manual rollout
@@ -77,7 +80,8 @@ See [controls and validation limits](optimizations.md).
 
 After a deliberate single-image test, verify report stages include
 `remesh_pbr_export`, embedded PBR images and actual geometry; inspect the GLB
-visually before benchmarking. This has **not** been done for v0.2 yet.
+visually before benchmarking. This passed for the L4 pilot's two GLBs; strict
+tensor parity and repeated equivalent-output performance remain unaccepted.
 
 ## Bounded HTTP acceptance
 

@@ -12,10 +12,12 @@ mesh exporter are used by this path. Job-scoped DINO reuse, active projection an
 bounded static conditioning reuse are now enabled; `--reference` disables these
 hooks in the same official pipeline. The MLX checkout is not modified.
 
-**Status: native SM89 image built and Modal main HTTP/authentication verified;
-pretrained generation remains unvalidated. RMBG-2.0 is now disabled/optional,
+**Status: actual Modal L4 single-image 1024/4K PBR generation passed for both
+reference and optimized profiles. The one-pair performance pilot did not pass
+strict native tensor parity; it does not establish equivalent-quality speedup.
+RMBG-2.0 is disabled/optional,
 not a default download or initialization dependency.** See
-[deployment evidence and remaining checks](docs/validation.md#optional-rmbg-default-policy).
+[measurements and remaining checks](docs/performance.md).
 Historical T4 GLBs/timings belong to the
 archived implementation and are not acceptance evidence for this rewrite.
 
@@ -34,7 +36,7 @@ archived implementation and are not acceptance evidence for this rewrite.
 **T4 is not accepted by the unmodified BF16 baseline.** Re-enabling T4 requires
 a separately measured precision/kernel compatibility project, not silently
 changing precision silently. Free Colab T4 is therefore not a supported v0.2 target.
-L4 model fit and generation speed remain unvalidated. See
+L4 fit is verified for one prepared shoe, not all inputs or mapped views. See
 [migration, constraints and optimization investigation](docs/upstream-runtime.md).
 
 ## Native setup
@@ -78,8 +80,11 @@ framing must agree. Input validation/normalization is reused, but upstream
 ## Validate And Measure
 
 See [implemented optimizations, controls and validation limits](docs/optimizations.md).
-The reference and optimized profiles still need pretrained GPU validation;
-CPU source-level comparisons are not a speedup or visual-quality claim.
+The L4 pilot measured 606.28 s reference versus 530.44 s optimized stage sums,
+excluding diagnostic tensor saving, queue/startup and transport. Denoise/decode
+was effectively unchanged at 160 s, and native tensor shapes differed.
+See [the scope and parity failure](docs/performance.md) before interpreting these
+numbers as an optimization benefit.
 
 ```bash
 python scripts/benchmark_upstream.py --image object.png
@@ -87,9 +92,11 @@ python scripts/benchmark_upstream.py --image object.png --execute --output-dir o
 ```
 
 Without `--execute` this prints a plan and never initializes CUDA, downloads
-models, submits jobs or contacts Modal. Execution alternates official low-VRAM
-and standard SDPA profiles, with no precision/resolution fallback. It stops on
-failure/OOM instead of excluding failed cases. No speedup is claimed yet.
+models, submits jobs or contacts Modal. Execution alternates the reference and
+optimized official low-VRAM/SDPA profiles by default; `standard` is selectable.
+There is no precision/resolution fallback. It stops on
+failure/OOM instead of excluding failed cases. The one-pair L4 pilot is not a
+repeated, equivalent-output speedup result.
 
 Each native generation produces `result.glb`, `report.json`, `upstream.log` and
 `upstream-request.json`. Optional `--save-reference` writes **private** native

@@ -7,9 +7,10 @@ v0.2는 기존 신경망 포팅을 더 고치는 대신, 고정된 공식 Pixal3
 않고 외부 디렉터리에 설치한다. 기존 MLX 저장소도 수정하지 않는다.
 
 CPU 계약 테스트, Modal SM89 native 이미지 빌드와 main HTTP/인증 검증을 완료했다.
-**pretrained 생성, 원본 CLI와의 수치·품질 동등성, 성능 개선은 미검증이다.**
+이후 실제 L4의 reference/optimized 각 1회에서 1024/4K PBR GLB 생성과 렌더를 완료했다.
+**Strict tensor parity는 실패했고, 원본 CLI 동등성과 일반화된 가속은 미검증이다.**
 RMBG-2.0은 이제 기본 다운로드/초기화에서 제외했으며, 이전의 403은 기본 경로의
-필수 접근 조건이 아니다. [배포 기록](validation.md#v02-modal-main-rollout)을 참조한다.
+필수 접근 조건이 아니다. [측정 기록](performance.md)을 참조한다.
 과거 7 GiB T4 측정은 legacy
 런타임의 숫자이며 새 런타임의 기대값으로 재사용하지 않는다.
 
@@ -97,9 +98,9 @@ worker/asset 단위라 kernel/autotune cache가 남을 수 있으며 warm-forwar
 한 번 실패하면 즉시 중단하고 결과를 보존한다. Modal 호출은 없다.
 
 report는 load / preprocess-camera / denoise-decode / CUDA remesh-PBR의 시간과
-allocated/reserved peak, 각 구간 끝 host RSS를 기록한다. RSS는 peak 샘플이 아니고,
-PyTorch 수치는 외부 allocator/context의 모든 메모리를 포함하지 않는다.
-device-used VRAM/RSS의 100 ms 샘플링을 추가했으며 세부 SS/LR/HR/texture profiler는
+allocated/reserved peak, 각 구간 끝 host RSS를 기록한다. PyTorch 수치는 외부
+allocator/context의 모든 메모리를 포함하지 않는다. 별도로 device-used VRAM과
+peak RSS의 100 ms 샘플링을 추가했으며 세부 SS/LR/HR/texture profiler는
 여전히 다음 acceptance에 추가해야 한다. 샘플링은 짧은 peak를 놓칠 수 있다.
 
 `--save-reference`는 native shape/texture latent와 raw mesh/voxel tensor를 CPU에
@@ -107,10 +108,10 @@ device-used VRAM/RSS의 100 ms 샘플링을 추가했으며 세부 SS/LR/HR/text
 검증하는 데 사용한다. original CLI와 비교할 때 camera/초기 noise/전처리/후처리
 설정을 고정하고, 최종 GLB hash만으로 품질·수치 동등성을 판정하지 않는다.
 
-native 이미지 빌드, main HTTP 검증과 RMBG를 제외한 기본 CPU prefetch는 완료했다.
-다음 순서는 동일하게 준비된 입력으로 공식 CLI 및 wrapper의 1024 단일 이미지 생성 →
-raw geometry/PBR 확인 → 반복 baseline이다. RMBG 기본 의존성은 제거했지만 실제
-pretrained 생성은 여전히 별도 검증이며 이번 정책 변경에서는 GPU 생성을 실행하지 않았다.
+native 이미지 빌드, main HTTP 검증과 RMBG를 제외한 기본 CPU prefetch를 완료했다.
+후속 L4 pilot은 wrapper의 1024 단일 이미지 생성/raw geometry/PBR 렌더까지 진행했지만
+좌표/mesh 크기가 달라 strict parity에 실패했다. 다음은 reference 반복 및 연산별 fixture로
+첫 divergence를 찾는 것이다. CLI 동등성/반복 가속을 완료한 것으로 간주하지 않는다.
 
 ## 단일 runtime과 과거 이력
 
