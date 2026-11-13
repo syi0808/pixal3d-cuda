@@ -269,7 +269,8 @@ def main(argv=None):
     torch.manual_seed(arguments.seed)
     root = Path(__file__).resolve().parents[1]
     try:
-        revision = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+        revision = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True,
+                                           stderr=subprocess.DEVNULL).strip()
     except (OSError, subprocess.CalledProcessError):
         revision = "unknown"
     report = {"schema": "pixalcuda.operators.v1", "scope": "Synthetic operators, not pretrained inference or asset quality",

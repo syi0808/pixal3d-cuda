@@ -19,7 +19,7 @@ image = (offline
 @app.function(image=image, gpu="T4", cpu=(2, 2), memory=(4096, 8192), timeout=600, retries=0,
               min_containers=0, max_containers=1, buffer_containers=0, scaledown_window=2,
               include_source=False, volumes={"/jobs": jobs})
-def benchmark(run_id, source_job):
+def benchmark(run_id, source_job, math_attention_only=False):
     import torch
 
     from pixalcuda.runtime import atomic_json
@@ -37,15 +37,18 @@ def benchmark(run_id, source_job):
         raise ValueError("Use a completed bounded source run")
     destination = Path("/jobs/benchmarks") / run_id
     destination.mkdir(parents=True, exist_ok=False)
+    cases = ["attention"] if math_attention_only else ["cross_attention", "attention", "ffn", "flow_block", "sparse_chunks"]
+    backends = ["auto", "math"] if math_attention_only else ["auto"]
+    sparse_source = [] if math_attention_only else ["--sparse-coordinate-checkpoint", str(source / "texture_decoded.pt")]
     try:
         report = main(["--device", "cuda", "--output", str(destination / "operators.json"),
                        "--trace-dir", str(destination / "traces"),
-                       "--cases", "cross_attention", "attention", "ffn", "flow_block", "sparse_chunks",
+                       "--cases", *cases, "--sdpa-backends", *backends,
                        "--tokens", str(tokens), "--channels", "1536", "--heads", "12",
                        "--context-tokens", "5", "--context-channels", "1024", "--projection-channels", "2048",
                        "--query-chunks", "256", "1024", "2048", "--cross-query-chunks", "256", "1024", "0",
                        "--ffn-hidden", "8192", "--ffn-rows", "1024", "4096", "8192",
-                       "--sparse-coordinate-checkpoint", str(source / "texture_decoded.pt"),
+                       *sparse_source,
                        "--sparse-sample-limit", "262144", "--sparse-channels", "64",
                        "--sparse-chunk-rows", "4096", "16384", "--warmup", "2", "--repeats", "5"])
         report["frozen_source"] = {"job_id": source_job, "runtime_fingerprint": json.loads((source / "manifest.json").read_text())["fingerprint"],
@@ -58,12 +61,12 @@ def benchmark(run_id, source_job):
 
 
 @app.local_entrypoint()
-def run(run_id: str, source_job: str, output_dir: str = "outputs/modal-tuning"):
+def run(run_id: str, source_job: str, output_dir: str = "outputs/modal-tuning", math_attention_only: bool = False):
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     destination = Path(output_dir).expanduser()
     destination.mkdir(parents=True, exist_ok=True)
     try:
-        print(benchmark.remote(run_id, source_job))
+        print(benchmark.remote(run_id, source_job, math_attention_only))
     finally:
         prefix = f"benchmarks/{run_id}"
         for entry in jobs.iterdir(prefix, recursive=True):
