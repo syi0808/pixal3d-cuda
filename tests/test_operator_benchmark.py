@@ -53,3 +53,20 @@ def test_chunk_tuning_checks_cross_ffn_block_and_frozen_sparse_geometry(tmp_path
     assert report["cases"][2]["parameters"]["cross_attention_queries"] == 0
     profiles = [case["parameters"] for case in report["cases"] if case["name"].startswith("block-crossfull")]
     assert {(profile["attention_queries"], profile["ffn_rows"]) for profile in profiles} == {(4, 2), (4, 4), (8, 2), (8, 4)}
+
+
+def test_pretrained_forward_sweep_interleaves_limits_on_one_model(tmp_path):
+    pytest.importorskip("modal")
+    from deploy.modal_tuning import sweep_pretrained_forwards
+    from pixalcuda.flow import Flow
+    model = Flow(4, 4, 8, channels=12, heads=2, blocks=2, hidden=24, context_channels=8)
+    coordinates = torch.tensor([[0, 0, 0, 0], [0, 1, 1, 1]])
+    noise = torch.randn(2, 4)
+    context = {"global": torch.randn(1, 5, 8), "proj": torch.randn(1, 2, 8)}
+    with torch.inference_mode():
+        report = sweep_pretrained_forwards(model, noise, context, coordinates, tmp_path / "forwards.json")
+    assert report["status"] == "complete" and len(report["cases"]) == 4
+    assert all(len(case["samples"]) == 3 and case["warm_relative_l2_error"] < 1e-5 for case in report["cases"])
+    assert model.blocks[0].self_attn.limits.attention_queries == 1024
+    assert model.blocks[0].cross_attn.cross_attn_block.limits.cross_attention_queries == 0
+    assert model.blocks[0].mlp.rows == 8192
