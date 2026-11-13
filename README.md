@@ -47,7 +47,7 @@ image → foreground crop → MoGe-2 camera
       → guided texture decode → UV/PBR bake → result.glb
 ```
 
-512 denotes the geometry grid, **not** a dense 512³ allocation, input resolution, or texture size. The implementation preserves the MLX fork's established 512 cascade, including 1024-named refinement/texture weights; it does not simply remove the refinement stage. NAF output sampling uses the reference fork's bounded 512 feature setting. End-to-end quality parity with the reference has not been established.
+512 denotes the geometry grid, **not** a dense 512³ allocation, input resolution, or texture size. The implementation preserves the MLX fork's established 512 cascade, including 1024-named refinement/texture weights; it does not simply remove the refinement stage. Single-image texture conditioning reuses shape HR's NAF 512 setting, unlike upstream's dedicated NAF 1024 texture conditioning; mapped multi-view uses a separate NAF 1024 texture context. Export/remeshing defaults also differ. End-to-end quality parity with upstream has not been established. See the [upstream/MLX/CUDA architecture audit](docs/architecture-comparison.md) for model residency, dense-versus-sparse features, memory accounting and correctness gaps.
 
 All four flow schedules retain the official 12 steps. No quantization, automatic resolution fallback, geometry-token pruning, or step reduction. On an explicit resource guard, generation fails with a report rather than silently changing the requested output.
 

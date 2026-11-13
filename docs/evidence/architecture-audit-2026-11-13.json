@@ -1,0 +1,478 @@
+{
+  "schema": "pixalcuda.architecture-audit.v1",
+  "date": "2026-11-13",
+  "scope": "Source audit, HF metadata comparison, and arithmetic over existing CUDA telemetry; not an upstream GPU benchmark or runtime change.",
+  "sources": {
+    "upstream_code": {
+      "repo": "https://github.com/TencentARC/Pixal3D",
+      "revision": "f7cf38429b0bd264f1995f0f8743a88b1c728b94"
+    },
+    "cuda_code": {
+      "repo": "https://github.com/syi0808/pixal3d-cuda",
+      "revision": "924b56d0b6fbe4b7fec4c7e3263ec385db903b70"
+    },
+    "mlx_read_only": {
+      "repo": "https://github.com/syi0808/pixal3d-mlx",
+      "revision": "56b4ac8ff9ac697f35593eb26962cea08ac46df6"
+    },
+    "hf_model": {
+      "repo": "TencentARC/Pixal3D",
+      "pinned_single_revision": "0b31f9160aa400719af409098bff7936a932f726",
+      "queried_main_revision": "b0cb2e1b794cab9aa0ac38a95d794a4d9337437f"
+    }
+  },
+  "single_image_hf_file_comparison": [
+    {
+      "path": "ckpts/shape_dec_next_dc_f16c32_fp16.json",
+      "pinned_blob_id": "e46164e905de0e68328f5f4b1f128b8dac608d97",
+      "latest_blob_id": "e46164e905de0e68328f5f4b1f128b8dac608d97",
+      "lfs_sha256": null,
+      "identical": true
+    },
+    {
+      "path": "ckpts/shape_dec_next_dc_f16c32_fp16.safetensors",
+      "pinned_blob_id": "02d838181e97a353f87119459cb80bdffb5f7d50",
+      "latest_blob_id": "02d838181e97a353f87119459cb80bdffb5f7d50",
+      "lfs_sha256": "e3b718d3e43e4f8780e9a24ac6fff231811a67e3b058e336e10fe654c911d581",
+      "identical": true
+    },
+    {
+      "path": "ckpts/slat_flow_img2shape_dit_1_3B_1024_bf16.json",
+      "pinned_blob_id": "3628c8f5d6014a2f06d2b66162040fe84a94cbd9",
+      "latest_blob_id": "3628c8f5d6014a2f06d2b66162040fe84a94cbd9",
+      "lfs_sha256": null,
+      "identical": true
+    },
+    {
+      "path": "ckpts/slat_flow_img2shape_dit_1_3B_1024_bf16.safetensors",
+      "pinned_blob_id": "4202bf811a1336361ba8489a67aa71a38963fca9",
+      "latest_blob_id": "4202bf811a1336361ba8489a67aa71a38963fca9",
+      "lfs_sha256": "3e6d1df0e62bc5bc863320d1d63d6b996235eef4abb8b851e878c88f316369f1",
+      "identical": true
+    },
+    {
+      "path": "ckpts/slat_flow_img2shape_dit_1_3B_512_bf16.json",
+      "pinned_blob_id": "464b1fce1a9b03b3621d31660d93ece908b55a8f",
+      "latest_blob_id": "464b1fce1a9b03b3621d31660d93ece908b55a8f",
+      "lfs_sha256": null,
+      "identical": true
+    },
+    {
+      "path": "ckpts/slat_flow_img2shape_dit_1_3B_512_bf16.safetensors",
+      "pinned_blob_id": "4f842225fe13f45192df1d2518fdd02457d6ab90",
+      "latest_blob_id": "4f842225fe13f45192df1d2518fdd02457d6ab90",
+      "lfs_sha256": "63569838c1da93f010e2fa805b202ecf802cc758830230abac202a81b70e5b45",
+      "identical": true
+    },
+    {
+      "path": "ckpts/slat_flow_imgshape2tex_dit_1_3B_1024_bf16.json",
+      "pinned_blob_id": "c751d7b73cecd548aa2df78a0b019205e730dda4",
+      "latest_blob_id": "c751d7b73cecd548aa2df78a0b019205e730dda4",
+      "lfs_sha256": null,
+      "identical": true
+    },
+    {
+      "path": "ckpts/slat_flow_imgshape2tex_dit_1_3B_1024_bf16.safetensors",
+      "pinned_blob_id": "3fe8b270f50d62fbc403082c66361cfb55cb5a18",
+      "latest_blob_id": "3fe8b270f50d62fbc403082c66361cfb55cb5a18",
+      "lfs_sha256": "65df179ad02f9e92bc18335d7861fadd95f268e6249217352468dd83cb79d1d0",
+      "identical": true
+    },
+    {
+      "path": "ckpts/ss_dec_conv3d_16l8_fp16.json",
+      "pinned_blob_id": "9f3affaf13ab29fe48105229da9fab72ea8de716",
+      "latest_blob_id": "9f3affaf13ab29fe48105229da9fab72ea8de716",
+      "lfs_sha256": null,
+      "identical": true
+    },
+    {
+      "path": "ckpts/ss_dec_conv3d_16l8_fp16.safetensors",
+      "pinned_blob_id": "a4b577752af35caab154c83b72427d9cc92285f6",
+      "latest_blob_id": "a4b577752af35caab154c83b72427d9cc92285f6",
+      "lfs_sha256": "1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a",
+      "identical": true
+    },
+    {
+      "path": "ckpts/ss_flow_img_dit_1_3B_64_bf16.json",
+      "pinned_blob_id": "90b55ed8a6febe9b67a0b7f98bfe76f54ae44f46",
+      "latest_blob_id": "90b55ed8a6febe9b67a0b7f98bfe76f54ae44f46",
+      "lfs_sha256": null,
+      "identical": true
+    },
+    {
+      "path": "ckpts/ss_flow_img_dit_1_3B_64_bf16.safetensors",
+      "pinned_blob_id": "cfe74061bd0f9fa0e328601cb2ee0624fa8f68e4",
+      "latest_blob_id": "cfe74061bd0f9fa0e328601cb2ee0624fa8f68e4",
+      "lfs_sha256": "6d0147bb347eb61fa81c304cc68c7fd69d447e91870357a549b47e1d0fd77242",
+      "identical": true
+    },
+    {
+      "path": "ckpts/tex_dec_next_dc_f16c32_fp16.json",
+      "pinned_blob_id": "e17107bef522e2aded7b3bc22ef421b57e16e779",
+      "latest_blob_id": "e17107bef522e2aded7b3bc22ef421b57e16e779",
+      "lfs_sha256": null,
+      "identical": true
+    },
+    {
+      "path": "ckpts/tex_dec_next_dc_f16c32_fp16.safetensors",
+      "pinned_blob_id": "726b2552de2b71756fcd6490486c7ec38060b899",
+      "latest_blob_id": "726b2552de2b71756fcd6490486c7ec38060b899",
+      "lfs_sha256": "97ea69addea2ecd9312910f5f548234665eef51c088386180b7cd5b258645e3c",
+      "identical": true
+    },
+    {
+      "path": "pipeline.json",
+      "pinned_blob_id": "6fe7f4717ab2bae9c51eeb7f8e3e78e0ae520ac5",
+      "latest_blob_id": "6fe7f4717ab2bae9c51eeb7f8e3e78e0ae520ac5",
+      "lfs_sha256": null,
+      "identical": true
+    }
+  ],
+  "upstream_checkpoint_configs": {
+    "ss_flow_img_dit_1_3B_64_bf16": {
+      "name": "SparseStructureFlowModel",
+      "args": {
+        "resolution": 16,
+        "in_channels": 8,
+        "out_channels": 8,
+        "model_channels": 1536,
+        "cond_channels": 1024,
+        "num_blocks": 30,
+        "num_heads": 12,
+        "mlp_ratio": 5.3334,
+        "pe_mode": "rope",
+        "share_mod": true,
+        "initialization": "scaled",
+        "qk_rms_norm": true,
+        "qk_rms_norm_cross": true,
+        "image_attn_mode": "proj",
+        "dtype": "bfloat16"
+      }
+    },
+    "slat_flow_img2shape_dit_1_3B_512_bf16": {
+      "name": "ElasticSLatFlowModel",
+      "args": {
+        "resolution": 32,
+        "in_channels": 32,
+        "out_channels": 32,
+        "model_channels": 1536,
+        "cond_channels": 1024,
+        "num_blocks": 30,
+        "num_heads": 12,
+        "mlp_ratio": 5.3334,
+        "pe_mode": "rope",
+        "share_mod": true,
+        "initialization": "scaled",
+        "qk_rms_norm": true,
+        "qk_rms_norm_cross": true,
+        "image_attn_mode": "proj",
+        "proj_in_channels": 2048,
+        "dtype": "bfloat16"
+      }
+    },
+    "slat_flow_img2shape_dit_1_3B_1024_bf16": {
+      "name": "ElasticSLatFlowModel",
+      "args": {
+        "resolution": 64,
+        "in_channels": 32,
+        "out_channels": 32,
+        "model_channels": 1536,
+        "cond_channels": 1024,
+        "num_blocks": 30,
+        "num_heads": 12,
+        "mlp_ratio": 5.3334,
+        "pe_mode": "rope",
+        "share_mod": true,
+        "initialization": "scaled",
+        "qk_rms_norm": true,
+        "qk_rms_norm_cross": true,
+        "image_attn_mode": "proj",
+        "proj_in_channels": 2048,
+        "dtype": "bfloat16"
+      }
+    },
+    "slat_flow_imgshape2tex_dit_1_3B_1024_bf16": {
+      "name": "ElasticSLatFlowModel",
+      "args": {
+        "resolution": 64,
+        "in_channels": 64,
+        "out_channels": 32,
+        "model_channels": 1536,
+        "cond_channels": 1024,
+        "num_blocks": 30,
+        "num_heads": 12,
+        "mlp_ratio": 5.3334,
+        "pe_mode": "rope",
+        "share_mod": true,
+        "initialization": "scaled",
+        "qk_rms_norm": true,
+        "qk_rms_norm_cross": true,
+        "image_attn_mode": "proj",
+        "proj_in_channels": 2048,
+        "dtype": "bfloat16"
+      }
+    },
+    "shape_dec_next_dc_f16c32_fp16": {
+      "name": "FlexiDualGridVaeDecoder",
+      "args": {
+        "resolution": 256,
+        "model_channels": [
+          1024,
+          512,
+          256,
+          128,
+          64
+        ],
+        "latent_channels": 32,
+        "num_blocks": [
+          4,
+          16,
+          8,
+          4,
+          0
+        ],
+        "block_type": [
+          "SparseConvNeXtBlock3d",
+          "SparseConvNeXtBlock3d",
+          "SparseConvNeXtBlock3d",
+          "SparseConvNeXtBlock3d",
+          "SparseConvNeXtBlock3d"
+        ],
+        "up_block_type": [
+          "SparseResBlockC2S3d",
+          "SparseResBlockC2S3d",
+          "SparseResBlockC2S3d",
+          "SparseResBlockC2S3d"
+        ],
+        "block_args": [
+          {},
+          {},
+          {},
+          {},
+          {}
+        ],
+        "use_fp16": true
+      }
+    },
+    "tex_dec_next_dc_f16c32_fp16": {
+      "name": "SparseUnetVaeDecoder",
+      "args": {
+        "out_channels": 6,
+        "model_channels": [
+          1024,
+          512,
+          256,
+          128,
+          64
+        ],
+        "latent_channels": 32,
+        "num_blocks": [
+          4,
+          16,
+          8,
+          4,
+          0
+        ],
+        "block_type": [
+          "SparseConvNeXtBlock3d",
+          "SparseConvNeXtBlock3d",
+          "SparseConvNeXtBlock3d",
+          "SparseConvNeXtBlock3d",
+          "SparseConvNeXtBlock3d"
+        ],
+        "up_block_type": [
+          "SparseResBlockC2S3d",
+          "SparseResBlockC2S3d",
+          "SparseResBlockC2S3d",
+          "SparseResBlockC2S3d"
+        ],
+        "block_args": [
+          {},
+          {},
+          {},
+          {},
+          {}
+        ],
+        "pred_subdiv": false,
+        "use_fp16": true
+      }
+    }
+  },
+  "known_semantic_differences": {
+    "single_image_texture_naf_target": {
+      "upstream": 1024,
+      "mlx_and_cuda": 512,
+      "cuda_reuses_shape_hr_context": true
+    },
+    "single_image_condition_naf_target_argument_forwarded": false,
+    "default_geometry": {
+      "upstream_standard": 1536,
+      "upstream_low_vram": 1024,
+      "cuda": 512
+    },
+    "default_export_texture_size": {
+      "upstream_cli": 4096,
+      "cuda": 1024
+    },
+    "default_export_face_target": {
+      "upstream_cli": 1000000,
+      "cuda": 100000
+    },
+    "same_remesher": false,
+    "default_background_remover": {
+      "upstream": "BiRefNet",
+      "cuda": "u2net on CPU"
+    }
+  },
+  "tensor_payload_estimates": {
+    "assumptions": "Batch 1, FP32, 64-cubed projection grid and the existing shoe active count; individual tensor payloads, not measured simultaneous peaks or savings.",
+    "dense_projection_64_cubed_x2048_bytes": 2147483648,
+    "active_projection_10305_x2048_bytes": 84418560,
+    "full_naf_1024_squared_x1024_bytes": 4294967296,
+    "full_naf_512_squared_x1024_bytes": 1073741824,
+    "cuda_still_materializes_256_channel_guide_queries": true
+  },
+  "existing_cuda_measurement": {
+    "report": "docs/evidence/modal-t4-chunks-2026-11-13.report.json",
+    "gpu": "Tesla T4",
+    "gpu_total_bytes": 15645278208,
+    "geometry_resolution": 1024,
+    "texture_size": 1024,
+    "limits": {
+      "attention_queries": 1024,
+      "cross_attention_queries": 0,
+      "ffn_rows": 8192,
+      "sparse_rows": 16384,
+      "naf_queries": 128,
+      "conditioning_cache_mb": 1024,
+      "max_tokens": 32768,
+      "max_voxels": 6000000,
+      "sparse_prepack": 0
+    },
+    "active_counts": {
+      "structure_tokens": 2404,
+      "refinement_tokens": 10305,
+      "shape_voxels": 2771719,
+      "texture_voxels": 2771719
+    },
+    "stage_measurements": [
+      {
+        "name": "preprocess_camera",
+        "elapsed_seconds": 18.50999715,
+        "peak_allocated_bytes": 2353584128,
+        "peak_reserved_bytes": 2554331136,
+        "peak_sampled_rss_bytes": 6608211968
+      },
+      {
+        "name": "dino_features",
+        "elapsed_seconds": 3.4869138529999972,
+        "peak_allocated_bytes": 1455139328,
+        "peak_reserved_bytes": 2554331136,
+        "peak_sampled_rss_bytes": 6556483584
+      },
+      {
+        "name": "sparse_structure",
+        "elapsed_seconds": 86.624398335,
+        "peak_allocated_bytes": 6542765056,
+        "peak_reserved_bytes": 6557794304,
+        "peak_sampled_rss_bytes": 10822012928
+      },
+      {
+        "name": "shape_lr",
+        "elapsed_seconds": 50.32229699999999,
+        "peak_allocated_bytes": 6260682240,
+        "peak_reserved_bytes": 6285164544,
+        "peak_sampled_rss_bytes": 11251085312
+      },
+      {
+        "name": "coordinate_subdivision",
+        "elapsed_seconds": 5.237096326999989,
+        "peak_allocated_bytes": 2433626112,
+        "peak_reserved_bytes": 2550136832,
+        "peak_sampled_rss_bytes": 7116288000
+      },
+      {
+        "name": "hr_conditioning",
+        "elapsed_seconds": 1.5824107059999903,
+        "peak_allocated_bytes": 2905357824,
+        "peak_reserved_bytes": 2965372928,
+        "peak_sampled_rss_bytes": 6063927296
+      },
+      {
+        "name": "shape_hr",
+        "elapsed_seconds": 296.19654864200004,
+        "peak_allocated_bytes": 7526449152,
+        "peak_reserved_bytes": 7665090560,
+        "peak_sampled_rss_bytes": 11593891840
+      },
+      {
+        "name": "shape_decode",
+        "elapsed_seconds": 14.071487452999975,
+        "peak_allocated_bytes": 6311439360,
+        "peak_reserved_bytes": 6702497792,
+        "peak_sampled_rss_bytes": 7448608768
+      },
+      {
+        "name": "texture_flow",
+        "elapsed_seconds": 177.77035116600007,
+        "peak_allocated_bytes": 7520048640,
+        "peak_reserved_bytes": 7602176000,
+        "peak_sampled_rss_bytes": 11717558272
+      },
+      {
+        "name": "texture_decode",
+        "elapsed_seconds": 14.371850985000037,
+        "peak_allocated_bytes": 6311375360,
+        "peak_reserved_bytes": 6534725632,
+        "peak_sampled_rss_bytes": 7487623168
+      },
+      {
+        "name": "pbr_export",
+        "elapsed_seconds": 161.419509914,
+        "peak_sampled_rss_bytes": 5956390912
+      }
+    ],
+    "unique_loaded_parameter_bytes": {
+      "model.safetensors": 1212506112,
+      "ss_flow_img_dit_1_3B_64_bf16.safetensors": 5357647904,
+      "ss_dec_conv3d_16l8_fp16.safetensors": 147342402,
+      "naf_release.pth": 2650112,
+      "slat_flow_img2shape_dit_1_3B_512_bf16.safetensors": 5546686592,
+      "shape_dec_next_dc_f16c32_fp16.safetensors": 1896925852,
+      "slat_flow_img2shape_dit_1_3B_1024_bf16.safetensors": 5546686592,
+      "slat_flow_imgshape2tex_dit_1_3B_1024_bf16.safetensors": 5546883200,
+      "tex_dec_next_dc_f16c32_fp16.safetensors": 1896864024
+    },
+    "hypothetical_all_unique_parameter_bytes": 27154192790,
+    "hypothetical_all_flow_parameter_bytes": 21997904288,
+    "hypothetical_sum_exclusions": [
+      "MoGe",
+      "background remover",
+      "buffers",
+      "activations",
+      "allocator and driver overhead"
+    ],
+    "gpu_stage_elapsed_seconds": 668.1733516170001,
+    "model_callback_wall_seconds": 615.4871432609999,
+    "model_load_wall_seconds": 27.929354660000044,
+    "model_load_fraction_of_gpu_stage_time": 0.04179956382937174,
+    "hr_conditioning_cache": {
+      "budget_bytes": 1073741824,
+      "projection_bytes_per_block": 63313920,
+      "cached_blocks": 16,
+      "total_blocks": 30,
+      "used_bytes": 1013022720
+    }
+  },
+  "not_verified": [
+    "Upstream allocated/reserved/device peak or latency",
+    "DINO checkpoint byte parity between camenduru and facebook distributions",
+    "Pretrained dense-versus-sparse NAF numerical parity",
+    "Pretrained output quality parity",
+    "Matched raw decoder output through upstream and current postprocessing",
+    "Any speedup or quality gain from proposed changes"
+  ],
+  "new_gpu_execution": false,
+  "runtime_modified": false,
+  "mlx_modified": false
+}
