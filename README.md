@@ -168,7 +168,18 @@ stage-entry allocator flushes. Per-model load/callback/cleanup timing and flow
 cache usage are recorded. Sparse prepacking remains opt-in; precision, sampling
 and default cache budgets are unchanged. See [performance scope and warm GPU
 profiling](docs/performance.md) and the [Colab operator notebook](notebooks/colab_t4_performance.ipynb).
-No new T4 speedup or pretrained quality-parity result is claimed.
+No full-generation speedup or pretrained quality-parity result is claimed.
+
+The Modal chunk profile now uses self-attention queries 1024, cross-attention
+queries 0 (all queries), FFN rows 8192 and sparse rows 16384. The CLI retains
+conservative defaults; use `--attention-queries 1024 --cross-attention-queries 0
+--ffn-rows 8192 --sparse-rows 16384` to opt in locally. On one T4 with one loaded
+pretrained model and interleaved repeats, a frozen positive HR forward improved
+by 8.48%. **A full 1024/PBR generation did not improve against the historical
+different-worker run**: GPU stages were 668.17 versus 644.02 s, with allocation
+7.01 versus 6.80 GiB. The candidate generated a valid GLB but not an identical
+file. These are scoped experiments, not a universal fast preset. See
+[the chunk trials](docs/validation.md#modal-t4-chunk-profile-trials).
 
 ## Tests
 

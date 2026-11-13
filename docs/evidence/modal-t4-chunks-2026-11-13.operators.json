@@ -1,0 +1,1643 @@
+{
+  "scope": "Warm synthetic FP32 operators and one transformer block, not pretrained full-stage timing",
+  "environment": "main",
+  "warmup": 2,
+  "repeats": 5,
+  "studies": [
+    {
+      "source_revision": "318d718936c66858f60f59ba8f3df56840739102",
+      "source_files": {
+        "__init__.py": "754328270230352b950513b648dfc71192d42ed94ff13dff3ca8597dc8f0d17e",
+        "bake.py": "30a480a65e874e813c8181fb216ebb85dfd5d6e59bf47fa23b27b86e6b4b5bee",
+        "cameras.py": "bbd95bd9d8c99f59e5e08bd144a59bb63411b008e1839f9c6bd3ba7c4846fb9d",
+        "cli.py": "78931afdaf099bf878d9e39989c703bb56c13ba3cf375d016e01f9e967668c32",
+        "conditioning.py": "13b41f3064b0e297c96a19c66c9a9dd80b2e5c6e6e58d016ecb4ee1f8eac1de8",
+        "decoder.py": "0b38aa64f8607bd4e168e15a71574ef65295bef08b64a482edd87f4cc192bbc7",
+        "export.py": "3658f83b8d012aaf560dfa068946a71481d9238e47fbafae2d3ef0de45e33af2",
+        "flow.py": "8fa10abd59d6389261249ef7da651a2f43dc36e46400775b0619c1ece5e8c496",
+        "mesh.py": "71dce0e9842edb659535f67ffd77ca8b7ce61aae957a9688886e7ff6a5831acb",
+        "multiview.py": "982ac954fc94709b6db76f51b1afad26fddf93b75e59fdab130b545f4915879b",
+        "ops.py": "57560655acd837d922a026e92c039b330b45e4caebca22a447c56a66402f39f8",
+        "pipeline.py": "d32a4a4d47159c040ed4ede63b2ec7c7384434e038e0133ac619989e3c91ce3f",
+        "preprocess.py": "7f1d8247a59d2ae67c9b22c895646892de762007400bc1eb1311661b5f523db5",
+        "runtime.py": "026fbb36120864d0a77f36ea932c548805570bd4c36ed32be258bceb608ecc86",
+        "sparse.py": "b41f7a2030f980ee1adfd2483ccbb69ef95e160011d68f4db1e92ac9e8ca21c1",
+        "topology.py": "64140c0fb612741a751c67c08d15fb20993160bb237000d28144bf16582b7ee9",
+        "weights.py": "d56e0e54cd731b612ba3c2a6f71880d6a43aaccd6d8ebf8d0d3610a61ecff848"
+      },
+      "script_sha256": "9d1cfb76a79954aa9d96d5dcc3c276508b8cc1b3cff0b4ade66ed93263403e65",
+      "gpu": "Tesla T4",
+      "capability": [
+        7,
+        5
+      ],
+      "gpu_total_bytes": 15651373056,
+      "torch": "2.6.0+cu124",
+      "cuda_runtime": "12.4",
+      "driver_version": "620.70.06",
+      "configuration": {
+        "device": "cuda",
+        "output": "/jobs/benchmarks/chunks-20261113-v1/operators.json",
+        "trace_dir": "/jobs/benchmarks/chunks-20261113-v1/traces",
+        "cases": [
+          "cross_attention",
+          "attention",
+          "ffn",
+          "flow_block",
+          "sparse_chunks"
+        ],
+        "tokens": 10305,
+        "channels": 1536,
+        "heads": 12,
+        "projection_channels": 2048,
+        "sparse_voxels": 4096,
+        "sparse_channels": 64,
+        "sparse_rows": 4096,
+        "coordinate_voxels": 128,
+        "query_chunks": [
+          256,
+          1024,
+          2048
+        ],
+        "cross_query_chunks": [
+          256,
+          1024,
+          0
+        ],
+        "context_tokens": 5,
+        "context_channels": 1024,
+        "ffn_hidden": 8192,
+        "ffn_rows": [
+          1024,
+          4096,
+          8192
+        ],
+        "sparse_chunk_rows": [
+          4096,
+          16384
+        ],
+        "sparse_coordinate_checkpoint": "/jobs/c64390d89d665f4a9312995a927a7de2aa35ed425e288e94ad054a3b01fa21fb/run/texture_decoded.pt",
+        "sparse_sample_limit": 262144,
+        "sdpa_backends": [
+          "auto"
+        ],
+        "warmup": 2,
+        "repeats": 5,
+        "seed": 42,
+        "cpu_threads": 2
+      },
+      "float32_matmul_precision": "highest",
+      "allow_tf32_matmul": false,
+      "frozen_source": {
+        "job_id": "c64390d89d665f4a9312995a927a7de2aa35ed425e288e94ad054a3b01fa21fb",
+        "runtime_fingerprint": "d90373b8b89efd895511aebbcdaf1e6cf032698cea285877641202e25d4b4c82",
+        "input_sha256": "84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12",
+        "geometry_resolution": 1024
+      },
+      "sparse_geometry_source": {
+        "sha256": "8326ebf1f400805cdf47274e6115e376d62c37da24f3197873d547531290afdb",
+        "features": "Random FP32 features on a prefix of frozen decoded geometry; not a full decoder benchmark"
+      },
+      "raw_report_sha256": "4fc708239aa2a9ac1a2f9338b55c09ac1a660fe4612bc173d45f138f4856270e",
+      "cases": [
+        {
+          "name": "cross-attention-q256",
+          "status": "complete",
+          "parameters": {
+            "cross_attention_queries": 256
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            3.052800000000744,
+            3.2047070000000843,
+            3.043339999999617,
+            3.0365249999988464,
+            3.117283999999998
+          ],
+          "median_wall_ms": 3.052800000000744,
+          "cuda_interval_ms": [
+            2.748192071914673,
+            2.7535998821258545,
+            2.763904094696045,
+            2.730015993118286,
+            2.7095038890838623
+          ],
+          "median_cuda_interval_ms": 2.748192071914673,
+          "peak_allocated_bytes": 1310076928,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 66459648,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 124,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "cross-attention-q1024",
+          "status": "complete",
+          "parameters": {
+            "cross_attention_queries": 1024
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            2.7533569999995677,
+            2.733140000000134,
+            2.729807999999778,
+            2.7493910000000454,
+            2.929311999999129
+          ],
+          "median_wall_ms": 2.7493910000000454,
+          "cuda_interval_ms": [
+            2.4668800830841064,
+            2.452255964279175,
+            2.4483840465545654,
+            2.451200008392334,
+            2.452320098876953
+          ],
+          "median_cuda_interval_ms": 2.452255964279175,
+          "peak_allocated_bytes": 1319514112,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 75896832,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 34,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "cross-attention-q0",
+          "status": "complete",
+          "parameters": {
+            "cross_attention_queries": 0
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            2.6136039999986593,
+            2.609722000000758,
+            2.610971000001072,
+            2.6162989999996,
+            2.61285300000047
+          ],
+          "median_wall_ms": 2.61285300000047,
+          "cuda_interval_ms": [
+            2.322144031524658,
+            2.319488048553467,
+            2.319999933242798,
+            2.322240114212036,
+            2.31276798248291
+          ],
+          "median_cuda_interval_ms": 2.319999933242798,
+          "peak_allocated_bytes": 1433559040,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 189941760,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 4,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q256-strided",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            244.4307049999992,
+            241.4566460000014,
+            240.91943699999874,
+            243.27057700000054,
+            242.04330800000128
+          ],
+          "median_wall_ms": 242.04330800000128,
+          "cuda_interval_ms": [
+            244.07717895507812,
+            241.10665893554688,
+            240.5669708251953,
+            242.93081665039062,
+            241.6846466064453
+          ],
+          "median_cuda_interval_ms": 241.6846466064453,
+          "peak_allocated_bytes": 1310076928,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 66459648,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 124,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q256-contiguous",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            241.3641059999989,
+            238.75647599999894,
+            239.5189319999993,
+            241.61391199999827,
+            239.87924900000124
+          ],
+          "median_wall_ms": 239.87924900000124,
+          "cuda_interval_ms": [
+            240.9757080078125,
+            238.3870391845703,
+            239.16015625,
+            241.2346954345703,
+            239.47622680664062
+          ],
+          "median_cuda_interval_ms": 239.47622680664062,
+          "peak_allocated_bytes": 1500018688,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 256401408,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 127,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q1024-strided",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            201.3959440000015,
+            204.94149499999992,
+            200.19009499999996,
+            200.3072820000007,
+            200.53381900000034
+          ],
+          "median_wall_ms": 200.53381900000034,
+          "cuda_interval_ms": [
+            201.0200958251953,
+            204.5675811767578,
+            199.78761291503906,
+            199.85020446777344,
+            200.15228271484375
+          ],
+          "median_cuda_interval_ms": 200.15228271484375,
+          "peak_allocated_bytes": 1319514112,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 75896832,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 34,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q1024-contiguous",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            209.76475800000216,
+            209.3526869999991,
+            203.06035699999825,
+            203.05046999999732,
+            208.06560300000143
+          ],
+          "median_wall_ms": 208.06560300000143,
+          "cuda_interval_ms": [
+            209.3783721923828,
+            208.9989776611328,
+            202.6874542236328,
+            202.6757049560547,
+            207.6729278564453
+          ],
+          "median_cuda_interval_ms": 207.6729278564453,
+          "peak_allocated_bytes": 1509455872,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 265838592,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 37,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q2048-strided",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            204.2966590000006,
+            204.26152299999956,
+            202.99294899999865,
+            202.9621920000011,
+            203.07452000000126
+          ],
+          "median_wall_ms": 203.07452000000126,
+          "cuda_interval_ms": [
+            203.87744140625,
+            203.8555908203125,
+            202.60182189941406,
+            202.5623016357422,
+            202.66575622558594
+          ],
+          "median_cuda_interval_ms": 202.66575622558594,
+          "peak_allocated_bytes": 1332097024,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 88479744,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 19,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q2048-contiguous",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            202.71322199999986,
+            204.9819740000025,
+            202.462551,
+            202.30484400000037,
+            202.25628200000045
+          ],
+          "median_wall_ms": 202.462551,
+          "cuda_interval_ms": [
+            202.33071899414062,
+            204.62188720703125,
+            202.1103973388672,
+            201.9580841064453,
+            201.90499877929688
+          ],
+          "median_cuda_interval_ms": 202.1103973388672,
+          "peak_allocated_bytes": 1522038784,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 278421504,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 22,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "ffn-rows1024",
+          "status": "complete",
+          "parameters": {
+            "ffn_rows": 1024
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            117.53212300000015,
+            117.79252399999862,
+            118.96796500000306,
+            117.94003199999992,
+            125.87032000000065
+          ],
+          "median_wall_ms": 117.94003199999992,
+          "cuda_interval_ms": [
+            117.15229034423828,
+            117.36153411865234,
+            118.5640640258789,
+            117.55763244628906,
+            125.4985580444336
+          ],
+          "median_cuda_interval_ms": 117.55763244628906,
+          "peak_allocated_bytes": 1375088640,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 131471360,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 56,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "ffn-rows4096",
+          "status": "complete",
+          "parameters": {
+            "ffn_rows": 4096
+          },
+          "max_abs_error": 4.410743713378906e-06,
+          "wall_ms": [
+            116.95801700000175,
+            116.42110999999744,
+            118.10819699999797,
+            117.93744500000258,
+            124.54619300000047
+          ],
+          "median_wall_ms": 117.93744500000258,
+          "cuda_interval_ms": [
+            116.58319854736328,
+            115.98003387451172,
+            117.71743774414062,
+            117.55030059814453,
+            124.18768310546875
+          ],
+          "median_cuda_interval_ms": 117.55030059814453,
+          "peak_allocated_bytes": 1576415232,
+          "peak_reserved_bytes": 1694498816,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 332797952,
+          "free_device_bytes_after": 13807058944,
+          "dispatch": {
+            "sdpa_operators": [],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 14,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "ffn-rows8192",
+          "status": "complete",
+          "parameters": {
+            "ffn_rows": 8192
+          },
+          "max_abs_error": 2.168118953704834e-06,
+          "wall_ms": [
+            117.12120299999995,
+            116.69541999999922,
+            117.67631799999734,
+            118.27068299999866,
+            123.10354499999931
+          ],
+          "median_wall_ms": 117.67631799999734,
+          "cuda_interval_ms": [
+            116.75577545166016,
+            116.32096099853516,
+            117.26850891113281,
+            117.89328002929688,
+            122.7435531616211
+          ],
+          "median_cuda_interval_ms": 117.26850891113281,
+          "peak_allocated_bytes": 1843802112,
+          "peak_reserved_bytes": 1862270976,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 600184832,
+          "free_device_bytes_after": 13639286784,
+          "dispatch": {
+            "sdpa_operators": [],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 11,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "block-baseline",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 256,
+            "cross_attention_queries": 256,
+            "ffn_rows": 1024,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            456.9291849999999,
+            454.3869520000001,
+            453.75005200000373,
+            454.1232839999978,
+            455.55463099999827
+          ],
+          "median_wall_ms": 454.3869520000001,
+          "cuda_interval_ms": [
+            456.5536193847656,
+            453.9458923339844,
+            453.3321228027344,
+            453.1058654785156,
+            455.0856628417969
+          ],
+          "median_cuda_interval_ms": 453.9458923339844,
+          "peak_allocated_bytes": 1813479424,
+          "peak_reserved_bytes": 1904214016,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 569862144,
+          "free_device_bytes_after": 13597343744,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 357,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q256-ffn1024",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 256,
+            "cross_attention_queries": 0,
+            "ffn_rows": 1024,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            447.6471139999987,
+            455.4032699999979,
+            456.0273660000007,
+            459.3276299999971,
+            445.7166849999936
+          ],
+          "median_wall_ms": 455.4032699999979,
+          "cuda_interval_ms": [
+            447.2735290527344,
+            454.97698974609375,
+            455.5920715332031,
+            458.8371276855469,
+            445.2110595703125
+          ],
+          "median_cuda_interval_ms": 454.97698974609375,
+          "peak_allocated_bytes": 1813479424,
+          "peak_reserved_bytes": 1904214016,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 569862144,
+          "free_device_bytes_after": 13597343744,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 237,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q256-ffn4096",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 256,
+            "cross_attention_queries": 0,
+            "ffn_rows": 4096,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 9.5367431640625e-07,
+          "wall_ms": [
+            453.74404799999724,
+            456.7812960000026,
+            456.061683999998,
+            454.0703090000022,
+            459.4553060000024
+          ],
+          "median_wall_ms": 456.061683999998,
+          "cuda_interval_ms": [
+            453.25274658203125,
+            456.4485778808594,
+            455.7377014160156,
+            453.5657043457031,
+            458.9721984863281
+          ],
+          "median_cuda_interval_ms": 455.7377014160156,
+          "peak_allocated_bytes": 1813479424,
+          "peak_reserved_bytes": 1904214016,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 569862144,
+          "free_device_bytes_after": 13597343744,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 195,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q256-ffn8192",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 256,
+            "cross_attention_queries": 0,
+            "ffn_rows": 8192,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 4.76837158203125e-07,
+          "wall_ms": [
+            456.1472080000044,
+            454.72648400000537,
+            461.9166539999995,
+            456.4346499999985,
+            456.6286599999998
+          ],
+          "median_wall_ms": 456.4346499999985,
+          "cuda_interval_ms": [
+            455.8260803222656,
+            454.4150390625,
+            461.5058288574219,
+            455.96685791015625,
+            456.2277526855469
+          ],
+          "median_cuda_interval_ms": 455.96685791015625,
+          "peak_allocated_bytes": 2033780736,
+          "peak_reserved_bytes": 2051014656,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 790163456,
+          "free_device_bytes_after": 13450543104,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 192,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q1024-ffn1024",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 1024,
+            "cross_attention_queries": 0,
+            "ffn_rows": 1024,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            420.2856920000002,
+            420.1259109999995,
+            417.86328399999917,
+            416.36569100000287,
+            420.73483499999753
+          ],
+          "median_wall_ms": 420.1259109999995,
+          "cuda_interval_ms": [
+            419.8899230957031,
+            419.76727294921875,
+            417.4544372558594,
+            415.9898681640625,
+            420.3694763183594
+          ],
+          "median_cuda_interval_ms": 419.76727294921875,
+          "peak_allocated_bytes": 1813479424,
+          "peak_reserved_bytes": 2051014656,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 569862144,
+          "free_device_bytes_after": 13450543104,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 147,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q1024-ffn4096",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 1024,
+            "cross_attention_queries": 0,
+            "ffn_rows": 4096,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 9.5367431640625e-07,
+          "wall_ms": [
+            418.92470300000184,
+            420.20789899999755,
+            417.5421180000001,
+            420.4317989999993,
+            417.59659900000656
+          ],
+          "median_wall_ms": 418.92470300000184,
+          "cuda_interval_ms": [
+            418.4738464355469,
+            419.7210388183594,
+            417.1217956542969,
+            419.99346923828125,
+            417.14349365234375
+          ],
+          "median_cuda_interval_ms": 418.4738464355469,
+          "peak_allocated_bytes": 1813479424,
+          "peak_reserved_bytes": 2051014656,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 569862144,
+          "free_device_bytes_after": 13450543104,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 105,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q1024-ffn8192",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 1024,
+            "cross_attention_queries": 0,
+            "ffn_rows": 8192,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 4.76837158203125e-07,
+          "wall_ms": [
+            417.47503700000266,
+            421.63976099999445,
+            417.59907799999496,
+            418.01784100000106,
+            417.9919369999965
+          ],
+          "median_wall_ms": 417.9919369999965,
+          "cuda_interval_ms": [
+            417.01251220703125,
+            421.1128234863281,
+            417.1497802734375,
+            417.5763854980469,
+            417.5250244140625
+          ],
+          "median_cuda_interval_ms": 417.5250244140625,
+          "peak_allocated_bytes": 2033780736,
+          "peak_reserved_bytes": 2051014656,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 790163456,
+          "free_device_bytes_after": 13450543104,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 102,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q2048-ffn1024",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 2048,
+            "cross_attention_queries": 0,
+            "ffn_rows": 1024,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            417.724297999996,
+            421.6490439999987,
+            422.3595579999966,
+            423.42247900000274,
+            422.73534199999574
+          ],
+          "median_wall_ms": 422.3595579999966,
+          "cuda_interval_ms": [
+            417.302734375,
+            421.202880859375,
+            421.882568359375,
+            422.99005126953125,
+            422.26873779296875
+          ],
+          "median_cuda_interval_ms": 421.882568359375,
+          "peak_allocated_bytes": 1813479424,
+          "peak_reserved_bytes": 2051014656,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 569862144,
+          "free_device_bytes_after": 13450543104,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 132,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q2048-ffn4096",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 2048,
+            "cross_attention_queries": 0,
+            "ffn_rows": 4096,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 9.5367431640625e-07,
+          "wall_ms": [
+            422.57187299999543,
+            421.83161099998756,
+            420.3055769999935,
+            421.20873800000425,
+            418.86560999999745
+          ],
+          "median_wall_ms": 421.20873800000425,
+          "cuda_interval_ms": [
+            422.11187744140625,
+            421.3706359863281,
+            419.8446044921875,
+            420.75372314453125,
+            418.41461181640625
+          ],
+          "median_cuda_interval_ms": 420.75372314453125,
+          "peak_allocated_bytes": 1813479424,
+          "peak_reserved_bytes": 2051014656,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 569862144,
+          "free_device_bytes_after": 13450543104,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 90,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "block-crossfull-q2048-ffn8192",
+          "status": "complete",
+          "parameters": {
+            "attention_queries": 2048,
+            "cross_attention_queries": 0,
+            "ffn_rows": 8192,
+            "sparse_rows": 4096,
+            "naf_queries": 128,
+            "conditioning_cache_mb": 128,
+            "max_tokens": 16384,
+            "max_voxels": 1500000,
+            "sparse_prepack": 0
+          },
+          "max_abs_error": 4.76837158203125e-07,
+          "wall_ms": [
+            422.21766000000116,
+            423.9014730000008,
+            422.9607420000008,
+            419.41537900000014,
+            419.85569599999906
+          ],
+          "median_wall_ms": 422.21766000000116,
+          "cuda_interval_ms": [
+            421.78961181640625,
+            423.4615173339844,
+            422.5274353027344,
+            418.96240234375,
+            419.4500732421875
+          ],
+          "median_cuda_interval_ms": 421.78961181640625,
+          "peak_allocated_bytes": 2033780736,
+          "peak_reserved_bytes": 2051014656,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 790163456,
+          "free_device_bytes_after": 13450543104,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 87,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "sparse-rows4096",
+          "status": "complete",
+          "parameters": {
+            "sparse_rows": 4096,
+            "voxels": 262144
+          },
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            113.11304500000574,
+            111.6027630000076,
+            112.9404649999941,
+            110.77315900000428,
+            110.96066600001109
+          ],
+          "median_wall_ms": 111.6027630000076,
+          "cuda_interval_ms": [
+            112.8314208984375,
+            111.3221435546875,
+            112.66671752929688,
+            110.4933090209961,
+            110.6951675415039
+          ],
+          "median_cuda_interval_ms": 111.3221435546875,
+          "peak_allocated_bytes": 1378023424,
+          "peak_reserved_bytes": 2053111808,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 134406144,
+          "free_device_bytes_after": 13448445952,
+          "dispatch": {
+            "sdpa_operators": [],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 6583,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "sparse-rows16384",
+          "status": "complete",
+          "parameters": {
+            "sparse_rows": 16384,
+            "voxels": 262144
+          },
+          "max_abs_error": 7.152557373046875e-07,
+          "wall_ms": [
+            59.29260999999997,
+            59.00746699998649,
+            58.207654000000275,
+            57.58572099999526,
+            57.61056400000086
+          ],
+          "median_wall_ms": 58.207654000000275,
+          "cuda_interval_ms": [
+            58.95948791503906,
+            58.68979263305664,
+            57.88240051269531,
+            57.29600143432617,
+            57.1855354309082
+          ],
+          "median_cuda_interval_ms": 57.88240051269531,
+          "peak_allocated_bytes": 1379137536,
+          "peak_reserved_bytes": 2053111808,
+          "baseline_allocated_bytes": 1243617280,
+          "incremental_peak_allocated_bytes": 135520256,
+          "free_device_bytes_after": 13448445952,
+          "dispatch": {
+            "sdpa_operators": [],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 1711,
+            "attention_kernel_names": []
+          }
+        }
+      ]
+    },
+    {
+      "source_revision": "ed444dd66acfd5f2ca727455f738f1704d621b8d",
+      "source_files": {
+        "__init__.py": "754328270230352b950513b648dfc71192d42ed94ff13dff3ca8597dc8f0d17e",
+        "bake.py": "30a480a65e874e813c8181fb216ebb85dfd5d6e59bf47fa23b27b86e6b4b5bee",
+        "cameras.py": "bbd95bd9d8c99f59e5e08bd144a59bb63411b008e1839f9c6bd3ba7c4846fb9d",
+        "cli.py": "78931afdaf099bf878d9e39989c703bb56c13ba3cf375d016e01f9e967668c32",
+        "conditioning.py": "13b41f3064b0e297c96a19c66c9a9dd80b2e5c6e6e58d016ecb4ee1f8eac1de8",
+        "decoder.py": "0b38aa64f8607bd4e168e15a71574ef65295bef08b64a482edd87f4cc192bbc7",
+        "export.py": "3658f83b8d012aaf560dfa068946a71481d9238e47fbafae2d3ef0de45e33af2",
+        "flow.py": "8fa10abd59d6389261249ef7da651a2f43dc36e46400775b0619c1ece5e8c496",
+        "mesh.py": "71dce0e9842edb659535f67ffd77ca8b7ce61aae957a9688886e7ff6a5831acb",
+        "multiview.py": "982ac954fc94709b6db76f51b1afad26fddf93b75e59fdab130b545f4915879b",
+        "ops.py": "57560655acd837d922a026e92c039b330b45e4caebca22a447c56a66402f39f8",
+        "pipeline.py": "d32a4a4d47159c040ed4ede63b2ec7c7384434e038e0133ac619989e3c91ce3f",
+        "preprocess.py": "7f1d8247a59d2ae67c9b22c895646892de762007400bc1eb1311661b5f523db5",
+        "runtime.py": "026fbb36120864d0a77f36ea932c548805570bd4c36ed32be258bceb608ecc86",
+        "sparse.py": "b41f7a2030f980ee1adfd2483ccbb69ef95e160011d68f4db1e92ac9e8ca21c1",
+        "topology.py": "64140c0fb612741a751c67c08d15fb20993160bb237000d28144bf16582b7ee9",
+        "weights.py": "d56e0e54cd731b612ba3c2a6f71880d6a43aaccd6d8ebf8d0d3610a61ecff848"
+      },
+      "script_sha256": "575c07bb0784193770b4e0b9336fb2fc1e6c37d614369009b38f0f8585e72f03",
+      "gpu": "Tesla T4",
+      "capability": [
+        7,
+        5
+      ],
+      "gpu_total_bytes": 15651373056,
+      "torch": "2.6.0+cu124",
+      "cuda_runtime": "12.4",
+      "driver_version": "620.70.06",
+      "configuration": {
+        "device": "cuda",
+        "output": "/jobs/benchmarks/chunks-math-20261113-v1/operators.json",
+        "trace_dir": "/jobs/benchmarks/chunks-math-20261113-v1/traces",
+        "cases": [
+          "attention"
+        ],
+        "tokens": 10305,
+        "channels": 1536,
+        "heads": 12,
+        "projection_channels": 2048,
+        "sparse_voxels": 4096,
+        "sparse_channels": 64,
+        "sparse_rows": 4096,
+        "coordinate_voxels": 128,
+        "query_chunks": [
+          256,
+          1024,
+          2048
+        ],
+        "cross_query_chunks": [
+          256,
+          1024,
+          0
+        ],
+        "context_tokens": 5,
+        "context_channels": 1024,
+        "ffn_hidden": 8192,
+        "ffn_rows": [
+          1024,
+          4096,
+          8192
+        ],
+        "sparse_chunk_rows": [
+          4096,
+          16384
+        ],
+        "sparse_coordinate_checkpoint": null,
+        "sparse_sample_limit": 262144,
+        "sdpa_backends": [
+          "auto",
+          "math"
+        ],
+        "warmup": 2,
+        "repeats": 5,
+        "seed": 42,
+        "cpu_threads": 2
+      },
+      "float32_matmul_precision": "highest",
+      "allow_tf32_matmul": false,
+      "frozen_source": {
+        "job_id": "c64390d89d665f4a9312995a927a7de2aa35ed425e288e94ad054a3b01fa21fb",
+        "runtime_fingerprint": "d90373b8b89efd895511aebbcdaf1e6cf032698cea285877641202e25d4b4c82",
+        "input_sha256": "84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12",
+        "geometry_resolution": 1024
+      },
+      "sparse_geometry_source": null,
+      "raw_report_sha256": "d7828587fac07389bb24525bd7fb205cdb5d0193f9fb186780ef40e932b7e16e",
+      "cases": [
+        {
+          "name": "attention-auto-q256-strided",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            240.30158299999994,
+            241.99500999999924,
+            240.37034100000022,
+            242.77894,
+            242.5294649999987
+          ],
+          "median_wall_ms": 241.99500999999924,
+          "cuda_interval_ms": [
+            239.91091918945312,
+            241.12538146972656,
+            239.93753051757812,
+            242.39144897460938,
+            242.1327667236328
+          ],
+          "median_cuda_interval_ms": 241.12538146972656,
+          "peak_allocated_bytes": 319715328,
+          "peak_reserved_bytes": 589299712,
+          "baseline_allocated_bytes": 253255680,
+          "incremental_peak_allocated_bytes": 66459648,
+          "free_device_bytes_after": 14922481664,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 124,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q256-contiguous",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            244.02641400000036,
+            242.9999469999995,
+            240.47552200000055,
+            240.28802199999967,
+            241.96924499999994
+          ],
+          "median_wall_ms": 241.96924499999994,
+          "cuda_interval_ms": [
+            243.64402770996094,
+            242.63180541992188,
+            240.08096313476562,
+            239.84693908691406,
+            241.341796875
+          ],
+          "median_cuda_interval_ms": 241.341796875,
+          "peak_allocated_bytes": 509657088,
+          "peak_reserved_bytes": 589299712,
+          "baseline_allocated_bytes": 253255680,
+          "incremental_peak_allocated_bytes": 256401408,
+          "free_device_bytes_after": 14922481664,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 127,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q1024-strided",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            201.78155700000033,
+            200.2856220000009,
+            201.3539619999989,
+            201.86035600000096,
+            201.44143999999997
+          ],
+          "median_wall_ms": 201.44143999999997,
+          "cuda_interval_ms": [
+            201.40550231933594,
+            199.9253387451172,
+            201.00186157226562,
+            201.49916076660156,
+            201.01565551757812
+          ],
+          "median_cuda_interval_ms": 201.01565551757812,
+          "peak_allocated_bytes": 329152512,
+          "peak_reserved_bytes": 589299712,
+          "baseline_allocated_bytes": 253255680,
+          "incremental_peak_allocated_bytes": 75896832,
+          "free_device_bytes_after": 14922481664,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 34,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q1024-contiguous",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            214.10176599999886,
+            209.97331399999908,
+            214.2336260000004,
+            208.5384379999997,
+            214.09227700000065
+          ],
+          "median_wall_ms": 214.09227700000065,
+          "cuda_interval_ms": [
+            213.60467529296875,
+            209.52841186523438,
+            213.78707885742188,
+            208.11788940429688,
+            213.61865234375
+          ],
+          "median_cuda_interval_ms": 213.60467529296875,
+          "peak_allocated_bytes": 519094272,
+          "peak_reserved_bytes": 589299712,
+          "baseline_allocated_bytes": 253255680,
+          "incremental_peak_allocated_bytes": 265838592,
+          "free_device_bytes_after": 14922481664,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 37,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q2048-strided",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            208.233958000001,
+            208.26076500000033,
+            206.596621000001,
+            208.8365670000023,
+            208.26577800000123
+          ],
+          "median_wall_ms": 208.26076500000033,
+          "cuda_interval_ms": [
+            207.76559448242188,
+            207.86636352539062,
+            206.19509887695312,
+            208.41046142578125,
+            207.8600616455078
+          ],
+          "median_cuda_interval_ms": 207.8600616455078,
+          "peak_allocated_bytes": 341735424,
+          "peak_reserved_bytes": 589299712,
+          "baseline_allocated_bytes": 253255680,
+          "incremental_peak_allocated_bytes": 88479744,
+          "free_device_bytes_after": 14922481664,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 19,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-auto-q2048-contiguous",
+          "status": "complete",
+          "max_abs_error": 0.0,
+          "wall_ms": [
+            217.01197900000224,
+            217.04744899999895,
+            214.68959299999923,
+            217.80780299999947,
+            216.4681210000019
+          ],
+          "median_wall_ms": 217.01197900000224,
+          "cuda_interval_ms": [
+            216.610107421875,
+            216.67538452148438,
+            214.30406188964844,
+            217.41384887695312,
+            216.07644653320312
+          ],
+          "median_cuda_interval_ms": 216.610107421875,
+          "peak_allocated_bytes": 531677184,
+          "peak_reserved_bytes": 589299712,
+          "baseline_allocated_bytes": 253255680,
+          "incremental_peak_allocated_bytes": 278421504,
+          "free_device_bytes_after": 14922481664,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_efficient_attention",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 22,
+            "attention_kernel_names": [
+              "fmha_cutlassF_f32_aligned_32x128_rf_sm75"
+            ]
+          }
+        },
+        {
+          "name": "attention-math-q256-strided",
+          "status": "complete",
+          "max_abs_error": 7.525086402893066e-07,
+          "wall_ms": [
+            398.8777470000002,
+            398.69824100000176,
+            398.78440000000023,
+            399.58404300000086,
+            399.35702700000064
+          ],
+          "median_wall_ms": 398.8777470000002,
+          "cuda_interval_ms": [
+            398.47979736328125,
+            398.1830139160156,
+            398.3311462402344,
+            399.0977783203125,
+            398.95379638671875
+          ],
+          "median_cuda_interval_ms": 398.47979736328125,
+          "peak_allocated_bytes": 613151232,
+          "peak_reserved_bytes": 652214272,
+          "baseline_allocated_bytes": 261775360,
+          "incremental_peak_allocated_bytes": 351375872,
+          "free_device_bytes_after": 14849081344,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_attention_math",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 452,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "attention-math-q256-contiguous",
+          "status": "complete",
+          "max_abs_error": 7.525086402893066e-07,
+          "wall_ms": [
+            368.35693000000094,
+            366.7467549999976,
+            367.54250500000296,
+            369.21371100000044,
+            368.1586760000002
+          ],
+          "median_wall_ms": 368.1586760000002,
+          "cuda_interval_ms": [
+            367.93450927734375,
+            366.3405456542969,
+            367.135986328125,
+            368.83984375,
+            367.7727966308594
+          ],
+          "median_cuda_interval_ms": 367.7727966308594,
+          "peak_allocated_bytes": 803092992,
+          "peak_reserved_bytes": 840957952,
+          "baseline_allocated_bytes": 261775360,
+          "incremental_peak_allocated_bytes": 541317632,
+          "free_device_bytes_after": 14660337664,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_attention_math",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 455,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "attention-math-q1024-strided",
+          "status": "complete",
+          "max_abs_error": 7.525086402893066e-07,
+          "wall_ms": [
+            355.22292499999963,
+            357.86567500000285,
+            355.4887370000017,
+            356.39745499999975,
+            358.18018599999846
+          ],
+          "median_wall_ms": 356.39745499999975,
+          "cuda_interval_ms": [
+            354.7857360839844,
+            357.32745361328125,
+            355.0323181152344,
+            355.9920959472656,
+            357.5040283203125
+          ],
+          "median_cuda_interval_ms": 355.9920959472656,
+          "peak_allocated_bytes": 1477335552,
+          "peak_reserved_bytes": 1553989632,
+          "baseline_allocated_bytes": 261775360,
+          "incremental_peak_allocated_bytes": 1215560192,
+          "free_device_bytes_after": 13947305984,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_attention_math",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 122,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "attention-math-q1024-contiguous",
+          "status": "complete",
+          "max_abs_error": 7.525086402893066e-07,
+          "wall_ms": [
+            339.1183160000004,
+            337.8991539999987,
+            337.0041949999987,
+            339.65941699999644,
+            338.9448539999975
+          ],
+          "median_wall_ms": 338.9448539999975,
+          "cuda_interval_ms": [
+            338.705322265625,
+            337.3957824707031,
+            336.50909423828125,
+            339.2311706542969,
+            338.0585021972656
+          ],
+          "median_cuda_interval_ms": 338.0585021972656,
+          "peak_allocated_bytes": 1667277312,
+          "peak_reserved_bytes": 1742733312,
+          "baseline_allocated_bytes": 261775360,
+          "incremental_peak_allocated_bytes": 1405501952,
+          "free_device_bytes_after": 13758562304,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_attention_math",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 125,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "attention-math-q2048-strided",
+          "status": "complete",
+          "max_abs_error": 7.525086402893066e-07,
+          "wall_ms": [
+            356.5127350000026,
+            357.8938289999982,
+            359.62214599999953,
+            356.93595399999367,
+            359.7824490000008
+          ],
+          "median_wall_ms": 357.8938289999982,
+          "cuda_interval_ms": [
+            356.1330871582031,
+            357.4758605957031,
+            359.1795959472656,
+            356.5408630371094,
+            359.3195495605469
+          ],
+          "median_cuda_interval_ms": 357.4758605957031,
+          "peak_allocated_bytes": 2629581312,
+          "peak_reserved_bytes": 2812280832,
+          "baseline_allocated_bytes": 261775360,
+          "incremental_peak_allocated_bytes": 2367805952,
+          "free_device_bytes_after": 12689014784,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_attention_math",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 67,
+            "attention_kernel_names": []
+          }
+        },
+        {
+          "name": "attention-math-q2048-contiguous",
+          "status": "complete",
+          "max_abs_error": 7.525086402893066e-07,
+          "wall_ms": [
+            339.18221699999407,
+            341.01086899999444,
+            336.0539580000008,
+            342.22356600000126,
+            340.427444999996
+          ],
+          "median_wall_ms": 340.427444999996,
+          "cuda_interval_ms": [
+            338.81396484375,
+            340.62109375,
+            335.64447021484375,
+            341.7969055175781,
+            340.02557373046875
+          ],
+          "median_cuda_interval_ms": 340.02557373046875,
+          "peak_allocated_bytes": 2819523072,
+          "peak_reserved_bytes": 2896166912,
+          "baseline_allocated_bytes": 261775360,
+          "incremental_peak_allocated_bytes": 2557747712,
+          "free_device_bytes_after": 12605128704,
+          "dispatch": {
+            "sdpa_operators": [
+              "aten::_scaled_dot_product_attention_math",
+              "aten::scaled_dot_product_attention"
+            ],
+            "cuda_activity_captured": true,
+            "cuda_device_events": 70,
+            "attention_kernel_names": []
+          }
+        }
+      ]
+    }
+  ],
+  "selected_chunks": {
+    "attention_queries": 1024,
+    "cross_attention_queries": 0,
+    "ffn_rows": 8192,
+    "sparse_rows": 16384
+  },
+  "selection_notes": [
+    "The fastest tested positive transformer-block combination used full-query cross attention, self query chunk 1024, and FFN rows 8192.",
+    "FFN and cross-attention-only differences were small; synthetic timing is not a production speedup guarantee.",
+    "The sparse test used random 64-channel features on the first 262144 coordinates of a frozen decoded asset, not the whole decoder.",
+    "The math backend used more temporary VRAM and was slower, so production keeps PyTorch automatic SDPA dispatch.",
+    "All case inputs coexist in the microbenchmark; incremental peak allocation is not a full-pipeline VRAM forecast.",
+    "Profiler captures were separate from timing; raw Chrome traces remain private in the jobs Volume and local outputs."
+  ]
+}

@@ -1,0 +1,286 @@
+{
+  "status": "complete",
+  "scope": "One positive pretrained HR-flow forward at t=1000 on frozen initial noise/context; not a 12-step generation",
+  "device": "cuda:0",
+  "torch": "2.6.0+cu124",
+  "cuda_runtime": "12.4",
+  "tokens": 10305,
+  "repeats": 3,
+  "warmups_per_profile": 1,
+  "conditioning_cache_mb": 1024,
+  "cached_blocks": 16,
+  "parameter_bytes": 5546686592,
+  "round_order": "Forward, reverse, forward; one loaded model, identical inputs and prepared cache",
+  "cases": [
+    {
+      "name": "baseline",
+      "parameters": {
+        "attention_queries": 256,
+        "cross_attention_queries": 256,
+        "ffn_rows": 1024,
+        "sparse_rows": 4096,
+        "naf_queries": 128,
+        "conditioning_cache_mb": 1024,
+        "max_tokens": 32768,
+        "max_voxels": 6000000,
+        "sparse_prepack": 0
+      },
+      "samples": [
+        {
+          "wall_ms": [
+            13966.587319999988
+          ],
+          "median_wall_ms": 13966.587319999988,
+          "cuda_interval_ms": [
+            13965.935546875
+          ],
+          "median_cuda_interval_ms": 13965.935546875,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        },
+        {
+          "wall_ms": [
+            14157.564756
+          ],
+          "median_wall_ms": 14157.564756,
+          "cuda_interval_ms": [
+            14157.16015625
+          ],
+          "median_cuda_interval_ms": 14157.16015625,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        },
+        {
+          "wall_ms": [
+            14207.754488000006
+          ],
+          "median_wall_ms": 14207.754488000006,
+          "cuda_interval_ms": [
+            14207.3681640625
+          ],
+          "median_cuda_interval_ms": 14207.3681640625,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        }
+      ],
+      "warm_max_abs_error": 0.0,
+      "warm_relative_l2_error": 0.0,
+      "median_wall_ms": 14157.564756,
+      "status": "complete"
+    },
+    {
+      "name": "cross-full",
+      "parameters": {
+        "attention_queries": 256,
+        "cross_attention_queries": 0,
+        "ffn_rows": 1024,
+        "sparse_rows": 4096,
+        "naf_queries": 128,
+        "conditioning_cache_mb": 1024,
+        "max_tokens": 32768,
+        "max_voxels": 6000000,
+        "sparse_prepack": 0
+      },
+      "samples": [
+        {
+          "wall_ms": [
+            14009.674001999996
+          ],
+          "median_wall_ms": 14009.674001999996,
+          "cuda_interval_ms": [
+            14009.2998046875
+          ],
+          "median_cuda_interval_ms": 14009.2998046875,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        },
+        {
+          "wall_ms": [
+            14141.399432000015
+          ],
+          "median_wall_ms": 14141.399432000015,
+          "cuda_interval_ms": [
+            14141.0712890625
+          ],
+          "median_cuda_interval_ms": 14141.0712890625,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        },
+        {
+          "wall_ms": [
+            14167.837126000024
+          ],
+          "median_wall_ms": 14167.837126000024,
+          "cuda_interval_ms": [
+            14167.4619140625
+          ],
+          "median_cuda_interval_ms": 14167.4619140625,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        }
+      ],
+      "warm_max_abs_error": 0.0,
+      "warm_relative_l2_error": 0.0,
+      "median_wall_ms": 14141.399432000015,
+      "status": "complete"
+    },
+    {
+      "name": "self-1024",
+      "parameters": {
+        "attention_queries": 1024,
+        "cross_attention_queries": 0,
+        "ffn_rows": 1024,
+        "sparse_rows": 4096,
+        "naf_queries": 128,
+        "conditioning_cache_mb": 1024,
+        "max_tokens": 32768,
+        "max_voxels": 6000000,
+        "sparse_prepack": 0
+      },
+      "samples": [
+        {
+          "wall_ms": [
+            12936.329725999996
+          ],
+          "median_wall_ms": 12936.329725999996,
+          "cuda_interval_ms": [
+            12936.0185546875
+          ],
+          "median_cuda_interval_ms": 12936.0185546875,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        },
+        {
+          "wall_ms": [
+            12990.762633000002
+          ],
+          "median_wall_ms": 12990.762633000002,
+          "cuda_interval_ms": [
+            12990.4208984375
+          ],
+          "median_cuda_interval_ms": 12990.4208984375,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        },
+        {
+          "wall_ms": [
+            12996.022087
+          ],
+          "median_wall_ms": 12996.022087,
+          "cuda_interval_ms": [
+            12995.291015625
+          ],
+          "median_cuda_interval_ms": 12995.291015625,
+          "peak_allocated_bytes": 7295592448,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 633212928
+        }
+      ],
+      "warm_max_abs_error": 0.0,
+      "warm_relative_l2_error": 0.0,
+      "median_wall_ms": 12990.762633000002,
+      "status": "complete"
+    },
+    {
+      "name": "ffn-8192",
+      "parameters": {
+        "attention_queries": 1024,
+        "cross_attention_queries": 0,
+        "ffn_rows": 8192,
+        "sparse_rows": 4096,
+        "naf_queries": 128,
+        "conditioning_cache_mb": 1024,
+        "max_tokens": 32768,
+        "max_voxels": 6000000,
+        "sparse_prepack": 0
+      },
+      "samples": [
+        {
+          "wall_ms": [
+            12933.332847000003
+          ],
+          "median_wall_ms": 12933.332847000003,
+          "cuda_interval_ms": [
+            12932.982421875
+          ],
+          "median_cuda_interval_ms": 12932.982421875,
+          "peak_allocated_bytes": 7515893760,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 853514240
+        },
+        {
+          "wall_ms": [
+            12957.286055000011
+          ],
+          "median_wall_ms": 12957.286055000011,
+          "cuda_interval_ms": [
+            12956.9345703125
+          ],
+          "median_cuda_interval_ms": 12956.9345703125,
+          "peak_allocated_bytes": 7515893760,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 853514240
+        },
+        {
+          "wall_ms": [
+            13014.177817000018
+          ],
+          "median_wall_ms": 13014.177817000018,
+          "cuda_interval_ms": [
+            13013.80859375
+          ],
+          "median_cuda_interval_ms": 13013.80859375,
+          "peak_allocated_bytes": 7515893760,
+          "peak_reserved_bytes": 7604273152,
+          "baseline_allocated_bytes": 6662379520,
+          "incremental_peak_allocated_bytes": 853514240
+        }
+      ],
+      "warm_max_abs_error": 4.291534423828125e-06,
+      "warm_relative_l2_error": 3.930930745354999e-07,
+      "median_wall_ms": 12957.286055000011,
+      "status": "complete"
+    }
+  ],
+  "gpu": "Tesla T4",
+  "capability": [
+    7,
+    5
+  ],
+  "gpu_total_bytes": 15651373056,
+  "sdpa_flags": {
+    "efficient": true,
+    "math": true,
+    "flash": true
+  },
+  "checkpoint": {
+    "name": "slat_flow_img2shape_dit_1_3B_1024_bf16.safetensors",
+    "revision": "0b31f9160aa400719af409098bff7936a932f726"
+  },
+  "frozen_source": {
+    "job_id": "c64390d89d665f4a9312995a927a7de2aa35ed425e288e94ad054a3b01fa21fb",
+    "input_sha256": "84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12"
+  },
+  "source_revision": "a70f9e61433d8be432c733695887ebd5177820d5",
+  "environment": "main",
+  "source_revision_origin": "Local checkout copied into the tuning image"
+}

@@ -2,8 +2,9 @@
 
 This work follows the supplied low-level analysis of baseline `a4cb2b2`.
 The development machine is Apple ARM64 with CPU-only PyTorch 2.10. Real Modal
-T4 acceptance and a two-budget cache comparison are now recorded below. **No
-controlled pre/post-code-optimization speedup or operator benchmark is claimed.** Broader GPU
+T4 acceptance, cache comparisons, warm operator probes and a paired pretrained
+forward study are now recorded below. **No full-generation speedup or broad
+capacity guarantee is established.** Broader GPU
 speed, VRAM and pretrained GLB quality still require measurement. The MLX
 checkout is untouched.
 
@@ -116,7 +117,7 @@ timing or replaced with FP16/math. Numerical mismatch or other errors fail the
 run and preserve the report. The default device refuses CPU-only machines.
 `--device cpu` is explicitly a smoke test and must not be presented as a T4 run.
 
-## Controlled performance comparison still required
+## Controlled full-generation comparison still required
 
 Prefetch official weights, then use identical input/poses, seed, limits, output
 textures and face target. **Warm cache is not `--resume`**: each measurement
@@ -198,6 +199,62 @@ attention/FFN chunk sweep, prepack change, warm-model residency or extra paid
 benchmark was performed. Default cache remains 128 MiB; CLI, administrative SDK
 and HTTP now accept explicit budgets. See
 [full conditions, end-to-end timing and evidence](validation.md#modal-t4-1024-geometry-cache-comparison).
+
+### Chunk profile trials on T4
+
+The server declarations apply self-attention queries 1024, independent
+cross-attention queries 0 (all queries), FFN rows 8192 and sparse rows 16384.
+CLI defaults remain 256/256/1024/4096. FP32, full-key attention, checkpoints,
+12-step schedules, geometry and cache budget are not reduced by this change.
+
+One-shot `main` tuning Apps completed 36 warm operator/positive-block cases,
+each with two warmups and five timed repeats. Source workloads used 10,305 tokens,
+1536 channels, 12 heads, hidden width 8192 and five global context tokens.
+Sparse tests used random 64-channel features on a 262,144-coordinate prefix of
+the frozen decoded geometry, not the entire decoder.
+
+| Warm synthetic case | Conservative | Candidate |
+| --- | ---: | ---: |
+| Cross attention, 256 versus all queries | 3.05 ms | 2.61 ms |
+| Self attention, 256 versus 1024 queries, strided layout | 242.04 ms | 200.53 ms |
+| FFN, 1024 versus 8192 rows | 117.94 ms | 117.68 ms |
+| Positive block, all chunk changes except sparse | 454.39 ms | 417.99 ms |
+| Sparse convolution, 4096 versus 16384 rows | 111.60 ms | 58.21 ms |
+
+Cross-only and FFN-only block differences were small; do not multiply these
+operator ratios into a full-generation forecast. CUDA profiler activity captured
+the FP32 SM75 CUTLASS memory-efficient attention kernel. In a separate same-shape
+probe, automatic SDPA at query chunk 1024 took 201.44 ms with 72.38 MiB incremental
+allocation; forced math took 356.40 ms with 1159.25 MiB. The higher-memory math
+backend was rejected. Copying Q/K/V into contiguous layout did not win in these
+tested candidates and no new layout policy was enabled.
+
+A further paired study loaded the actual pinned HR model once and used identical
+frozen conditioning, initial noise and prepared 1024 MiB projection cache.
+After one warmup/profile, three timed rounds alternated forward/reverse/forward
+profile order. Median positive-forward times at timestep 1000 were:
+
+| Profile | Median |
+| --- | ---: |
+| Conservative baseline | 14,157.56 ms |
+| Cross-query separation only | 14,141.40 ms |
+| Plus self queries 1024 | 12,990.76 ms |
+| Plus FFN rows 8192 | 12,957.29 ms |
+
+The final profile is 8.48% lower in this paired forward test; FFN's incremental
+difference is small. This is one positive forward, not all timesteps, negative
+CFG passes, model loads or a full asset. Sparse rows have no role in this HR-flow
+study and were tested separately. Larger/smaller query candidates and the complete
+block matrix remain in the recorded operator summary.
+
+**End-to-end evidence does not establish a speedup.** A fresh full 1024/PBR run
+at `9a1a9ca` completed without OOM at 7.01 GiB peak allocation, but GPU stages
+took 668.17 s versus the previous different-worker 644.02 s. Model callbacks were
+615.49 versus 604.84 s. Worker/cold-start/IO differences are not controlled here;
+do not claim that the paired 8.48% forward result applies to generation. The
+larger-chunk profile is a configurable candidate, not a universally faster or
+all-input-safe default. Detailed conditions, numerical changes and evidence are
+in [validation](validation.md#modal-t4-chunk-profile-trials).
 
 Tiled/fused sparse kernels, packed neighbor maps, selective FP16, CUDA graphs,
 default attention-layout changes and CPU rasterizer rewrites remain deferred

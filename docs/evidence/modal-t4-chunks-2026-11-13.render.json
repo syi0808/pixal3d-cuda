@@ -1,0 +1,66 @@
+{
+  "status": "complete",
+  "blender_version": "5.1.2",
+  "engine": "CYCLES",
+  "device": "CPU",
+  "samples": 32,
+  "resolution": 1024,
+  "input": "result.glb",
+  "input_sha256": "0eb1e2d8bdceb05256d53b77499f651daebeec1711253b1761c3920c64e8ba46",
+  "script_sha256": "a5a99cd36c88559e78cf7643a71003887f7a5b520cda7c312d4ed98379a0426e",
+  "asset_triangles": 99051,
+  "modifiers_added": false,
+  "import_shading": "NORMALS",
+  "uv_texture_sampling": "linear per-shading-point",
+  "color_management": "AgX",
+  "materials": [
+    {
+      "name": "Material_0",
+      "principled_bsdf": true,
+      "textures": [
+        {
+          "name": "Image_0",
+          "size": [
+            1024,
+            1024
+          ],
+          "color_space": "sRGB",
+          "interpolation": "Linear"
+        },
+        {
+          "name": "Image_1",
+          "size": [
+            1024,
+            1024
+          ],
+          "color_space": "Non-Color",
+          "interpolation": "Linear"
+        }
+      ],
+      "base_color_linked": true,
+      "roughness_linked": true,
+      "metallic_linked": true
+    }
+  ],
+  "renders": [
+    {
+      "view": "front",
+      "image": "front.png",
+      "seconds": 8.262849332997575
+    },
+    {
+      "view": "three-quarter",
+      "image": "three-quarter.png",
+      "seconds": 8.550916041989694
+    },
+    {
+      "view": "back",
+      "image": "back.png",
+      "seconds": 7.581214874997386
+    }
+  ],
+  "elapsed_seconds": 24.66004108299967,
+  "staging_floor_in_exported_glb": false,
+  "local_paths_redacted": true,
+  "glb_and_pngs_committed": false
+}

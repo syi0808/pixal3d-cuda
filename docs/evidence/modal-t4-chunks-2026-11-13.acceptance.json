@@ -1,0 +1,185 @@
+{
+  "status": "complete",
+  "started_utc": "2026-11-13T07:53:20.485693+00:00",
+  "environment": "main",
+  "source_revision": "9a1a9ca891829d83d3feabcd583bd0fad9f236cc",
+  "job_id": "8898d03fa919dadebadaa0140ab349e21ddf09f1704a69e5c33fcb2b7199616b",
+  "app_id": "ap-tvsjJwY5AxOkhKu97ZsKzY",
+  "input_sha256": "84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12",
+  "geometry_resolution": 1024,
+  "texture_size": 1024,
+  "seed": 42,
+  "conditioning_cache_mb": 1024,
+  "expected_chunks": {
+    "attention_queries": 1024,
+    "cross_attention_queries": 0,
+    "ffn_rows": 8192,
+    "sparse_rows": 16384
+  },
+  "generation_transport": "Private administrative SDK",
+  "checks": [
+    {
+      "name": "edge_auth_required",
+      "passed": true,
+      "status_code": 401
+    },
+    {
+      "name": "deployed_chunk_profile",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "name": "worker_complete",
+      "passed": true
+    },
+    {
+      "name": "real_t4",
+      "passed": true
+    },
+    {
+      "name": "full_1024_run",
+      "passed": true
+    },
+    {
+      "name": "runtime_chunks",
+      "passed": true
+    },
+    {
+      "name": "unchanged_input_and_cache",
+      "passed": true
+    },
+    {
+      "name": "embedded_pbr_and_grid",
+      "passed": true
+    },
+    {
+      "name": "download_sha256",
+      "passed": true
+    },
+    {
+      "name": "indexed_topology",
+      "passed": true
+    },
+    {
+      "name": "http_download_result.glb",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "name": "http_artifact_sha256",
+      "passed": true
+    },
+    {
+      "name": "http_download_report.json",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "name": "blender_pbr_render_and_normalized_bounds",
+      "passed": true
+    }
+  ],
+  "observed_complete_seconds": 904.1897889589891,
+  "validation": {
+    "glb_bytes": 6532824,
+    "triangles": 99051,
+    "embedded_pbr": true,
+    "unit_normals": true,
+    "geometry_resolution": 1024
+  },
+  "output_sha256": "0eb1e2d8bdceb05256d53b77499f651daebeec1711253b1761c3920c64e8ba46",
+  "gpu": "Tesla T4",
+  "gpu_total_bytes": 15645278208,
+  "active_counts": {
+    "structure_tokens": 2404,
+    "refinement_tokens": 10305,
+    "shape_voxels": 2771719,
+    "texture_voxels": 2771719
+  },
+  "gpu_stage_seconds": 668.1733516170001,
+  "model_load_seconds": 27.929354660000044,
+  "model_callback_seconds": 615.4871432609999,
+  "cpu_export_seconds": 161.419509914,
+  "peak_allocated_bytes": 7526449152,
+  "peak_reserved_bytes": 7665090560,
+  "baseline_intermediate_comparison": {
+    "structure": {
+      "shape_equal": true,
+      "exact_equal": true,
+      "coordinate_jaccard": 1.0
+    },
+    "coordinates": {
+      "shape_equal": true,
+      "exact_equal": true,
+      "coordinate_jaccard": 1.0
+    },
+    "shape_hr": {
+      "shape_equal": true,
+      "exact_equal": false,
+      "maximum_absolute_error": 0.0012055635452270508,
+      "relative_l2_error": 1.518509159550043e-05
+    },
+    "texture": {
+      "shape_equal": true,
+      "exact_equal": false,
+      "maximum_absolute_error": 0.006753683090209961,
+      "relative_l2_error": 3.8334715728232983e-05
+    }
+  },
+  "baseline": {
+    "source_revision": "8c54fbff9a2a35dab5e36eebb1b922b4fb2617c3",
+    "gpu_stage_seconds": 644.0174886030001,
+    "output_sha256": "0e403c00c27a72e904f4cfa31a68294f5d0bfd3839373bddeb79d50c13396475"
+  },
+  "observed_gpu_time_reduction_percent": -3.7508085481341213,
+  "glb_matches_baseline_exactly": false,
+  "finished_utc": "2026-11-13T08:08:39.213426+00:00",
+  "app_stop_exit_code": 0,
+  "normalized_geometry_bounds": [
+    [
+      -0.4899144172668457,
+      -0.33329230546951294,
+      -0.3296487331390381
+    ],
+    [
+      0.3793213665485382,
+      0.42479750514030457,
+      0.31238171458244324
+    ]
+  ],
+  "pbr_textures": [
+    {
+      "role": "baseColorTexture",
+      "embedded": true,
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "role": "metallicRoughnessTexture",
+      "embedded": true,
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGB"
+    }
+  ],
+  "app_after_validation": {
+    "production": "stopped",
+    "temporary_tuning_apps": "stopped",
+    "active_tasks": 0,
+    "persistent_weights_and_jobs_retained": true
+  },
+  "paired_pretrained_forward_reduction_percent": 8.478002549776853,
+  "performance_conclusion": "A paired positive HR-forward improved, but the single full-generation GPU-stage total did not improve against a historical different-worker run.",
+  "client_timing_definition": "Measured after the private SDK returned and downloaded GLB/report/manifest; not comparable to the historical HTTP status-poll completion definition.",
+  "limitations": [
+    "Small visible surface cracks remain; not production-quality or watertight validation.",
+    "Chunking changes floating-point arithmetic paths; final GLB is not byte-identical to the conservative reference.",
+    "No per-input general speed, numerical parity or T4 memory-bound guarantee.",
+    "No precision, step-count, token-pruning, forced math SDPA or resolution fallback was enabled in generation."
+  ]
+}

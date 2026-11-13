@@ -215,6 +215,85 @@ no CUDA unit suite was run on Modal in this experiment. The App was explicitly
 stopped afterward, with zero active tasks and persistent weights/jobs retained.
 No weights, prepared image, raw tensors, GLB or render PNGs are committed.
 
+### Modal T4 chunk profile trials
+
+The CUDA implementation now separates flow cross-attention query chunks from
+self-attention and provides independent server declarations for attention, FFN
+and sparse rows. Chunk 0 is supported only for cross-attention and means all
+queries. Self-attention still sees every key and remains chunked. CLI defaults
+stay conservative; Modal's configurable candidate is **1024 / 0 / 8192 / 16384**
+for self queries / cross queries / FFN rows / sparse rows.
+
+Two bounded one-shot T4 probes in `main` recorded 36 passing warm synthetic
+operator/positive-block cases, using two warmups and five timed repeats outside
+profiler captures. CUDA activity confirmed automatic FP32 memory-efficient
+attention on SM75. Forced math SDPA consumed more temporary VRAM and was slower;
+it was not enabled in generation. Sparse geometry came from a prefix of the
+previous decoded shoe, with random features, not a full pretrained decoder run.
+These measurements select candidates; they do not establish asset-level speedup.
+
+Revision **`9a1a9ca891829d83d3feabcd583bd0fad9f236cc`** deployed the selected
+profile and completed another fresh single-image 1024/PBR generation through the
+private administrative SDK, with authenticated HTTP health/download verification.
+The CPU-matted input was again SHA-256
+`84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12`.
+Seed 42, automatic camera, 1024 texture size, 100,000-face advisory target, all
+four 12-step schedules, FP32 and a 1024 MiB conditioning cache were retained.
+No old neural checkpoint was resumed; no OOM or failed pipeline stage occurred.
+
+| Observed metric | Conservative historical run | Candidate full run |
+| --- | ---: | ---: |
+| GPU-stage sum, seconds | 644.017488603 | 668.173351617 |
+| Model-callback sum, seconds | 604.837014239 | 615.487143261 |
+| Peak PyTorch allocated, GiB | 6.804 | 7.010 |
+| Peak PyTorch reserved, GiB | 6.945 | 7.139 |
+| Exported triangles | 99,123 | 99,051 |
+| GLB bytes | 6,504,616 | 6,532,824 |
+
+The candidate is **3.75% slower** in this single GPU-stage observation, on a
+different worker/time from the historical reference. **No full-generation
+speedup is established.** Model loading, camera and other worker/IO differences
+also affect stage totals. Client completion definitions differ (SDK return after
+downloads versus HTTP status polling), so their end-to-end figures are not an
+equivalent comparison and must not be attributed to chunking.
+
+The final candidate GLB has SHA-256:
+
+```text
+0eb1e2d8bdceb05256d53b77499f651daebeec1711253b1761c3920c64e8ba46
+```
+
+Both 1024×1024 PNG material maps were independently decoded. Finite/unit-normal
+geometry, normalized bounds and zero coincident/nonmanifold/inconsistent indexed
+cleanup metrics passed, and Blender 5.1.2 rendered three views with linked
+base-color/roughness/metallic maps and no mesh modifiers. Small surface cracks
+remain. Structure and refinement-coordinate tensors match the reference exactly;
+HR-shape and texture latent relative L2 differences were 1.52e-5 and 3.83e-5.
+The decoded voxel count changed from 2,771,717 to 2,771,719 and the GLBs are not
+bit-identical. Chunking can change floating-point execution paths; this is not
+quality parity or watertightness validation.
+
+To separate configuration effects from different workers, a third bounded probe
+loaded the actual pinned HR model once on one T4 with frozen conditioning and
+initial noise. One warmup per profile preceded three interleaved timed rounds
+(forward/reverse/forward order). Median positive forward times at timestep 1000
+were 14,157.56 ms baseline, 14,141.40 ms cross-full, 12,990.76 ms with self queries
+1024, and 12,957.29 ms with FFN rows 8192: **8.48% lower** for the final profile.
+The warm candidate/reference relative L2 difference was 3.93e-7. This is not the
+full schedule, negative CFG passes, model loading or a decoder benchmark, and
+does not override the lack of full-generation improvement above.
+
+Records: [operator summary](evidence/modal-t4-chunks-2026-11-13.operators.json),
+[paired pretrained forwards](evidence/modal-t4-chunks-2026-11-13.pretrained-forwards.json),
+[acceptance](evidence/modal-t4-chunks-2026-11-13.acceptance.json),
+[runtime](evidence/modal-t4-chunks-2026-11-13.report.json),
+[Blender witness](evidence/modal-t4-chunks-2026-11-13.render.json), and
+[CPU tests](evidence/modal-t4-chunks-2026-11-13.tests.txt).
+The final CPU suite passed 221 tests with 3 CUDA-only skips; GPU unit tests were
+not run in these Apps. Production and all three temporary tuning Apps were
+observed stopped with zero active tasks; weight/job Volumes remain. No raw
+weights, tensors, prepared image, GLB, PNGs or Chrome traces are committed.
+
 ### Remaining validation
 
 - Repeat with populated caches and controlled matching inputs/source before reporting warm-worker latency or optimization speedups.
@@ -222,4 +301,4 @@ No weights, prepared image, raw tensors, GLB or render PNGs are committed.
 - Inspect additional viewpoints and representative complex/thin/reflective inputs; investigate the visible surface/shading artifacts before claiming quality parity.
 - Measure more inputs before claiming general 16 GB fit, robustness, or speedup over upstream CUDA.
 
-**Established:** real pretrained single-image runs on Colab and Modal T4 complete through embedded PBR GLB, with measured allocator/RSS peaks. The historical Colab run also passed its GPU tests; the Modal run verifies the HTTP/CPU/GPU/export/download chain and completed-job reuse. **Not established:** broad input success rate, general memory bounds, quality parity, repeated warm-worker latency, controlled speedup, multi-view Modal generation or real-GPU interruption recovery. No performance or capacity guarantee is made.
+**Established:** real pretrained single-image runs on Colab and Modal T4 complete through embedded PBR GLB, with measured allocator/RSS peaks. The historical Colab run also passed its GPU tests; Modal verifies transport, cache reuse and the configurable chunk profile. Warm operator and paired positive-HR-forward timings exist. **Not established:** a full-generation speedup, broad input success rate, general memory bounds, quality parity, repeated warm-worker latency, multi-view Modal generation or real-GPU interruption recovery. No performance or capacity guarantee is made.

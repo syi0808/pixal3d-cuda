@@ -237,7 +237,10 @@ step schedules and full-key attention are not changed by chunk tuning.
 Warm T4 operator probes selected a candidate service profile of
 `attention_queries=1024`, `cross_attention_queries=0`, `ffn_rows=8192` and
 `sparse_rows=16384`. This profile is checked into the server declarations;
-full 1024/PBR acceptance is pending. Health exposes `execution_chunks` without
+full 1024/PBR acceptance completed, but its single full-generation GPU timing
+did not improve over the historical different-worker reference. A paired
+pretrained HR-forward study did improve; see [the limits of these results](validation.md#modal-t4-chunk-profile-trials).
+Health exposes `execution_chunks` without
 launching a GPU so callers can inspect the deployed profile. The CLI retains
 256/256/1024/4096 defaults unless the matching flags are explicitly supplied.
 
@@ -258,6 +261,15 @@ Two warmups and five timed repeats are separate from profiler captures. Reports
 and traces persist privately under `pixal3d-jobs/benchmarks/RUN_ID` and download
 locally; the temporary App ends with `modal run`. Do not run it concurrently
 with inference; each Function's max-container setting is not an App-wide GPU cap.
+
+Optional `--math-attention-only` compares automatic versus higher-memory math
+SDPA; the tested math backend was slower and was not enabled in production.
+Optional `--pretrained-forwards` instead loads the cached pinned HR model once,
+reuses frozen conditioning/initial noise and compares four chunk profiles at
+positive timestep 1000. It uses one warmup per profile and three timed rounds
+in forward/reverse/forward order on that same model/GPU. This is not the entire
+12-step/CFG schedule. Do not combine the two flags. Cached weights are mounted
+read-only; neither mode downloads weights or attaches the HF Secret.
 
 Use the returned `job_id` to poll every few seconds, not a long-lived request:
 
