@@ -89,11 +89,68 @@ The actual GLB rendered as the red shoe in the notebook's PBR model-viewer. Surf
 
 On that same T4, **29 tests passed in 11.03 s**, including both FP16/FP32 CUDA attention tests. Strict metadata verification matched all nine pinned checkpoints. Raw, credential-free records are retained in [acceptance.json](evidence/t4-shoe-2026-11-11.acceptance.json), [report.json](evidence/t4-shoe-2026-11-11.report.json), and [test output](evidence/t4-shoe-2026-11-11.tests.txt). No weights, input images, or generated assets are committed. Release `v0.1.1` adds documentation/release metadata and pins the notebook; its inference implementation is the one exercised at `dacb3a1`.
 
+### Modal T4 current runtime
+
+On **2026-11-13**, revision **`f30dfc4f3db7c4debbf1a748754a91780b187ae3`**
+completed the same public shoe through the deployed `main` HTTP API. CPU prefetch
+persisted pinned single-image, DINOv3, NAF, MoGe-2 and rembg weights before
+submission. The GPU worker then ran offline on **Tesla T4, SM 7.5,
+PyTorch 2.6.0+cu124**, without resuming previous stage checkpoints, OOM or a
+reported non-finite stage. Seed 42, 512 geometry, 1024 textures, automatic camera,
+all four 12-step schedules, default limits/128 MiB conditioning cache and disabled
+sparse prepacking were retained. The source image SHA-256 matches the historical
+case; the runtime input hash identifies the separately CPU-matted PNG.
+
+| Result | Observed value |
+| --- | ---: |
+| Client-observed complete status | 464.97 s (includes cold workers, CPU preparation and polling delay) |
+| Sum of GPU-worker stages | 246.923774154 s |
+| CPU export stage | 60.69261714 s |
+| Peak PyTorch CUDA allocated | 5,866,810,880 bytes (5.464 GiB) |
+| Peak PyTorch CUDA reserved | 5,909,774,336 bytes (5.504 GiB) |
+| Peak sampled GPU-worker process RSS | 10.452 GiB |
+| GLB size | 6,099,084 bytes |
+| Exported triangles | 100,695 |
+| Embedded base-color and metallic/roughness PNGs | 1024×1024 each |
+| Coincident triangles / nonmanifold / inconsistent indexed edges after cleanup | 0 / 0 / 0 |
+
+GPU stage totals include checkpoint loading, transfers, callbacks, cleanup and
+camera estimation, not just kernel execution or total billed GPU-container time.
+Weight prefetch time is excluded. These are single-run observations, **not a
+controlled speedup comparison** with the older Colab run, whose cache,
+preprocessing environment and source differ. PyTorch peaks are not total device
+usage, and sampled RSS can miss short spikes.
+
+HTTP submission returned 202, completed-status and artifact downloads returned
+200, and the downloaded SHA-256 matched the worker record:
+
+```text
+744dbf89f46b7955798b92341658cb53c0711e43b165875aa851a92a77c92455
+```
+
+An identical second POST returned the same completed job, without dispatching a
+second generation. Both embedded images were independently extracted/decoded.
+Blender 5.1.2 imported the actual GLB with its normals, confirmed linked base
+color/roughness/metallic channels and rendered three viewpoints with no mesh
+modifiers. Small visible cracks/openings remain; zero nonmanifold indexed edges
+does not establish watertightness or production quality. The 100,000-face target
+is advisory, not a strict cap. An initial local acceptance assertion mistakenly
+treated it as a cap; correcting that assertion did not change or rerun inference.
+
+Credential-free records: [acceptance](evidence/modal-t4-shoe-2026-11-13.acceptance.json),
+[runtime report](evidence/modal-t4-shoe-2026-11-13.report.json),
+[Blender witness](evidence/modal-t4-shoe-2026-11-13.render.json), and
+[CPU regression output](evidence/modal-t4-shoe-2026-11-13.tests.txt).
+The local CPU suite passed **174 tests, with 3 CUDA-only skips**; those tests were
+not rerun on the Modal GPU. Model weights, raw inputs, intermediate checkpoints,
+GLB and render PNGs are not committed. After verification, the App was explicitly
+stopped with zero active tasks; persistent model/job Volumes were retained.
+
 ### Remaining validation
 
-- Repeat with a fully populated cache before reporting warm inference latency.
+- Repeat with populated caches and controlled matching inputs/source before reporting warm-worker latency or optimization speedups.
 - Interrupt and resume on actual GPU hardware and compare artifacts; current restart coverage is the controlled-output CPU pipeline test, not a real interrupted T4 run.
 - Inspect additional viewpoints and representative complex/thin/reflective inputs; investigate the visible surface/shading artifacts before claiming quality parity.
 - Measure more inputs before claiming general 16 GB fit, robustness, or speedup over upstream CUDA.
 
-**Established:** one real pretrained T4 single-image run completes through embedded PBR GLB with measured allocator/RSS peaks and passing GPU tests. **Not established:** broad input success rate, general memory bounds, quality parity, warm-cache speed, or real-GPU interruption recovery. No performance or capacity guarantee is made.
+**Established:** real pretrained single-image runs on Colab and Modal T4 complete through embedded PBR GLB, with measured allocator/RSS peaks. The historical Colab run also passed its GPU tests; the Modal run verifies the HTTP/CPU/GPU/export/download chain and completed-job reuse. **Not established:** broad input success rate, general memory bounds, quality parity, repeated warm-worker latency, controlled speedup, multi-view Modal generation or real-GPU interruption recovery. No performance or capacity guarantee is made.

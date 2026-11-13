@@ -1,0 +1,200 @@
+{
+  "status": "complete",
+  "started_utc": "2026-11-13T05:16:09.876951+00:00",
+  "environment": "main",
+  "base_url": "https://syi0808--pixal3d-cuda-api.us-east.modal.run",
+  "job_id": "586c04391e2e299a5e07825dd0aecfb0faa111ace31b7edf4dfa9742445ab94e",
+  "source_revision": "f30dfc4f3db7c4debbf1a748754a91780b187ae3",
+  "input_sha256": "abf395cc52d81c26dadae9f024072d6c7301679be4e8fc08d572723d7ae32a21",
+  "geometry_resolution": 512,
+  "texture_size": 1024,
+  "seed": 42,
+  "camera": "auto",
+  "target_faces": 100000,
+  "cache_ready": {
+    "revision": "0b31f9160aa400719af409098bff7936a932f726",
+    "camera": true,
+    "rembg": true
+  },
+  "submission_transport": "authenticated HTTP",
+  "checks": [
+    {
+      "name": "authenticated_health",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "name": "http_submit",
+      "passed": true,
+      "status_code": 202
+    },
+    {
+      "name": "content_addressed_job",
+      "passed": true
+    },
+    {
+      "name": "http_complete_status",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "name": "http_download_result.glb",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "name": "http_download_report.json",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "name": "artifact_sha256",
+      "passed": true
+    },
+    {
+      "name": "real_t4",
+      "passed": true
+    },
+    {
+      "name": "full_512_pbr_run",
+      "passed": true
+    },
+    {
+      "name": "nonempty_simplified_geometry",
+      "passed": true
+    },
+    {
+      "name": "clean_topology",
+      "passed": true
+    },
+    {
+      "name": "embedded_1024_pbr_pngs",
+      "passed": true
+    },
+    {
+      "name": "duplicate_request_reuses_complete_job",
+      "passed": true,
+      "status_code": 202
+    },
+    {
+      "name": "blender_pbr_material_bindings_and_render",
+      "passed": true
+    }
+  ],
+  "observed_phases": [
+    {
+      "phase": "submitted",
+      "elapsed_seconds": 14.85013125000114
+    },
+    {
+      "phase": "preparing",
+      "elapsed_seconds": 25.084133750002366
+    },
+    {
+      "phase": "queued_gpu",
+      "elapsed_seconds": 127.41711208400375
+    },
+    {
+      "phase": "running_gpu",
+      "elapsed_seconds": 137.64283041699673
+    },
+    {
+      "phase": "exporting_cpu",
+      "elapsed_seconds": 393.35654245900514
+    },
+    {
+      "phase": "complete",
+      "elapsed_seconds": 464.97086699999636
+    }
+  ],
+  "last_status": {
+    "job_id": "586c04391e2e299a5e07825dd0aecfb0faa111ace31b7edf4dfa9742445ab94e",
+    "status": "complete",
+    "updated_at": 1794547424.3322358,
+    "output": "586c04391e2e299a5e07825dd0aecfb0faa111ace31b7edf4dfa9742445ab94e/run/result.glb",
+    "sha256": "744dbf89f46b7955798b92341658cb53c0711e43b165875aa851a92a77c92455",
+    "bytes": 6099084
+  },
+  "output_sha256": "744dbf89f46b7955798b92341658cb53c0711e43b165875aa851a92a77c92455",
+  "validation": {
+    "glb_bytes": 6099084,
+    "triangles": 100695,
+    "embedded_pbr": true,
+    "unit_normals": true,
+    "geometry_resolution": 512
+  },
+  "client_elapsed_seconds": 474.2987437499978,
+  "finished_utc": "2026-11-13T05:24:04.203556+00:00",
+  "local_validation_note": "The first local harness incorrectly treated target_faces as a strict cap. README.md documents it as a simplification target; the worker completed normally. The original failed local assertion is preserved in initial-local-check.json.",
+  "simplification": {
+    "target_faces": 100000,
+    "actual_triangles": 100695,
+    "strict_cap": false
+  },
+  "pbr_textures": [
+    {
+      "role": "baseColorTexture",
+      "embedded": true,
+      "mime_type": "image/png",
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "channel_minimum": [
+        0,
+        0,
+        0,
+        252
+      ],
+      "channel_maximum": [
+        241,
+        238,
+        253,
+        255
+      ]
+    },
+    {
+      "role": "metallicRoughnessTexture",
+      "embedded": true,
+      "mime_type": "image/png",
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGB",
+      "channel_minimum": [
+        0,
+        216,
+        0
+      ],
+      "channel_maximum": [
+        0,
+        224,
+        0
+      ]
+    }
+  ],
+  "gpu": "Tesla T4",
+  "compute_capability": [
+    7,
+    5
+  ],
+  "torch": "2.6.0+cu124",
+  "gpu_stage_seconds": 246.92377415400003,
+  "cpu_export_seconds": 60.69261714,
+  "peak_allocated_bytes": 5866810880,
+  "peak_reserved_bytes": 5909774336,
+  "generation_observed_complete_seconds": 464.97086699999636,
+  "validation_completed_utc": "2026-11-13T05:29:02.588582+00:00",
+  "app_after_validation": {
+    "state": "stopped",
+    "active_tasks": 0,
+    "persistent_weights_and_jobs_retained": true
+  },
+  "quality_review": {
+    "production_quality_validated": false,
+    "watertightness_claimed": false,
+    "visible_limitations": "Small cracks/openings remain, especially near the toe; widespread faceted shading is reduced relative to the historical render."
+  }
+}

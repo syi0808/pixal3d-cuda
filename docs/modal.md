@@ -1,9 +1,11 @@
 # Single-environment Modal deployment
 
-**Workers and HTTP transport are locally contract-tested, not deployed or GPU-tested
-on Modal yet.** Live URL/authentication verification remains pending. Running
-the commands below provisions billable resources. Set
-an account budget and approve a small benchmark before exposing a service.
+**Single-image deployment and full T4 generation were verified in `main` on
+2026-11-13**, including Proxy Token authentication, weight prefetch, HTTP upload,
+offline GPU inference, CPU PBR export, authenticated downloads and duplicate-job
+reuse. See [the recorded run](validation.md#modal-t4-current-runtime).
+Multi-view Modal execution and broader quality/capacity remain unvalidated.
+Running the commands below provisions billable resources; configure account budgets.
 
 ## Infrastructure as code
 
@@ -231,9 +233,18 @@ add per-user ownership/rate controls before offering this to untrusted users.
 
 Local tests exercise multipart validation, asynchronous dispatch, deduplication,
 quota, status and artifact transport. They do **not** emulate Modal's edge
-authentication. After actual deployment, verify that no/invalid Proxy Token gets
-401, a valid token can read health, and one approved real input produces a
-visually reviewed GLB. Those live checks have not been run yet.
+authentication. Live verification on 2026-11-13 confirmed no/invalid Proxy Token
+gets 401, valid health/OpenAPI requests get 200, unknown jobs get 404 and invalid
+generation options get 422. The subsequent real single-image run returned 202,
+completed on T4 and downloaded a visually reviewed PBR GLB/report with matching
+SHA-256. Repeating the identical POST reused the completed job without another
+generation.
+
+After this acceptance run the App was stopped explicitly, with zero active tasks.
+Weights and jobs remain in their persistent Volumes. To run again, redeploy the
+same named App using the same source/config, then use the SDK/HTTP API. A stopped
+App is not a live API, and stopping compute does not delete or eliminate storage
+usage. No cleanup or restart schedule was enabled.
 
 ## Manual GitHub deployment
 

@@ -5,9 +5,9 @@
 
 A separate, memory-bounded **PyTorch/CUDA Pixal3D runtime targeting Colab T4**, with fixed **512 geometry** and **embedded PBR-textured GLB** output. No dependency on the MLX checkout; no training or replacement model weights.
 
-**Experimental, with one real T4 acceptance case completed:** the pinned shoe image generated a finite 512-geometry GLB with embedded 1024×1024 base-color and metallic/roughness textures. The run took **1,083.05 s including uncached model downloads**, with **5.45 GiB peak PyTorch allocated / 5.48 GiB reserved** and **7.21 GiB sampled process RSS**. All 29 tests passed on that T4. This is not a warm-cache benchmark, general 16 GB fit guarantee, or quality-parity claim. The preview has visible surface artifacts. See [full evidence and limitations](docs/validation.md).
+**Experimental, with real Colab and Modal T4 acceptance:** the latest Modal run generated the pinned shoe through the authenticated HTTP API, offline T4 inference, CPU export and GLB download. With weights prefetched, GPU stages took **246.92 s**, CPU export **60.69 s**, and the client observed completion after **464.97 s**, including cold workers and preprocessing. Peak PyTorch allocation/reservation was **5.46/5.50 GiB**. The GLB embeds 1024×1024 base-color and metallic/roughness textures. Small visible surface cracks remain; this is not production-quality, general 16 GB fit or quality-parity validation. See [full evidence and limitations](docs/validation.md).
 
-The recorded T4 run used `dacb3a1`. Subsequent [mesh-artifact fixes](docs/mesh-artifacts.md) add topology repair and normal validation; their fresh full T4 revalidation is pending. The notebook remains pinned to the previously released runtime until that check completes.
+The historical Colab run used `dacb3a1`; the fresh Modal run used `f30dfc4`, including [mesh-artifact fixes](docs/mesh-artifacts.md) and the current default optimizations. These runs are not a controlled performance comparison. The single-image Colab notebook remains pinned to its previously validated release; a fresh Colab-specific rerun is still pending.
 
 ## Colab quick start
 
@@ -104,7 +104,8 @@ Real pretrained multi-view CUDA generation remains **unvalidated**.
 
 [The Modal adapter](docs/modal.md) separates CPU prefetch/matting,
 offline GPU inference, and CPU mesh/UV/PBR export, with scale-to-zero and
-content-addressed job reuse. No paid Modal deployment has been performed.
+content-addressed job reuse. A single-image `main` deployment and real T4 PBR
+generation were verified on 2026-11-13; multi-view Modal generation remains unvalidated.
 Infrastructure names, GPU/memory/timeouts and upload limits live in
 `deploy/modal.toml`; `--action plan` prints the local declarations without
 deploying. A manual-only GitHub Actions workflow deploys only to `main`, with no

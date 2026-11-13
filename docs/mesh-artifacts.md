@@ -27,7 +27,24 @@ The repair also passes on the already-damaged original mesh as a local stress ca
 
 ## Fresh T4 revalidation
 
-**Pending:** regenerate the original public shoe from scratch in a fresh output directory on Colab T4, retain acceptance/report/test records, and compare PBR renders under the same camera/lighting. Do not reuse the old source-fingerprinted stage checkpoints or interpret the local ablations as full GPU validation.
+**Completed on Modal T4, 2026-11-13:** revision `f30dfc4` generated the original
+public shoe from scratch with seed 42, 512 geometry and 1024 PBR textures. No
+previous stage checkpoints were resumed. The CPU export report records zero
+coincident triangles, nonmanifold indexed edges and inconsistent manifold edges
+after cleanup; the exported GLB has finite unit normals. The final mesh contains
+100,695 triangles, versus an advisory simplification target of 100,000.
+
+The actual GLB was independently imported into Blender 5.1.2 and rendered from
+front, three-quarter and back views with embedded base-color/roughness/metallic
+bindings and no added mesh modifiers. The earlier widespread faceted shading is
+visually reduced, but small cracks/openings remain, particularly near the toe.
+The cleaned index topology still reports 11,451 boundary edges, including fan-cut
+seams: zero nonmanifold edges does **not** imply a watertight or production-ready
+mesh. This is not a controlled neural pre/post ablation or reference-parity claim.
+See [run records](validation.md#modal-t4-current-runtime).
+
+A fresh Colab-specific rerun remains pending; use a new output directory rather
+than old source-fingerprinted stage checkpoints:
 
 ```bash
 python -u scripts/validate_colab_t4.py --output-dir outputs/colab-t4-shoe-topology-v1

@@ -1,9 +1,11 @@
 # Correctness-first CUDA performance work
 
 This work follows the supplied low-level analysis of baseline `a4cb2b2`.
-**No new T4 or Modal performance result is claimed.** The development machine
-is Apple ARM64 with CPU-only PyTorch 2.10. GPU speed, VRAM and pretrained GLB
-quality must still be measured on real hardware. The MLX checkout is untouched.
+The development machine is Apple ARM64 with CPU-only PyTorch 2.10. One real
+Modal T4 acceptance of the current defaults is now recorded below. **No controlled
+pre/post-optimization speedup or operator benchmark is claimed.** Broader GPU
+speed, VRAM and pretrained GLB quality still require measurement. The MLX
+checkout is untouched.
 
 ## Implemented changes
 
@@ -114,7 +116,7 @@ timing or replaced with FP16/math. Numerical mismatch or other errors fail the
 run and preserve the report. The default device refuses CPU-only machines.
 `--device cpu` is explicitly a smoke test and must not be presented as a T4 run.
 
-## Pretrained end-to-end acceptance still required
+## Controlled performance comparison still required
 
 Prefetch official weights, then use identical input/poses, seed, limits, output
 textures and face target. **Warm cache is not `--resume`**: each measurement
@@ -150,6 +152,20 @@ phases, 700 finite flags with one scalar decision, sparse storage/value/output
 equivalence, bounded cache metrics and model telemetry. CUDA-only loader and
 attention tests run only when hardware is available. A small synthetic CPU
 operator smoke was also run locally; its timings are not GPU estimates.
+
+On 2026-11-13, revision `f30dfc4` completed a fresh pretrained single-image
+Modal T4 run with default limits, FP32 flows/sparse decoders, all 12-step schedules,
+128 MiB conditioning cache and sparse prepacking disabled. Weights were prefetched
+on CPU; GPU workers were offline. GPU stage totals were 246.92 s, including local
+checkpoint loading/cleanup and GPU-side camera inference, not just kernels.
+CPU export took 60.69 s; HTTP completion was observed after 464.97 s, including
+cold workers/preprocessing and polling delay. PyTorch allocator peaks were
+5.46 GiB allocated / 5.50 GiB reserved; sampled GPU-worker process RSS peaked at
+10.45 GiB. This is one acceptance case, not repeated warm-worker latency or a
+controlled comparison with the download-inclusive historical Colab run.
+See [acceptance and quality limits](validation.md#modal-t4-current-runtime)
+and the per-model load/callback/cleanup records linked there. Synthetic CUDA
+operator sweeps, prepack alternatives and larger-cache measurements remain pending.
 
 Tiled/fused sparse kernels, packed neighbor maps, selective FP16, CUDA graphs,
 default attention-layout changes and CPU rasterizer rewrites remain deferred
