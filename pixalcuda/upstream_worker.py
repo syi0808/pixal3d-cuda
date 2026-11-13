@@ -7,6 +7,7 @@ import json
 import math
 from pathlib import Path
 import sys
+import threading
 import time
 
 import numpy as np
@@ -48,16 +49,38 @@ class NativeReport:
     def stage(self, name):
         torch.cuda.synchronize()
         torch.cuda.reset_peak_memory_stats()
+        process = psutil.Process()
+        record = {"name": name, "peak_sampled_rss_bytes": process.memory_info().rss,
+                  "device_peak_sampled_used_bytes": 0, "memory_sampling_interval_seconds": 0.1}
+        def snapshot():
+            try:
+                free, total = torch.cuda.mem_get_info()
+                record["device_peak_sampled_used_bytes"] = max(record["device_peak_sampled_used_bytes"], total - free)
+                record["peak_sampled_rss_bytes"] = max(record["peak_sampled_rss_bytes"], process.memory_info().rss)
+            except Exception as error:
+                record["memory_sampling_error"] = type(error).__name__
+        finished = threading.Event()
+        def monitor():
+            while not finished.wait(0.1):
+                snapshot()
+        snapshot()
+        thread = threading.Thread(target=monitor, daemon=True)
+        thread.start()
         started = time.perf_counter()
         try:
             with torch.profiler.record_function(f"pixalcuda.upstream/{name}"):
                 yield
         finally:
-            torch.cuda.synchronize()
-            self.data["stages"].append({"name": name, "elapsed_seconds": time.perf_counter() - started,
-                                        "peak_allocated_bytes": torch.cuda.max_memory_allocated(),
-                                        "peak_reserved_bytes": torch.cuda.max_memory_reserved(),
-                                        "rss_bytes_after": psutil.Process().memory_info().rss})
+            try:
+                torch.cuda.synchronize()
+            finally:
+                finished.set()
+                thread.join()
+            snapshot()
+            record.update(elapsed_seconds=time.perf_counter() - started,
+                          peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+                          peak_reserved_bytes=torch.cuda.max_memory_reserved(), rss_bytes_after=process.memory_info().rss)
+            self.data["stages"].append(record)
             self.write()
 
 

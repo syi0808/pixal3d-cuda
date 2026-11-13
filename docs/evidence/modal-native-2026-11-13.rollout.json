@@ -1,0 +1,73 @@
+{
+  "schema": "pixalcuda.modal-rollout.v1",
+  "date": "2026-11-13",
+  "runtime": "official",
+  "environment": "main",
+  "deployment_url": "https://modal.com/apps/syi0808/main/deployed/pixal3d-cuda",
+  "api_url": "https://syi0808--pixal3d-cuda-api.us-east.modal.run",
+  "native_build": {
+    "status": "passed",
+    "cuda_toolkit": "12.4.1",
+    "python": "3.12",
+    "torch": "2.6.0+cu124",
+    "target_sm": "89",
+    "extensions": ["nvdiffrast", "cumesh", "flex_gemm", "o_voxel", "natten==0.21.0"],
+    "natten_build_seconds": 1970.35,
+    "compiler": "gcc/g++",
+    "cmake": "3.31.6",
+    "utils3d_revision": "3fab839f0be9931dac7c8488eb0e1600c236e183",
+    "observed_o_voxel_transitive_git_revisions": {
+      "cumesh": "12289e1062f0603f2f0d0771b02e1395d247f26f",
+      "flexgemm": "6dd94a859c26ee8246888502eada3dd8ad85532e"
+    }
+  },
+  "http_smoke": {
+    "unauthenticated_health": 401,
+    "authenticated_health": 200,
+    "openapi": 200,
+    "unknown_job": 404,
+    "unsupported_geometry_512": 422,
+    "runtime": "official",
+    "gpu": "L4",
+    "upstream_revision": "f7cf38429b0bd264f1995f0f8743a88b1c728b94"
+  },
+  "kernel_smoke": {
+    "status": "not_accepted",
+    "attempts": [
+      {"status": "failed", "reason": "Diagnostic harness omitted the upstream PYTHONPATH used by the real pipeline; import failed before kernel checks"},
+      {"status": "cancelled", "reason": "Corrected diagnostic did not return within the 300-second client deadline; no function-body output or active container was observed before cancellation"}
+    ],
+    "function_timeout_seconds": 180,
+    "automatic_retries": 0,
+    "temporary_apps_observed_stopped": true
+  },
+  "model_access": {
+    "secret_name": "pixal3d-hf",
+    "token_value_recorded": false,
+    "model": "briaai/RMBG-2.0",
+    "revision": "2fd7b4b0f2393ddb39a267fb62df6c010928a6c6",
+    "authenticated_head_status": 403
+  },
+  "pretrained_acceptance": {
+    "status": "blocked_before_submission",
+    "geometry_resolution": 1024,
+    "texture_size": 4096,
+    "target_faces": 1000000,
+    "seed": 42,
+    "input_sha256": "abf395cc52d81c26dadae9f024072d6c7301679be4e8fc08d572723d7ae32a21",
+    "profiles_planned": ["optimized", "reference"],
+    "generation_jobs_submitted": 0,
+    "new_glb_generated": false,
+    "speedup_or_quality_parity_established": false
+  },
+  "production": {
+    "gpu": "L4",
+    "min_containers": 0,
+    "max_gpu_containers": 1,
+    "scaledown_window_seconds": 2,
+    "save_reference": false,
+    "active_containers_observed_after_checks": 0
+  },
+  "local_cpu_tests": {"passed": 170, "warnings": 1, "gpu_tests_run_locally": false},
+  "mlx_checkout_modified": false
+}

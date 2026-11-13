@@ -1,7 +1,9 @@
 # Official runtime on Modal main
 
-**Not deployed or GPU-validated after the v0.2 rewrite.** These are declarations
-and an untested native build recipe, not a working-server claim. Old T4 evidence
+**Deployed to main on 2026-11-13:** native SM89 image build and authenticated HTTP
+smoke checks pass. Pretrained generation is not accepted yet: the configured
+HF token receives HTTP 403 for RMBG-2.0. See [rollout evidence](validation.md#v02-modal-main-rollout).
+Old T4 evidence
 applies only to [the previous revision](https://github.com/syi0808/pixal3d-cuda/tree/a6ce8a3c4a68e377569b7965035a8f00d74ff9b0).
 
 ## Layout
@@ -16,15 +18,15 @@ applies only to [the previous revision](https://github.com/syi0808/pixal3d-cuda/
   remesh/PBR exporter. No separate CPU export worker is dispatched.
 
 There is no dev environment and no automatic GPU upgrade/fallback. The new
-declaration explicitly changes the hardware target from T4 to L4, but no live
-resource changes happen until deployment. T4 is rejected by the BF16 baseline.
-Native L4 fit/build/inference still need validation. The 64 GiB host RAM limit
+declaration explicitly changes the hardware target from T4 to L4. Deployment
+does not start asset generation. T4 is rejected by the BF16 baseline.
+Native L4 model fit/inference still need validation. The 64 GiB host RAM limit
 is not a VRAM allowance. Upstream loads all models on CPU even in low-VRAM mode.
 
 ## Manual rollout
 
-Review the L4 cost and model licenses/access first. Keep the old app stopped
-until the image builds and a single reference job is deliberately authorized.
+Review the L4 cost and model licenses/access before deliberately submitting a
+generation job. The deployed app remains scale-to-zero while idle.
 Existing Modal authentication, `pixal3d-hf` secret (`HF_TOKEN`), Proxy Token,
 `.env` Proxy credentials and weights/jobs volumes are reusable; do not print or
 commit credentials. RMBG-2.0 / camenduru DINO access may differ from old weights.
@@ -40,6 +42,12 @@ Deploy compiles CPU/CUDA code; it does not run asset generation. Prefetch downlo
 pinned snapshots on CPU, including model JSONs, official DINO, BiRefNet, NAF and
 optional MoGe. Old ready markers fail the new runtime/lock checks and must be
 replaced by the new prefetch. Immutable cached files can still be reused.
+
+Native extensions have separate cached image layers, followed by the runtime
+sources. Editing API/runtime code does not recompile CUDA. The image explicitly
+uses GCC/G++ and CMake 3.31.6. MoGe and the runtime share the same pinned utils3d
+1.3 source revision; installing the old 0.0.2 wheel alongside MoGe is a resolver
+conflict. This dependency change does not add a second inference path.
 
 HTTP routes and Proxy authentication remain unchanged:
 
@@ -58,8 +66,34 @@ Native DINO reuse/active projection/conditioning reuse defaults are declared in
 `modal.toml` (128 MiB DINO / 256 MiB per-flow conditioning). This is a new native
 optimization, not compatibility with the removed runtime. HTTP `reference=true`
 disables the hooks in the same pipeline; clients cannot override server budgets.
-See [controls and validation limits](optimizations.md). The app was not redeployed.
+See [controls and validation limits](optimizations.md).
 
 After a deliberate single-image test, verify report stages include
 `remesh_pbr_export`, embedded PBR images and actual geometry; inspect the GLB
 visually before benchmarking. This has **not** been done for v0.2 yet.
+
+## Bounded HTTP acceptance
+
+After deployment and successful CPU prefetch, use a fresh output directory:
+
+```bash
+python scripts/validate_modal_native.py \
+  --base-url https://YOUR-APP.modal.run --image object.png \
+  --output-dir outputs/modal-native-acceptance
+```
+
+The default is a local dry-run. Add `--execute` to test unauthenticated rejection,
+authenticated health, and sequential optimized/reference generation through the
+actual HTTP API. Defaults are geometry 1024, texture 4096, 1M target faces and seed
+42. The tool reads Proxy credentials from `.env` without printing them, validates
+downloaded PBR GLBs and writes `acceptance.json`. A failed job stops the test;
+there is no retry or hardware/quality fallback. A client timeout does not cancel
+the remote job: inspect/cancel that job before submitting another attempt.
+
+For private tensor comparisons only, temporarily set `save_reference = true` in
+`modal.toml`, redeploy, then run the two profiles. Download each job's
+`/<job_id>/run/reference.pt` with the Modal Volume CLI and compare with
+`scripts/compare_native_references.py`. These tensors are not HTTP artifacts.
+Restore `save_reference = false` and redeploy after diagnostics to avoid normal
+requests accumulating large private files. Structural GLB checks and raw tensor
+comparison do not replace visual inspection of the final remesh/UV/PBR output.

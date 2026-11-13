@@ -3,6 +3,45 @@
 > The pretrained GPU results below apply only to the archived v0.1.x runtime.
 > The official v0.2 rewrite has CPU contract tests but no native GPU acceptance yet.
 
+## v0.2 Modal main rollout
+
+2026-11-13: the CUDA 12.4/Python 3.12/Torch 2.6 SM89 image built successfully,
+including nvdiffrast, CuMesh, FlexGEMM, o_voxel and NATTEN 0.21.0. Build failures
+identified a utils3d/MoGe resolver conflict, missing G++ selection in the Modal
+Python toolchain, and missing CMake. The recipe now shares MoGe's pinned utils3d
+1.3 revision, selects GCC/G++, installs CMake and caches each extension separately
+from runtime sources. NATTEN's first source build took 1,970.35 seconds on CPU;
+the subsequent cached main deployment took about 40 seconds.
+
+The deployed API rejected unauthenticated health (401), returned authenticated
+health/OpenAPI (200), rejected unsupported geometry 512 (422), and returned 404
+for an unknown job. These checks submitted no generation jobs. Local CPU tests:
+**170 passed**; the Starlette/httpx deprecation warning remains unrelated.
+
+**Pretrained generation remains blocked:** the actual main `pixal3d-hf` token
+receives 403 from the pinned `briaai/RMBG-2.0/config.json`. The account must accept
+the model's access conditions and the token must allow gated-model reads. No
+alternate matting model, old weights, old GLB or automatic hardware upgrade was
+substituted. The 1024/4096/1M-face optimized/reference pair was planned, not run;
+there is no new GLB, model VRAM measurement, speedup or quality-parity result.
+
+The separate, model-free L4 kernel diagnostic is **not accepted** either. Its first
+attempt omitted the pipeline's upstream Python search path and failed before
+kernel calls. The corrected attempt produced no function-body output within a
+300-second client deadline and was cancelled with container termination. This
+does not establish a kernel bug, GPU-capacity problem or successful kernel test.
+Both temporary Apps were observed stopped. Main stays deployed with zero active
+containers observed, min=0, one GPU worker maximum and `save_reference=false`.
+
+The o_voxel metadata resolves unversioned CuMesh/FlexGEMM git references even
+when locked local builds are already installed. In this observed build those
+references matched the lock and no replacement wheel was installed. This is
+evidence for this image, not a fully hermetic future dependency-resolution claim.
+
+[Sanitized rollout evidence](evidence/modal-native-2026-11-13.rollout.json).
+See [bounded HTTP acceptance instructions](modal.md#bounded-http-acceptance).
+Credentials, input-derived tensors and large artifacts are not committed.
+
 ## v0.2 official-only rebase
 
 Subsequent optimization contracts: **160 CPU tests passed**, including comparisons
@@ -15,10 +54,11 @@ This does not validate native kernels, pretrained GLB parity or speed. See
 2026-11-13: **129 CPU contracts passed**, and the Python wrapper wheel was built
 with its packaged upstream lock and no former neural/exporter modules. Native
 single/mapped wiring uses controlled doubles, not pretrained GPU execution.
-The native benchmark and Modal declaration plans were run without execution.
-**Native extension/image compilation, GPU generation, upstream parity, capacity,
-performance and the new Modal deployment remain unverified.** No paid GPU/app
-was started. See [the current migration/investigation](upstream-runtime.md).
+At that initial rebase checkpoint, the native benchmark and Modal declaration
+plans were run without execution and no paid GPU/app was started. The rollout
+above supersedes its native build and HTTP-deployment status only. Pretrained
+generation, upstream parity, capacity and performance remain unverified.
+See [the current migration/investigation](upstream-runtime.md).
 
 ## Scope
 

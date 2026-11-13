@@ -29,3 +29,4 @@ share_dino = true
 dino_cache_mb = 128
 sparse_projection = true
 conditioning_cache_mb = 256
+save_reference = false

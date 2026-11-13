@@ -12,10 +12,11 @@ mesh exporter are used by this path. Job-scoped DINO reuse, active projection an
 bounded static conditioning reuse are now enabled; `--reference` disables these
 hooks in the same official pipeline. The MLX checkout is not modified.
 
-**Status: CPU orchestration contracts tested; native image build and real GPU
-generation are NOT yet validated.** Historical T4 GLBs/timings belong to the
+**Status: native SM89 image built and Modal main HTTP/authentication verified;
+pretrained generation is blocked by RMBG-2.0 access (HTTP 403).** See
+[deployment evidence and remaining checks](docs/validation.md#v02-modal-main-rollout).
+Historical T4 GLBs/timings belong to the
 archived implementation and are not acceptance evidence for this rewrite.
-No cloud GPU or Modal deployment was started for the rebase.
 
 | Baseline choice | Value |
 | --- | --- |
@@ -32,7 +33,7 @@ No cloud GPU or Modal deployment was started for the rebase.
 **T4 is not accepted by the unmodified BF16 baseline.** Re-enabling T4 requires
 a separately measured precision/kernel compatibility project, not silently
 changing precision silently. Free Colab T4 is therefore not a supported v0.2 target.
-L4 is an unvalidated build target, not a fit/speed guarantee. See
+L4 model fit and generation speed remain unvalidated. See
 [migration, constraints and optimization investigation](docs/upstream-runtime.md).
 
 ## Native setup
@@ -52,7 +53,8 @@ pixal3d-cuda generate --image object.png --output-dir outputs/native-reference -
 
 Use `8.0`/`8.6` for corresponding Ampere GPUs. Setup clones locked dependency
 sources outside this repository, then explicitly compiles native extensions.
-It does not launch cloud compute. This source-build recipe is **not yet build-tested**.
+It does not launch cloud compute. The CUDA 12.4/Python 3.12/SM89 recipe built on Modal;
+this is not validation of every local/Colab environment or pretrained execution.
 The upstream example wheels target another GPU/Python ABI and are deliberately
 not reused. Model access and each model's license must be reviewed separately,
 including BiRefNet/RMBG-2.0. The wrapper pins local model paths and the NAF source;
@@ -91,6 +93,8 @@ Each native generation produces `result.glb`, `report.json`, `upstream.log` and
 latents and pre-remesh geometry/voxel tensors to `reference.pt`; these can expose
 input-derived data. Reports identify requested/actual geometry, conditioning
 sizes, source/model pins, stage timings and PyTorch allocated/reserved peaks.
+Device-used VRAM (including allocations outside PyTorch) and process RSS are
+also sampled every 100 ms; these sampled peaks can miss shorter spikes.
 Native reports are a new schema, not compatible with old stage-resume reports.
 
 ## Modal and compatibility

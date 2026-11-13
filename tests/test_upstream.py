@@ -142,6 +142,16 @@ def test_build_uses_explicit_native_architecture_and_never_requests_cloud_gpu(tm
         upstream_sources.build(tmp_path, "7.5")
 
 
+def test_individual_native_build_layers_select_only_one_extension(tmp_path, monkeypatch):
+    commands = []
+    monkeypatch.setattr(upstream_sources, "verify_source", lambda name, root: Path(root) / name)
+    monkeypatch.setattr(upstream_sources.subprocess, "run", lambda command, **options: commands.append(command))
+    upstream_sources.build(tmp_path, package="natten")
+    assert len(commands) == 1 and commands[0][-1] == "natten==0.21.0"
+    with pytest.raises(ValueError, match="Unknown native package"):
+        upstream_sources.build(tmp_path, package="untrusted")
+
+
 @pytest.mark.parametrize("multiview", [False, True])
 def test_offline_native_prefetch_includes_configs_and_official_backbone_distribution(tmp_path, monkeypatch, multiview):
     calls = []
@@ -256,3 +266,19 @@ def test_explicit_no_matting_preserves_framing_and_composites_alpha(tmp_path):
     result, camera = upstream_worker.single_input(entry, native, identity, {}, tmp_path)
     assert result.size == (12, 20) and result.getpixel((0, 0)) == (100, 50, 25)
     assert camera["distance"] == 2.0
+
+
+def test_native_report_samples_device_and_host_memory_without_cuda_in_unit_test(tmp_path, monkeypatch):
+    import time
+    available = iter((900, 700, 850))
+    monkeypatch.setattr(torch.cuda, "synchronize", lambda: None)
+    monkeypatch.setattr(torch.cuda, "reset_peak_memory_stats", lambda: None)
+    monkeypatch.setattr(torch.cuda, "mem_get_info", lambda: (next(available, 850), 1000))
+    monkeypatch.setattr(torch.cuda, "max_memory_allocated", lambda: 200)
+    monkeypatch.setattr(torch.cuda, "max_memory_reserved", lambda: 250)
+    report = upstream_worker.NativeReport(tmp_path, {})
+    with report.stage("controlled"):
+        time.sleep(.15)
+    record = report.data["stages"][0]
+    assert record["device_peak_sampled_used_bytes"] == 300
+    assert record["peak_sampled_rss_bytes"] > 0 and record["peak_allocated_bytes"] == 200

@@ -11,6 +11,7 @@
 5. 이미지 한 장을 업로드해 1024 geometry / 4096 PBR / 원본 remesh 경로를 실행한다.
 6. 실패하면 출력 디렉터리의 `upstream.log`와 `report.json`을 확인한다. 자동 fallback은 없다.
 
-**현재 native 빌드/실제 생성은 미검증이다.** 과거 T4 결과를 새 경로의 성능이나 품질
+**Modal SM89 이미지 빌드는 통과했지만 Colab 설치와 pretrained 생성은 미검증이다.**
+과거 T4 결과를 새 경로의 성능이나 품질
 증거로 사용하면 안 된다. `reference.pt`는 입력에서 파생된 비공개 데이터를 포함한다.
 상세 제약 및 최적화 순서는 [공식 runtime 조사](upstream-runtime.md)를 참조한다.

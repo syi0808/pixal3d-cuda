@@ -6,7 +6,8 @@
     "flexgemm": {"url": "https://github.com/JeffreyXiang/FlexGEMM.git", "revision": "6dd94a859c26ee8246888502eada3dd8ad85532e"},
     "cumesh": {"url": "https://github.com/JeffreyXiang/CuMesh.git", "revision": "12289e1062f0603f2f0d0771b02e1395d247f26f"},
     "nvdiffrast": {"url": "https://github.com/NVlabs/nvdiffrast.git", "revision": "253ac4fcea7de5f396371124af597e6cc957bfae"},
-    "naf": {"url": "https://github.com/valeoai/NAF.git", "revision": "37f2dfc180f2de53d98bd601109c0da0dd6b0f43"}
+    "naf": {"url": "https://github.com/valeoai/NAF.git", "revision": "37f2dfc180f2de53d98bd601109c0da0dd6b0f43"},
+    "utils3d": {"url": "https://github.com/EasternJournalist/utils3d.git", "revision": "3fab839f0be9931dac7c8488eb0e1600c236e183"}
   },
   "models": {
     "single": {"repo": "TencentARC/Pixal3D", "revision": "0b31f9160aa400719af409098bff7936a932f726"},

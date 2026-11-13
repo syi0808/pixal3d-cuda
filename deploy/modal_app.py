@@ -13,6 +13,7 @@ import time
 import modal
 
 from deploy.settings import load_settings
+from pixalcuda.upstream_sources import NATIVE_PACKAGES
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,23 +26,33 @@ app = modal.App(SETTINGS.app_name)
 weights = modal.Volume.from_name(SETTINGS.weights_volume, create_if_missing=True, version=2, environment_name=SETTINGS.environment)
 jobs = modal.Volume.from_name(SETTINGS.jobs_volume, create_if_missing=True, version=2, environment_name=SETTINGS.environment)
 records = modal.Dict.from_name(SETTINGS.jobs_dict, create_if_missing=True, environment_name=SETTINGS.environment)
-image = (
+native_image = (
     modal.Image.from_registry("nvidia/cuda:12.4.1-devel-ubuntu22.04", add_python="3.12")
     .apt_install("git", "build-essential", "ninja-build", "libglib2.0-0", "libgl1", "libgl1-mesa-dev", "libegl1-mesa-dev", "libjpeg-dev")
     .pip_install("torch==2.6.0", "torchvision==0.21.0", index_url="https://download.pytorch.org/whl/cu124")
     .pip_install_from_pyproject(str(ROOT / "pyproject.toml"), optional_dependencies=["upstream", "camera", "server"])
     .env({"PYTHONPATH": "/opt/pixal3d:/opt/pixal3d/deploy", "HF_HOME": "/weights/hf", "PIXAL_GPU": GPU,
           "PIXAL_UPSTREAM_ROOT": "/opt/upstream", "CUDA_HOME": "/usr/local/cuda", "TORCH_CUDA_ARCH_LIST": "8.9",
+          "CC": "gcc", "CXX": "g++",
+          "GIT_LFS_SKIP_SMUDGE": "1",
           "ATTN_BACKEND": "sdpa", "SPARSE_ATTN_BACKEND": "sdpa", "SPARSE_CONV_BACKEND": "flex_gemm",
           "MODAL_ENVIRONMENT": SETTINGS.environment, "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2",
           "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})
+    .add_local_file(ROOT / "pixalcuda" / "upstream_sources.py", "/opt/pixal-build/pixalcuda/upstream_sources.py", copy=True)
+    .add_local_file(ROOT / "pixalcuda" / "upstream-lock.json", "/opt/pixal-build/pixalcuda/upstream-lock.json", copy=True)
+    .run_commands("PYTHONPATH=/opt/pixal-build python -m pixalcuda.upstream_sources --root /opt/upstream")
+)
+for native_package in NATIVE_PACKAGES:
+    native_image = native_image.run_commands(
+        f"PYTHONPATH=/opt/pixal-build python -m pixalcuda.upstream_sources --root /opt/upstream --build-package {native_package} --cuda-arch 8.9")
+image = (
+    native_image
     .add_local_dir(ROOT / "pixalcuda", "/opt/pixal3d/pixalcuda", copy=True, ignore=["__pycache__", "*.pyc"])
     .add_local_file(ROOT / "deploy" / "modal_app.py", "/opt/pixal3d/deploy/modal_app.py", copy=True)
     .add_local_file(ROOT / "deploy" / "settings.py", "/opt/pixal3d/deploy/settings.py", copy=True)
     .add_local_file(ROOT / "deploy" / "http_api.py", "/opt/pixal3d/deploy/http_api.py", copy=True)
     .add_local_file(ROOT / "deploy" / "modal.toml", "/opt/pixal3d/deploy/modal.toml", copy=True)
     .add_local_file(ROOT / "pyproject.toml", "/opt/pixal3d/pyproject.toml", copy=True)
-    .run_commands("python -m pixalcuda.upstream_sources --root /opt/upstream --build --cuda-arch 8.9")
 )
 offline = image.env({"HF_HUB_OFFLINE": "1", "HF_HUB_DISABLE_TELEMETRY": "1"})
 cpu_options = dict(image=offline, cpu=(SETTINGS.cpu_cores, SETTINGS.cpu_cores), memory=SETTINGS.cpu_memory_mib,
@@ -111,7 +122,7 @@ def inference_options(geometry_resolution=1024, reference=False):
         SETTINGS.share_dino, SETTINGS.dino_cache_mb, SETTINGS.sparse_projection, SETTINGS.conditioning_cache_mb)
     return {"low_vram": SETTINGS.low_vram, "attention_backend": SETTINGS.attention_backend,
             "max_tokens": SETTINGS.max_tokens, "timeout_seconds": SETTINGS.gpu_timeout_seconds - 30,
-            "optimizations": optimizations}
+            "optimizations": optimizations, "save_reference": SETTINGS.save_reference}
 
 
 def validate_request_inputs(request, directory):

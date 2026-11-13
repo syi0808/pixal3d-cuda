@@ -6,8 +6,10 @@ v0.2는 기존 신경망 포팅을 더 고치는 대신, 고정된 공식 Pixal3
 함수를 직접 호출하는 얇은 CUDA orchestration layer다. 공식 checkout은 수정하지
 않고 외부 디렉터리에 설치한다. 기존 MLX 저장소도 수정하지 않는다.
 
-CPU 계약 테스트만 완료한 단계다. **native 이미지 빌드, L4/T4 생성, 원본 CLI와의
-수치·품질 동등성, 성능 개선은 검증하지 않았다.** 과거 7 GiB T4 측정은 legacy
+CPU 계약 테스트, Modal SM89 native 이미지 빌드와 main HTTP/인증 검증을 완료했다.
+**RMBG-2.0 접근 403으로 pretrained 생성, 원본 CLI와의 수치·품질 동등성,
+성능 개선은 검증하지 않았다.** [배포 기록](validation.md#v02-modal-main-rollout)을 참조한다.
+과거 7 GiB T4 측정은 legacy
 런타임의 숫자이며 새 런타임의 기대값으로 재사용하지 않는다.
 
 ## 새 기본 경로
@@ -41,8 +43,8 @@ CPU 계약 테스트만 완료한 단계다. **native 이미지 빌드, L4/T4 �
 수 있는 GPU가 아니다. 따라서 SM75에서 FP16/FP32로 자동 교체하면 원본 그대로의
 baseline이 아니게 된다. 새 기본 worker는 SM80 미만을 **명시적으로 거절**한다.
 
-초기 Modal 선언은 L4/SM89로 변경했지만 실제 배포하지 않았다. GPU를 빌리거나
-업그레이드하는 자동 동작은 없다. Colab 무료 T4는 새 기준선 실행 대상이 아니다.
+Modal main은 L4/SM89 대상으로 배포했다. 자동 GPU 업그레이드/fallback은 없다.
+Colab 무료 T4는 새 기준선 실행 대상이 아니다.
 NATTEN/FlexGEMM/CuMesh/o_voxel을 SM75에서 실행 가능한지, 어떤 precision으로
 overflow 없이 실행되는지는 각각 별도 검증해야 한다.
 [NVIDIA Ampere의 추가 Tensor Core 형식](https://docs.nvidia.com/cuda/ampere-tuning-guide/index.html#improved-tensor-core-operations),
@@ -50,7 +52,8 @@ overflow 없이 실행되는지는 각각 별도 검증해야 한다.
 
 CUDA 12.4 devel + Torch 2.6 + source build를 선언했다. 원본 Spaces의 cp310/H-series
 wheel을 Python 3.12/L4에 재사용하지 않는다. native dependency source와 NATTEN
-0.21.0을 고정했지만, 이 조합의 빌드 성공을 아직 확인하지 않았다.
+0.21.0을 고정했으며 Modal SM89 이미지 빌드를 통과했다. 원본 CLI/실제 생성의
+성공이나 성능 개선을 의미하지는 않는다.
 [공식 설치](https://github.com/TencentARC/Pixal3D/blob/f7cf38429b0bd264f1995f0f8743a88b1c728b94/README.md#installation),
 [NATTEN 빌드 대상 지정](https://natten.org/install/).
 
@@ -93,16 +96,18 @@ worker/asset 단위라 kernel/autotune cache가 남을 수 있으며 warm-forwar
 report는 load / preprocess-camera / denoise-decode / CUDA remesh-PBR의 시간과
 allocated/reserved peak, 각 구간 끝 host RSS를 기록한다. RSS는 peak 샘플이 아니고,
 PyTorch 수치는 외부 allocator/context의 모든 메모리를 포함하지 않는다.
-세부 SS/LR/HR/texture profiler와 device-wide peak 측정은 다음 acceptance에 추가해야 한다.
+device-used VRAM/RSS의 100 ms 샘플링을 추가했으며 세부 SS/LR/HR/texture profiler는
+여전히 다음 acceptance에 추가해야 한다. 샘플링은 짧은 peak를 놓칠 수 있다.
 
 `--save-reference`는 native shape/texture latent와 raw mesh/voxel tensor를 CPU에
 저장한다. 작은 toy contract가 아닌 pretrained fixture로 위 후보들을 한 항목씩
 검증하는 데 사용한다. original CLI와 비교할 때 camera/초기 noise/전처리/후처리
 설정을 고정하고, 최종 GLB hash만으로 품질·수치 동등성을 판정하지 않는다.
 
-다음 실제 검증 순서는 native 이미지 빌드 → CPU weight prefetch → 공식 CLI 및
-wrapper의 동일 1024 단일 이미지 생성 → raw geometry/PBR 확인 → 반복 baseline이다.
-이 단계들은 아직 실행하지 않았으며 별도 GPU 사용 결정이 필요하다.
+native 이미지 빌드와 main HTTP 검증은 완료했다. 다음 순서는 RMBG-2.0 접근 복구 →
+CPU weight prefetch → 공식 CLI 및 wrapper의 동일 1024 단일 이미지 생성 →
+raw geometry/PBR 확인 → 반복 baseline이다. 모델 접근 차단으로 pretrained 단계는
+아직 실행하지 않았다.
 
 ## 단일 runtime과 과거 이력
 

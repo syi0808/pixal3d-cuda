@@ -8,6 +8,9 @@ import subprocess
 import sys
 
 
+NATIVE_PACKAGES = ("nvdiffrast", "cumesh", "flexgemm", "o-voxel", "natten")
+
+
 def lock():
     return json.loads(Path(__file__).with_name("upstream-lock.json").read_text())
 
@@ -48,29 +51,33 @@ def fetch(root=None):
     return root
 
 
-def build(root=None, cuda_arch="8.9"):
+def build(root=None, cuda_arch="8.9", package=None):
     if cuda_arch not in ("8.0", "8.6", "8.9"):
         raise ValueError("Native baseline builds target SM80/86/89; T4 SM75 is not a supported BF16 baseline")
+    if package is not None and package not in NATIVE_PACKAGES:
+        raise ValueError("Unknown native package")
     root = source_root(root)
     for name in lock()["sources"]:
         verify_source(name, root)
     environment = {**os.environ, "TORCH_CUDA_ARCH_LIST": cuda_arch,
                    "NATTEN_CUDA_ARCH": cuda_arch, "MAX_JOBS": "2", "NATTEN_N_WORKERS": "2"}
-    packages = [str(root / "nvdiffrast"), str(root / "cumesh"), str(root / "flexgemm"),
-                str(root / "trellis2" / "o-voxel"), "natten==0.21.0"]
-    for package in packages:
-        subprocess.run([sys.executable, "-m", "pip", "install", "--no-build-isolation", package], env=environment, check=True)
+    packages = {"nvdiffrast": str(root / "nvdiffrast"), "cumesh": str(root / "cumesh"),
+                "flexgemm": str(root / "flexgemm"), "o-voxel": str(root / "trellis2" / "o-voxel"),
+                "natten": "natten==0.21.0"}
+    for name in (NATIVE_PACKAGES if package is None else (package,)):
+        subprocess.run([sys.executable, "-m", "pip", "install", "--no-build-isolation", packages[name]], env=environment, check=True)
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root")
     parser.add_argument("--build", action="store_true", help="Compile native CUDA extensions; never starts a GPU job")
+    parser.add_argument("--build-package", choices=NATIVE_PACKAGES, help="Build one extension in an independently cached image layer")
     parser.add_argument("--cuda-arch", default="8.9")
     arguments = parser.parse_args(argv)
     root = fetch(arguments.root)
-    if arguments.build:
-        build(root, arguments.cuda_arch)
+    if arguments.build or arguments.build_package:
+        build(root, arguments.cuda_arch, arguments.build_package)
     print(root)
 
 

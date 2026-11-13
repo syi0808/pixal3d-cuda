@@ -41,6 +41,7 @@ class DeploySettings:
     dino_cache_mb: int = 128
     sparse_projection: bool = True
     conditioning_cache_mb: int = 256
+    save_reference: bool = False
 
     def __post_init__(self):
         if self.environment != "main":
@@ -62,8 +63,8 @@ class DeploySettings:
                     or any(type(item) is not int or item <= 0 for item in value) or value[0] > value[1]):
                 raise ValueError(f"{name} must be [positive request MiB, limit MiB >= request]")
             object.__setattr__(self, name, tuple(value))
-        if type(self.low_vram) is not bool or self.attention_backend not in ("sdpa", "flash_attn"):
-            raise ValueError("Invalid upstream low_vram/attention_backend setting")
+        if type(self.low_vram) is not bool or type(self.save_reference) is not bool or self.attention_backend not in ("sdpa", "flash_attn"):
+            raise ValueError("Invalid upstream low_vram/save_reference/attention_backend setting")
         if self.attention_backend == "flash_attn":
             raise ValueError("The baseline image builds SDPA only; install and validate FlashAttention before enabling it")
         from pixalcuda.optimizations import OptimizationOptions
