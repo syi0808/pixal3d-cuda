@@ -17,6 +17,12 @@ jobs:
       MODAL_ENVIRONMENT: main
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: TencentARC/Pixal3D
+          ref: f7cf38429b0bd264f1995f0f8743a88b1c728b94
+          path: outputs/upstream-Pixal3D-review
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

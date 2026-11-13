@@ -34,6 +34,7 @@ class JobOptions(BaseModel):
     camera: Literal["auto", "fixed"] = "auto"
     fov_degrees: float = Field(default=49.13, ge=1, le=150)
     remove_background: bool = True
+    reference: bool = False
     attempt: str = Field(default="", max_length=64, pattern=r"^[A-Za-z0-9_.-]*$")
 
 
@@ -92,10 +93,14 @@ def create_app(backend, settings):
     @app.get("/api/health")
     async def health():
         from pixalcuda.upstream_sources import lock
+        from pixalcuda.optimizations import OptimizationOptions
+        from dataclasses import asdict
         return {"status": "ok", "runtime": "official", "environment": settings.environment, "geometry_resolution": 1024,
                 "supported_geometry_resolutions": [1024, 1536],
                 "upstream_revision": lock()["sources"]["pixal3d"]["revision"], "low_vram": settings.low_vram,
                 "attention_backend": settings.attention_backend, "gpu": settings.gpu, "max_tokens": settings.max_tokens,
+                "optimizations": asdict(OptimizationOptions(settings.share_dino, settings.dino_cache_mb,
+                                                            settings.sparse_projection, settings.conditioning_cache_mb)),
                 "max_views": settings.max_views, "max_new_jobs_per_utc_day": settings.api_max_jobs_per_day}
 
     @app.post("/api/jobs", status_code=202, openapi_extra={

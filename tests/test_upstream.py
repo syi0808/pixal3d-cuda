@@ -212,14 +212,20 @@ def test_default_cli_is_native_and_removed_entry_points_are_rejected(tmp_path, m
     monkeypatch.setattr(pipeline, "Pipeline", Native)
     main(["generate", "--image", str(tmp_path / "input.png")])
     assert calls[0]["low_vram"] is True and calls[0]["attention_backend"] == "sdpa"
+    assert calls[0]["optimizations"].share_dino and calls[0]["optimizations"].sparse_projection
     assert calls[1]["geometry_resolution"] == 1024 and calls[1]["texture_size"] == 4096
+    calls.clear()
+    main(["generate", "--image", str(tmp_path / "input.png"), "--reference"])
+    assert not calls[0]["optimizations"].share_dino and calls[0]["optimizations"].conditioning_cache_mb == 0
+    with pytest.raises(SystemExit):
+        main(["generate", "--image", "not-opened.png", "--reference", "--conditioning-cache-mb", "0"])
     for arguments in (["legacy", "doctor"], ["export", "--output-dir", str(tmp_path)]):
         with pytest.raises(SystemExit):
             main(arguments)
 
 
 @pytest.mark.parametrize("arguments", [
-    ["--geometry-resolution", "512"], ["--conditioning-cache-mb", "0"], ["--defer-export"],
+    ["--geometry-resolution", "512"], ["--conditioning-cache-mb", "-1"], ["--defer-export"],
     ["--num-views", "0"], ["--num-views", "2"], ["--transforms", "not-opened.json"],
 ])
 def test_cli_rejects_removed_flags_or_invalid_modes_before_execution(arguments):

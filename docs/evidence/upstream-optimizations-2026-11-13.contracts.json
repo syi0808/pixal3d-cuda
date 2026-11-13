@@ -1,0 +1,82 @@
+{
+  "schema": "pixalcuda.official-optimization-contracts.v1",
+  "date": "2026-11-13",
+  "scope": "CPU source-level contracts, not pretrained/native GPU or speed validation",
+  "cpu": {
+    "python": "3.12.10",
+    "platform": "Darwin arm64",
+    "torch": "2.10.0",
+    "tests_passed": 160,
+    "tests_skipped": 0
+  },
+  "defaults": {
+    "share_dino": true,
+    "dino_cache_mb": 128,
+    "sparse_projection": true,
+    "conditioning_cache_mb": 256
+  },
+  "source_reference_revision": "f7cf38429b0bd264f1995f0f8743a88b1c728b94",
+  "source_comparisons": {
+    "active_projection": {
+      "cases": 8,
+      "single_and_multiview": true,
+      "grid_override": true,
+      "boundaries_and_duplicate_unsorted_coordinates": true,
+      "atol": 0.000001,
+      "rtol": 0.000001
+    },
+    "dino_reuse": {
+      "upstream_extract_features_body": true,
+      "backbone": "deterministic tiny double",
+      "same_input_backbone_loads_reference": 4,
+      "same_input_backbone_loads_shared": 1,
+      "same_input_forward_calls_reference": 4,
+      "same_input_forward_calls_cached": 2,
+      "changed_input_recomputed": true
+    },
+    "static_conditioning": {
+      "cases": 8,
+      "dtypes": [
+        "float32",
+        "bfloat16"
+      ],
+      "pinned_project_attention": true,
+      "pinned_sparse_project_attention": true,
+      "pinned_elastic_mixin": true,
+      "flow_and_cross_attention": "small controlled doubles",
+      "output_equality": "bitwise in these CPU cases",
+      "changed_input_recomputed": true
+    }
+  },
+  "other_contracts": [
+    "bounded retained tensor payload",
+    "output ownership",
+    "sampler cleanup on return/error",
+    "grid restoration on error",
+    "reference CLI/API identity",
+    "reference tensor comparator"
+  ],
+  "native_naf_unchanged": true,
+  "texture_naf_target": 1024,
+  "new_native_kernels": false,
+  "python_wheel_built": true,
+  "benchmark_and_modal_plans_only": true,
+  "native_image_build_validated": false,
+  "gpu_run": false,
+  "modal_deployment": false,
+  "pretrained_quality_or_speedup_claim": false,
+  "mlx_modified": false,
+  "source_sha256": {
+    "__init__.py": "32e278d0b8b1519b6cf905142748d099871bdd00d2c6fb13de9b4faa6cb82bdb",
+    "cameras.py": "bbd95bd9d8c99f59e5e08bd144a59bb63411b008e1839f9c6bd3ba7c4846fb9d",
+    "cli.py": "2fca48f7e1115435e21dd244cb582ab0c0ca014ca0699bde29adfced57baf382",
+    "multiview.py": "9dac451da9dbeb53b8835a8de383b5565dde5fce14c69f9790b0b762b3c04bac",
+    "optimizations.py": "747e8ba428c472bac2bae49c8ecc2828bb53a3ddbf92b9d062b238ee31795434",
+    "pipeline.py": "88e29c300b2b6879ef945df81418caf9955c146ab3281af9a7f26b028b8a10bd",
+    "runtime.py": "79637d918799dfbad9eb4044b88c7c105d8a7996085b49afed38f7d5a5dcffdc",
+    "upstream_sources.py": "75903ee60f16d0282393601aa5f8eac72083c3085d7e2a2fe4adf99b87d6d82e",
+    "upstream_weights.py": "f23c788c01454823c7b14a3a8f86b58e96373d859976ac96830eb4a2d9305884",
+    "upstream_worker.py": "5d92e7b0c17698f9103cee9c6c2ab8bb1efa9fb9462fcebaa8ca89ac2ee00040",
+    "weights.py": "5724eebffa5d4f93e077b3c6c8ba4b6f8e9991f0bdeb39b95e8cfe1d476be146"
+  }
+}

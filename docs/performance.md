@@ -11,6 +11,8 @@ v0.2부터 기본/대체 backend 구분 없이 공식 Pixal3D 경로 하나만 �
 - 원본 texture NAF 1024와 CUDA remesh/PBR exporter를 유지한다.
 - native 이미지 빌드, 실제 GPU inference, 원본 CLI 동등성, 속도 개선은 아직 미검증이다.
 - CPU 계약 테스트는 wiring/입력/상태/출력 구조만 검증한다.
+- DINO 공유/특징 cache, active projection, flow-scoped conditioning cache를 적용했다.
+  pinned 원본 함수와의 CPU 비교를 추가했지만 pretrained GPU 동등성은 미검증이다.
 - GPU/Modal 실행은 이 재구축에서 시작하지 않았다.
 
 ## 우선순위
@@ -22,6 +24,7 @@ v0.2부터 기본/대체 backend 구분 없이 공식 Pixal3D 경로 하나만 �
 5. model residency / compile 실험. T4 precision 호환화는 별도 검증.
 
 각 후보의 위험과 통과 조건은 [최적화 재조사](upstream-runtime.md)에 정리했다.
+적용된 항목의 옵션/예산/검증 범위는 [최적화 구현](optimizations.md)에 기록한다.
 
 ## 실행 계획
 

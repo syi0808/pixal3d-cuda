@@ -28,7 +28,7 @@ def test_modal_request_cache_covers_all_images_cameras_settings_and_source(tmp_p
     assert all(".." not in record["name"] for record in original["inputs"])
     assert modal_app.fingerprint(original) == modal_app.fingerprint(modal_app.build_request(**options)[0])
     for update in ({"seed": 1}, {"texture_size": 512}, {"attempt": "retry-1"}, {"no_rembg": False},
-                   {"geometry_resolution": 1536}):
+                   {"geometry_resolution": 1536}, {"reference": True}):
         changed, _ = modal_app.build_request(**{**options, **update})
         assert modal_app.fingerprint(changed) != modal_app.fingerprint(original)
     altered = copy.deepcopy(metadata)

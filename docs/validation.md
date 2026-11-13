@@ -5,6 +5,13 @@
 
 ## v0.2 official-only rebase
 
+Subsequent optimization contracts: **160 CPU tests passed**, including comparisons
+against pinned upstream projection/attention/elastic-wrapper method bodies with
+small DINO/NAF/sparse-tensor doubles. Python wheel build and dry-run plans passed.
+This does not validate native kernels, pretrained GLB parity or speed. See
+[optimization controls and limits](optimizations.md) and
+[the CPU evidence summary](evidence/upstream-optimizations-2026-11-13.contracts.json).
+
 2026-11-13: **129 CPU contracts passed**, and the Python wrapper wheel was built
 with its packaged upstream lock and no former neural/exporter modules. Native
 single/mapped wiring uses controlled doubles, not pretrained GPU execution.

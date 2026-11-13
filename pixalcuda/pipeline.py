@@ -8,7 +8,9 @@ from pathlib import Path
 import struct
 import subprocess
 import sys
+from dataclasses import asdict
 
+from .optimizations import OptimizationOptions
 from .runtime import atomic_json
 from .upstream_sources import lock, source_root, verify_source
 from .upstream_weights import UpstreamStore
@@ -45,7 +47,8 @@ def validate_pbr_glb(path):
 
 class Pipeline:
     def __init__(self, device="cuda", *, upstream_root=None, store=None, low_vram=True,
-                 attention_backend="sdpa", max_tokens=49152, timeout_seconds=1800, save_reference=False):
+                 attention_backend="sdpa", max_tokens=49152, timeout_seconds=1800, save_reference=False,
+                 optimizations=None):
         if device != "cuda":
             raise ValueError("The official runtime requires CUDA")
         if attention_backend not in ("sdpa", "flash_attn"):
@@ -56,7 +59,11 @@ class Pipeline:
             raise ValueError("timeout_seconds must be positive")
         self.root = source_root(upstream_root)
         self.store = store
-        self.options = {"low_vram": low_vram, "attention_backend": attention_backend, "max_tokens": max_tokens, "save_reference": save_reference}
+        optimizations = OptimizationOptions() if optimizations is None else optimizations
+        if not isinstance(optimizations, OptimizationOptions):
+            raise ValueError("optimizations must be OptimizationOptions")
+        self.options = {"low_vram": low_vram, "attention_backend": attention_backend, "max_tokens": max_tokens,
+                        "save_reference": save_reference, "optimizations": asdict(optimizations)}
         self.timeout_seconds = timeout_seconds
 
     def generate(self, image_path, output_dir, seed=42, texture_size=4096, target_faces=1000000,

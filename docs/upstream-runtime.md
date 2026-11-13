@@ -20,7 +20,8 @@ CPU 계약 테스트만 완료한 단계다. **native 이미지 빌드, L4/T4 �
    설정, CuMesh hole filling, remesh/UV/PBR 경로를 유지한다.
 4. 모델·backend를 바꾸지 않는 dependency injection만 사용한다: pinned DINO/
    BiRefNet 경로, local NAF repository/검증된 원본 가중치, local pipeline config.
-   원본 소스나 모델 forward는 패치하지 않는다.
+   원본 checkout 파일은 수정하지 않는다. 이후 적용한 job-scoped 재사용/투영 hook과
+   reference 제어는 [최적화 구현](optimizations.md)에 별도로 기록한다.
 5. worker는 별도 프로세스에서 실행한다. CUDA 전역 backend 설정, upstream의
    `src`/`inference` 모듈 이름, monkey-patch 수명이 서버 프로세스에 누출되지 않는다.
 
@@ -55,8 +56,9 @@ wheel을 Python 3.12/L4에 재사용하지 않는다. native dependency source�
 
 ## 최적화 후보 재분류
 
-아래는 **조사 결과 및 실험 우선순위**다. 새로운 최적화는 아직 기본 경로에
-적용하지 않았다. legacy에서 좋았던 chunk 수치도 native backend에는 이식하지 않는다.
+아래는 조사 결과 및 실험 우선순위다. DINO 공유/특징 재사용, active projection,
+bounded static conditioning cache를 적용했다. [구현과 CPU 검증 한계](optimizations.md)를
+참조한다. 이전 chunk 수치를 native backend에 이식하거나 GPU 가속으로 주장하지 않는다.
 
 | 우선순위 | 후보 | 근거 / 목표 | 통과 조건 |
 | --- | --- | --- | --- |
@@ -83,7 +85,8 @@ FlexGEMM이 이미 native sparse convolution을 제공하므로 gather/GEMM 구�
 ## 측정 도구와 다음 acceptance
 
 `scripts/benchmark_upstream.py`는 기본 dry-run이다. `--execute`일 때만 로컬 GPU에서
-동일 입력으로 low-VRAM/standard SDPA를 교차 순서로 각 3회 실행한다. 별도
+동일 입력으로 reference/optimized SDPA를 교차 순서로 각 3회 실행한다. 개별 후보와
+standard profile도 선택할 수 있다. 별도
 worker/asset 단위라 kernel/autotune cache가 남을 수 있으며 warm-forward 벤치가 아니다.
 한 번 실패하면 즉시 중단하고 결과를 보존한다. Modal 호출은 없다.
 

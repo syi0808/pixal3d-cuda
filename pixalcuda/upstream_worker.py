@@ -15,6 +15,7 @@ import psutil
 import torch
 
 from .pipeline import validate_pbr_glb
+from .optimizations import OptimizationOptions, OptimizationSession
 from .runtime import atomic_json
 from .upstream_sources import lock, verify_source
 from .upstream_weights import local_pipeline_config
@@ -118,13 +119,15 @@ def mapped_input(entry, pipeline, identity, directory):
 
 
 @torch.inference_mode()
-def execute(request, directory, entry, exporter, report):
+def execute(request, directory, entry, exporter, report, optimization_session=None):
     identity, bundle = request["identity"], request["bundle"]
     for config in entry.IMAGE_COND_CONFIGS.values():
         config["model_name"] = bundle["dino"]
     with report.stage("load_pipeline"):
         local = local_pipeline_config(bundle, directory / "pipeline-config")
         pipeline = entry.init_pipeline(model_path=str(local), low_vram=identity["low_vram"])
+        if optimization_session is not None:
+            optimization_session.install(pipeline, identity["multiview"])
     report.data["conditioning"] = {name: {key: config[key] for key in ("image_size", "grid_resolution", "naf_target_size") if key in config}
                                    for name, config in entry.IMAGE_COND_CONFIGS.items()}
     with report.stage("preprocess_camera"):
@@ -171,6 +174,7 @@ def run(request_path):
     request_path = Path(request_path)
     request = json.loads(request_path.read_text())
     report = NativeReport(request_path.parent, request["identity"])
+    session = None
     try:
         if request["identity"]["upstream_lock"] != lock():
             raise ValueError("Worker lock differs from the submitted request")
@@ -179,8 +183,18 @@ def run(request_path):
             verify_source(name, request["upstream_root"])
         entry = load_entry(request["upstream_root"], request["identity"]["multiview"])
         pin_naf_loader(request["upstream_root"], request["bundle"]["naf_weights"])
-        return execute(request, request_path.parent, entry, entry.o_voxel.postprocess.to_glb, report)
+        from pixal3d.trainers.flow_matching.mixins import image_conditioned_proj
+        from pixal3d.modules.sparse import SparseTensor
+        options = OptimizationOptions(**request["identity"]["optimizations"])
+        with OptimizationSession(options, image_conditioned_proj.DINOv3ViTModel,
+                                 image_conditioned_proj.DinoV3ProjFeatureExtractor, SparseTensor) as session:
+            result = execute(request, request_path.parent, entry, entry.o_voxel.postprocess.to_glb, report, session)
+        report.data["optimizations"] = session.report()
+        report.write()
+        return result
     except BaseException as error:
+        if session is not None:
+            report.data["optimizations"] = session.report()
         report.data.update(status="failed", error=f"{type(error).__name__}: {error}")
         report.write()
         raise

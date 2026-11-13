@@ -8,6 +8,7 @@ import sys
 import torch
 
 from .upstream_sources import lock
+from .optimizations import OptimizationOptions
 
 
 def doctor():
@@ -58,6 +59,11 @@ def main(argv=None):
     generation.add_argument("--max-tokens", type=int, default=49152)
     generation.add_argument("--timeout-seconds", type=int, default=1800)
     generation.add_argument("--save-reference", action="store_true", help="Save private native latents and pre-remesh mesh/voxel tensors")
+    generation.add_argument("--reference", action="store_true", help="Disable reuse/projection optimizations in the same official pipeline")
+    generation.add_argument("--no-share-dino", action="store_true")
+    generation.add_argument("--dense-projection", action="store_true")
+    generation.add_argument("--dino-cache-mb", type=int)
+    generation.add_argument("--conditioning-cache-mb", type=int)
     arguments = parser.parse_args(argv)
     if arguments.command == "doctor":
         return doctor()
@@ -80,10 +86,21 @@ def main(argv=None):
         except (OSError, ValueError) as error:
             parser.error(f"Invalid camera JSON: {error}")
     from .pipeline import Pipeline
+    if arguments.reference and (arguments.no_share_dino or arguments.dense_projection
+                               or arguments.dino_cache_mb is not None or arguments.conditioning_cache_mb is not None):
+        parser.error("--reference cannot be combined with optimization overrides")
+    try:
+        optimizations = OptimizationOptions.disabled() if arguments.reference else OptimizationOptions(
+            share_dino=not arguments.no_share_dino, sparse_projection=not arguments.dense_projection,
+            dino_cache_mb=128 if arguments.dino_cache_mb is None else arguments.dino_cache_mb,
+            conditioning_cache_mb=256 if arguments.conditioning_cache_mb is None else arguments.conditioning_cache_mb)
+    except ValueError as error:
+        parser.error(str(error))
     result = Pipeline(upstream_root=arguments.upstream_root,
                       store=UpstreamStore(arguments.model_dir, multiview=multiview), low_vram=not arguments.standard,
                       attention_backend=arguments.attention_backend, max_tokens=arguments.max_tokens,
-                      timeout_seconds=arguments.timeout_seconds, save_reference=arguments.save_reference).generate(
+                      timeout_seconds=arguments.timeout_seconds, save_reference=arguments.save_reference,
+                      optimizations=optimizations).generate(
         arguments.image, arguments.output_dir, seed=arguments.seed, texture_size=arguments.texture_size,
         target_faces=arguments.target_faces, camera=arguments.camera or "auto",
         fov_degrees=arguments.fov_degrees if arguments.fov_degrees is not None else 49.13,

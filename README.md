@@ -8,7 +8,9 @@ The default runtime now delegates to **unmodified, commit-pinned
 [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D/tree/f7cf38429b0bd264f1995f0f8743a88b1c728b94)**:
 official DiTs/samplers, DINOv3 + NAF conditioning, sparse decoders, CuMesh hole
 filling and `o_voxel` remesh/PBR export. No MLX-derived neural operators or CPU
-mesh exporter are used by this path. The MLX checkout is not modified.
+mesh exporter are used by this path. Job-scoped DINO reuse, active projection and
+bounded static conditioning reuse are now enabled; `--reference` disables these
+hooks in the same official pipeline. The MLX checkout is not modified.
 
 **Status: CPU orchestration contracts tested; native image build and real GPU
 generation are NOT yet validated.** Historical T4 GLBs/timings belong to the
@@ -25,6 +27,7 @@ No cloud GPU or Modal deployment was started for the rebase.
 | Single / mapped images | Original SV / dedicated MV pipelines and weights |
 | Export | Original CUDA remesh + embedded base-color and metallic/roughness GLB |
 | Initial deployment target | **L4 / SM89**, declared explicitly; no automatic GPU fallback |
+| Reuse budgets | DINO 128 MiB; conditioning 256 MiB per flow, configurable |
 
 **T4 is not accepted by the unmodified BF16 baseline.** Re-enabling T4 requires
 a separately measured precision/kernel compatibility project, not silently
@@ -44,7 +47,7 @@ pixal3d-cuda setup-upstream --build --cuda-arch 8.9
 hf auth login
 pixal3d-cuda download
 pixal3d-cuda doctor
-pixal3d-cuda generate --image object.png --output-dir outputs/native-reference --save-reference
+pixal3d-cuda generate --image object.png --output-dir outputs/native-reference --reference --save-reference
 ```
 
 Use `8.0`/`8.6` for corresponding Ampere GPUs. Setup clones locked dependency
@@ -67,7 +70,11 @@ There is no four-view limit. Frame ordering, FOV, camera matrices and image
 framing must agree. Input validation/normalization is reused, but upstream
 `load_views`/`run_mv` performs actual conditioning and inference.
 
-## Measure before optimizing
+## Validate And Measure
+
+See [implemented optimizations, controls and validation limits](docs/optimizations.md).
+The reference and optimized profiles still need pretrained GPU validation;
+CPU source-level comparisons are not a speedup or visual-quality claim.
 
 ```bash
 python scripts/benchmark_upstream.py --image object.png

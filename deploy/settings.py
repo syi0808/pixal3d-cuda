@@ -37,6 +37,10 @@ class DeploySettings:
     low_vram: bool = True
     attention_backend: str = "sdpa"
     max_tokens: int = 49152
+    share_dino: bool = True
+    dino_cache_mb: int = 128
+    sparse_projection: bool = True
+    conditioning_cache_mb: int = 256
 
     def __post_init__(self):
         if self.environment != "main":
@@ -62,7 +66,9 @@ class DeploySettings:
             raise ValueError("Invalid upstream low_vram/attention_backend setting")
         if self.attention_backend == "flash_attn":
             raise ValueError("The baseline image builds SDPA only; install and validate FlashAttention before enabling it")
-        excluded = {"min_containers", "cpu_cores"}
+        from pixalcuda.optimizations import OptimizationOptions
+        OptimizationOptions(self.share_dino, self.dino_cache_mb, self.sparse_projection, self.conditioning_cache_mb)
+        excluded = {"min_containers", "cpu_cores", "dino_cache_mb", "conditioning_cache_mb"}
         for field in fields(self):
             value = getattr(self, field.name)
             if field.name not in excluded and field.type is int and (type(value) is not int or value <= 0):

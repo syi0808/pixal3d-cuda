@@ -101,7 +101,7 @@ def test_http_images_and_camera_mapping_are_forwarded_in_upload_order(count):
         assert backend.calls[0]["transforms"] == metadata
 
 
-@pytest.mark.parametrize("options", [{"seed": True}, {"seed": -1}, {"texture_size": 123}, {"target_faces": 0},
+@pytest.mark.parametrize("options", [{"seed": True}, {"seed": -1}, {"reference": 1}, {"texture_size": 123}, {"target_faces": 0},
                                      {"resolution": 256}, {"remove_background": "false"}, {"attempt": "../retry"},
                                      {"geometry_resolution": 256}, {"geometry_resolution": True},
                                      {"conditioning_cache_mb": 0}, {"geometry_resolution": 512}, {"conditioning_cache_mb": -1}, {"conditioning_cache_mb": 2049},

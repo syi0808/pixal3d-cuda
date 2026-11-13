@@ -25,3 +25,7 @@ api_max_jobs_per_day = 10
 low_vram = true
 attention_backend = "sdpa"
 max_tokens = 49152
+share_dino = true
+dino_cache_mb = 128
+sparse_projection = true
+conditioning_cache_mb = 256

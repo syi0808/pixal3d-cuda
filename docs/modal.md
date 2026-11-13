@@ -54,6 +54,12 @@ Job schema 4 and source/lock fingerprints prevent reuse of legacy outputs as
 native results. Failure/OOM is surfaced; there is no precision, quality or GPU
 fallback. Input files and private reference tensors stay in private volumes.
 
+Native DINO reuse/active projection/conditioning reuse defaults are declared in
+`modal.toml` (128 MiB DINO / 256 MiB per-flow conditioning). This is a new native
+optimization, not compatibility with the removed runtime. HTTP `reference=true`
+disables the hooks in the same pipeline; clients cannot override server budgets.
+See [controls and validation limits](optimizations.md). The app was not redeployed.
+
 After a deliberate single-image test, verify report stages include
 `remesh_pbr_export`, embedded PBR images and actual geometry; inspect the GLB
 visually before benchmarking. This has **not** been done for v0.2 yet.
