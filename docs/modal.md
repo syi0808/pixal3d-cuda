@@ -4,6 +4,8 @@
 2026-11-13**, including Proxy Token authentication, weight prefetch, HTTP upload,
 offline GPU inference, CPU PBR export, authenticated downloads and duplicate-job
 reuse. See [the recorded run](validation.md#modal-t4-current-runtime).
+The later [1024-geometry cache comparison](validation.md#modal-t4-1024-geometry-cache-comparison)
+also completed with 512 and 1024 MiB projection budgets and byte-identical GLBs.
 Multi-view Modal execution and broader quality/capacity remain unvalidated.
 Running the commands below provisions billable resources; configure account budgets.
 

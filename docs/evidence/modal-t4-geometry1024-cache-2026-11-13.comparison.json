@@ -1,0 +1,321 @@
+{
+  "status": "complete",
+  "started_utc": "2026-11-13T05:54:20.429762+00:00",
+  "app_id": "ap-sJSA2Si5Du3wCrVw9Q3IT8",
+  "environment": "main",
+  "source_revision": "8c54fbff9a2a35dab5e36eebb1b922b4fb2617c3",
+  "base_url": "https://syi0808--pixal3d-cuda-api.us-east.modal.run",
+  "gpu_requested": "T4",
+  "geometry_resolution": 1024,
+  "texture_size": 1024,
+  "seed": 42,
+  "original_source_sha256": "abf395cc52d81c26dadae9f024072d6c7301679be4e8fc08d572723d7ae32a21",
+  "prepared_input_sha256": "84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12",
+  "preprocessing": "Reuse the identical CPU-matted PNG; no neural stage checkpoints reused",
+  "case_order": [
+    512,
+    1024
+  ],
+  "repeats_per_budget": 1,
+  "cases": [
+    {
+      "status": "complete",
+      "conditioning_cache_mb": 512,
+      "job_id": "c12131ee5ad7b86b6b1e3fdfc1c1da23376a2a1d5599abebc1af32c054c3342e",
+      "started_utc": "2026-11-13T05:54:28.708057+00:00",
+      "observed_phases": [
+        {
+          "phase": "submitted",
+          "elapsed_seconds": 9.463012166001135
+        },
+        {
+          "phase": "preparing",
+          "elapsed_seconds": 29.920587707994855
+        },
+        {
+          "phase": "queued_gpu",
+          "elapsed_seconds": 40.14334041600523
+        },
+        {
+          "phase": "running_gpu",
+          "elapsed_seconds": 51.202937750000274
+        },
+        {
+          "phase": "queued_export",
+          "elapsed_seconds": 716.5100710410043
+        },
+        {
+          "phase": "exporting_cpu",
+          "elapsed_seconds": 726.7339220830036
+        },
+        {
+          "phase": "complete",
+          "elapsed_seconds": 890.5668952499982
+        }
+      ],
+      "submit_status_code": 202,
+      "observed_complete_seconds": 890.5680081659957,
+      "validation": {
+        "glb_bytes": 6504616,
+        "triangles": 99123,
+        "embedded_pbr": true,
+        "unit_normals": true,
+        "geometry_resolution": 1024
+      },
+      "output_sha256": "0e403c00c27a72e904f4cfa31a68294f5d0bfd3839373bddeb79d50c13396475",
+      "active_counts": {
+        "structure_tokens": 2404,
+        "refinement_tokens": 10305,
+        "shape_voxels": 2771717,
+        "texture_voxels": 2771717
+      },
+      "gpu": "Tesla T4",
+      "gpu_total_bytes": 15651373056,
+      "gpu_stage_seconds": 653.653725966,
+      "model_load_seconds": 21.527340181,
+      "model_callback_seconds": 614.5960674160001,
+      "cpu_export_seconds": 161.26170888800002,
+      "peak_allocated_bytes": 6799636480,
+      "peak_reserved_bytes": 6954156032,
+      "conditioning_caches": [
+        {
+          "stage": "sparse_structure",
+          "budget_bytes": 536870912,
+          "projection_bytes_per_block": 25165824,
+          "cached_blocks": 21,
+          "total_blocks": 30,
+          "used_bytes": 528482304
+        },
+        {
+          "stage": "shape_lr",
+          "budget_bytes": 536870912,
+          "projection_bytes_per_block": 14770176,
+          "cached_blocks": 30,
+          "total_blocks": 30,
+          "used_bytes": 443105280
+        },
+        {
+          "stage": "shape_hr",
+          "budget_bytes": 536870912,
+          "projection_bytes_per_block": 63313920,
+          "cached_blocks": 8,
+          "total_blocks": 30,
+          "used_bytes": 506511360
+        },
+        {
+          "stage": "texture_flow",
+          "budget_bytes": 536870912,
+          "projection_bytes_per_block": 63313920,
+          "cached_blocks": 8,
+          "total_blocks": 30,
+          "used_bytes": 506511360
+        }
+      ],
+      "normalized_geometry_bounds": [
+        [
+          -0.4902016222476959,
+          -0.33308956027030945,
+          -0.3297158181667328
+        ],
+        [
+          0.37910357117652893,
+          0.4249945878982544,
+          0.31238171458244324
+        ]
+      ],
+      "pbr_textures": [
+        {
+          "role": "baseColorTexture",
+          "embedded": true,
+          "size": [
+            1024,
+            1024
+          ],
+          "mode": "RGBA"
+        },
+        {
+          "role": "metallicRoughnessTexture",
+          "embedded": true,
+          "size": [
+            1024,
+            1024
+          ],
+          "mode": "RGB"
+        }
+      ],
+      "blender_pbr_render_verified": true,
+      "render_views": [
+        "front",
+        "three-quarter",
+        "back"
+      ]
+    },
+    {
+      "status": "complete",
+      "conditioning_cache_mb": 1024,
+      "job_id": "c64390d89d665f4a9312995a927a7de2aa35ed425e288e94ad054a3b01fa21fb",
+      "started_utc": "2026-11-13T06:09:37.025506+00:00",
+      "observed_phases": [
+        {
+          "phase": "submitted",
+          "elapsed_seconds": 8.91015187499579
+        },
+        {
+          "phase": "queued_gpu",
+          "elapsed_seconds": 19.38859879100346
+        },
+        {
+          "phase": "running_gpu",
+          "elapsed_seconds": 39.89298737500212
+        },
+        {
+          "phase": "queued_export",
+          "elapsed_seconds": 685.1598054579954
+        },
+        {
+          "phase": "exporting_cpu",
+          "elapsed_seconds": 695.4056553749979
+        },
+        {
+          "phase": "complete",
+          "elapsed_seconds": 849.3059015829931
+        }
+      ],
+      "submit_status_code": 202,
+      "observed_complete_seconds": 849.3084290830011,
+      "validation": {
+        "glb_bytes": 6504616,
+        "triangles": 99123,
+        "embedded_pbr": true,
+        "unit_normals": true,
+        "geometry_resolution": 1024
+      },
+      "output_sha256": "0e403c00c27a72e904f4cfa31a68294f5d0bfd3839373bddeb79d50c13396475",
+      "active_counts": {
+        "structure_tokens": 2404,
+        "refinement_tokens": 10305,
+        "shape_voxels": 2771717,
+        "texture_voxels": 2771717
+      },
+      "gpu": "Tesla T4",
+      "gpu_total_bytes": 15651373056,
+      "gpu_stage_seconds": 644.0174886030001,
+      "model_load_seconds": 22.199428047999987,
+      "model_callback_seconds": 604.837014239,
+      "cpu_export_seconds": 157.809413647,
+      "peak_allocated_bytes": 7306147840,
+      "peak_reserved_bytes": 7457472512,
+      "conditioning_caches": [
+        {
+          "stage": "sparse_structure",
+          "budget_bytes": 1073741824,
+          "projection_bytes_per_block": 25165824,
+          "cached_blocks": 30,
+          "total_blocks": 30,
+          "used_bytes": 754974720
+        },
+        {
+          "stage": "shape_lr",
+          "budget_bytes": 1073741824,
+          "projection_bytes_per_block": 14770176,
+          "cached_blocks": 30,
+          "total_blocks": 30,
+          "used_bytes": 443105280
+        },
+        {
+          "stage": "shape_hr",
+          "budget_bytes": 1073741824,
+          "projection_bytes_per_block": 63313920,
+          "cached_blocks": 16,
+          "total_blocks": 30,
+          "used_bytes": 1013022720
+        },
+        {
+          "stage": "texture_flow",
+          "budget_bytes": 1073741824,
+          "projection_bytes_per_block": 63313920,
+          "cached_blocks": 16,
+          "total_blocks": 30,
+          "used_bytes": 1013022720
+        }
+      ],
+      "normalized_geometry_bounds": [
+        [
+          -0.4902016222476959,
+          -0.33308956027030945,
+          -0.3297158181667328
+        ],
+        [
+          0.37910357117652893,
+          0.4249945878982544,
+          0.31238171458244324
+        ]
+      ],
+      "pbr_textures": [
+        {
+          "role": "baseColorTexture",
+          "embedded": true,
+          "size": [
+            1024,
+            1024
+          ],
+          "mode": "RGBA"
+        },
+        {
+          "role": "metallicRoughnessTexture",
+          "embedded": true,
+          "size": [
+            1024,
+            1024
+          ],
+          "mode": "RGB"
+        }
+      ],
+      "blender_pbr_render_verified": true,
+      "render_views": [
+        "front",
+        "three-quarter",
+        "back"
+      ]
+    }
+  ],
+  "intermediate_comparison": {
+    "structure": {
+      "shape_equal": true,
+      "exact_equal": true,
+      "maximum_absolute_error": 0.0
+    },
+    "coordinates": {
+      "shape_equal": true,
+      "exact_equal": true,
+      "maximum_absolute_error": 0.0
+    },
+    "shape_hr": {
+      "shape_equal": true,
+      "exact_equal": true,
+      "maximum_absolute_error": 0.0
+    },
+    "texture": {
+      "shape_equal": true,
+      "exact_equal": true,
+      "maximum_absolute_error": 0.0
+    }
+  },
+  "finished_utc": "2026-11-13T06:23:59.350948+00:00",
+  "app_stop_exit_code": 0,
+  "observed_gpu_time_reduction_percent": 1.4742113416027824,
+  "observed_callback_time_reduction_percent": 1.5878808366006747,
+  "glb_sha256_equal": true,
+  "app_after_validation": {
+    "state": "stopped",
+    "active_tasks": 0,
+    "weights_and_jobs_retained": true
+  },
+  "limitations": [
+    "One sequential sample per cache budget, not a statistical speedup guarantee.",
+    "GPU stages include checkpoint load/cleanup and camera estimation, not pure kernel or total billable container time.",
+    "End-to-end timing includes different cold-start/CPU/polling delays; do not attribute the whole difference to the projection cache.",
+    "Small surface cracks remain; no watertightness, reference parity or general T4 fit claim.",
+    "No CUDA unit tests or synthetic operator sweeps were run on Modal in this experiment."
+  ]
+}

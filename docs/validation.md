@@ -146,6 +146,75 @@ not rerun on the Modal GPU. Model weights, raw inputs, intermediate checkpoints,
 GLB and render PNGs are not committed. After verification, the App was explicitly
 stopped with zero active tasks; persistent model/job Volumes were retained.
 
+### Modal T4 1024 geometry cache comparison
+
+Revision **`8c54fbff9a2a35dab5e36eebb1b922b4fb2617c3`** added opt-in 1024
+geometry and explicit per-flow projection-cache options to the CLI, SDK and HTTP
+API. This is not a metadata-only resolution change: subdivision requantizes to
+a 64³ latent grid, camera projection uses that 64-grid resolution, and CPU mesh
+extraction/PBR voxel sampling use 1024. GLB mesh extras store the grid value;
+legacy GLBs without it now report an unknown grid during standalone validation.
+
+Two fresh full runs completed on **2026-11-13** in Modal `main`, in the order
+**512 MiB then 1024 MiB**. Both used the same CPU-matted PNG from the original
+public shoe: SHA-256 `84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12`.
+Only CPU matting was reused; all neural stages were regenerated with seed 42,
+automatic camera, geometry 1024, textures 1024, target 100,000 faces, FP32
+flows/sparse decoders, unchanged chunks and all four 12-step schedules. Pinned
+weights were already cached and GPU workers remained offline. Configured 1024
+guards were 32,768 tokens / 6,000,000 voxels, not automatic token pruning or
+resolution fallback. Actual refinement tokens were **10,305** and decoded
+shape/texture voxels were **2,771,717** in both runs.
+
+| Observed metric | Cache 512 MiB | Cache 1024 MiB |
+| --- | ---: | ---: |
+| GPU-stage sum, seconds | 653.653725966 | 644.017488603 |
+| Model callbacks, seconds | 614.596067416 | 604.837014239 |
+| Model loading, seconds | 21.527340181 | 22.199428048 |
+| CPU export, seconds | 161.261708888 | 157.809413647 |
+| Client-observed completion, seconds | 890.568008166 | 849.308429083 |
+| Peak PyTorch allocated, GiB | 6.333 | 6.804 |
+| Peak PyTorch reserved, GiB | 6.477 | 6.945 |
+| Exported triangles | 99,123 | 99,123 |
+| GLB bytes | 6,504,616 | 6,504,616 |
+
+Both devices reported Tesla T4 / SM 7.5, PyTorch 2.6.0+cu124 and
+15,651,373,056 total CUDA-device bytes (about 14.58 GiB). No OOM or failed
+pipeline stage was observed. Downloaded GLBs passed independent finite geometry,
+unit-normal, normalized-bounds and embedded 1024×1024 PNG checks. Both final
+GLBs have **the identical SHA-256**:
+
+```text
+0e403c00c27a72e904f4cfa31a68294f5d0bfd3839373bddeb79d50c13396475
+```
+
+Structure, refinement coordinates, HR-shape latent and texture latent tensors
+were also exactly equal, with maximum absolute difference zero. Blender 5.1.2
+rendered the actual GLBs with imported normals, linked base-color/roughness/metallic
+maps and no mesh modifiers. Small visible surface cracks remain. The cleaned
+mesh reports 26,933 indexed boundary edges, including fan-cut seams: it is not
+validated watertight or production-ready.
+
+**Interpretation:** the observed GPU-stage reduction is **1.47%**, callback
+reduction **1.59%**, and extra peak allocation about **0.472 GiB**. Each budget
+was sampled once, sequentially, on separate scale-to-zero workers. There is no
+variance estimate or causal/statistical speedup guarantee. Client completion
+includes differing cold-start/CPU/transport/polling delays; its full difference
+must not be attributed to the projection cache. GPU-stage/callback timing is not
+pure kernel time or total billed GPU-container time. No 2048 MiB, chunk-size,
+prepack or mixed-precision experiment was run, and the default cache stays 128 MiB.
+
+Credential-free records: [comparison](evidence/modal-t4-geometry1024-cache-2026-11-13.comparison.json),
+[512 MiB runtime](evidence/modal-t4-geometry1024-cache-2026-11-13.cache512.report.json),
+[1024 MiB runtime](evidence/modal-t4-geometry1024-cache-2026-11-13.cache1024.report.json),
+[512 MiB render](evidence/modal-t4-geometry1024-cache-2026-11-13.cache512.render.json),
+[1024 MiB render](evidence/modal-t4-geometry1024-cache-2026-11-13.cache1024.render.json), and
+[CPU tests](evidence/modal-t4-geometry1024-cache-2026-11-13.tests.txt).
+The local suite and Linux CPU CI passed **203 tests, with 3 CUDA-only skips**;
+no CUDA unit suite was run on Modal in this experiment. The App was explicitly
+stopped afterward, with zero active tasks and persistent weights/jobs retained.
+No weights, prepared image, raw tensors, GLB or render PNGs are committed.
+
 ### Remaining validation
 
 - Repeat with populated caches and controlled matching inputs/source before reporting warm-worker latency or optimization speedups.

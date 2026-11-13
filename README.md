@@ -5,9 +5,9 @@
 
 A separate, memory-bounded **PyTorch/CUDA Pixal3D runtime targeting Colab T4**, with **512 geometry by default, opt-in 1024 geometry**, and **embedded PBR-textured GLB** output. No dependency on the MLX checkout; no training or replacement model weights.
 
-**Experimental, with real Colab and Modal T4 acceptance:** the latest Modal run generated the pinned shoe through the authenticated HTTP API, offline T4 inference, CPU export and GLB download. With weights prefetched, GPU stages took **246.92 s**, CPU export **60.69 s**, and the client observed completion after **464.97 s**, including cold workers and preprocessing. Peak PyTorch allocation/reservation was **5.46/5.50 GiB**. The GLB embeds 1024×1024 base-color and metallic/roughness textures. Small visible surface cracks remain; this is not production-quality, general 16 GB fit or quality-parity validation. See [full evidence and limitations](docs/validation.md).
+**Experimental, with real Colab and Modal T4 acceptance:** the 512-geometry Modal run generated the pinned shoe through the authenticated HTTP API, offline T4 inference, CPU export and GLB download. With weights prefetched, GPU stages took **246.92 s**, CPU export **60.69 s**, and the client observed completion after **464.97 s**, including cold workers and preprocessing. Peak PyTorch allocation/reservation was **5.46/5.50 GiB**. The GLB embeds 1024×1024 base-color and metallic/roughness textures. A later 1024-geometry cache comparison also completed, as recorded below. Small visible surface cracks remain; this is not production-quality, general 16 GB fit or quality-parity validation. See [full evidence and limitations](docs/validation.md).
 
-The historical Colab run used `dacb3a1`; the fresh Modal run used `f30dfc4`, including [mesh-artifact fixes](docs/mesh-artifacts.md) and the current default optimizations. These runs are not a controlled performance comparison. The single-image Colab notebook remains pinned to its previously validated release; a fresh Colab-specific rerun is still pending.
+The historical Colab run used `dacb3a1`; the first fresh Modal run used `f30dfc4`, including [mesh-artifact fixes](docs/mesh-artifacts.md) and the current default optimizations. These runs are not a controlled performance comparison. The single-image Colab notebook remains pinned to its previously validated release; a fresh Colab-specific rerun is still pending.
 
 ## Colab quick start
 
@@ -66,8 +66,12 @@ pixal3d-cuda generate --image object.png --geometry-resolution 1024 \
 ```
 
 Larger guards are not a memory guarantee. Use a fresh output directory for each
-cache/geometry setting; resume fingerprints include both. Current 1024 T4
-acceptance and the 512/1024 MiB cache comparison are pending measurement.
+cache/geometry setting; resume fingerprints include both. On Modal T4, the same
+1024-geometry shoe completed with 512/1024 MiB caches: GPU stages took
+653.65/644.02 s and peak allocation was 6.33/6.80 GiB. Both GLBs have identical
+SHA-256. This is one sequential observation per budget, not a statistical
+speedup guarantee or a general memory bound. See
+[the cache comparison](docs/validation.md#modal-t4-1024-geometry-cache-comparison).
 
 ## Linux CLI
 

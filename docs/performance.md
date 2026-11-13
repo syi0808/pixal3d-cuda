@@ -1,9 +1,9 @@
 # Correctness-first CUDA performance work
 
 This work follows the supplied low-level analysis of baseline `a4cb2b2`.
-The development machine is Apple ARM64 with CPU-only PyTorch 2.10. One real
-Modal T4 acceptance of the current defaults is now recorded below. **No controlled
-pre/post-optimization speedup or operator benchmark is claimed.** Broader GPU
+The development machine is Apple ARM64 with CPU-only PyTorch 2.10. Real Modal
+T4 acceptance and a two-budget cache comparison are now recorded below. **No
+controlled pre/post-code-optimization speedup or operator benchmark is claimed.** Broader GPU
 speed, VRAM and pretrained GLB quality still require measurement. The MLX
 checkout is untouched.
 
@@ -166,6 +166,38 @@ controlled comparison with the download-inclusive historical Colab run.
 See [acceptance and quality limits](validation.md#modal-t4-current-runtime)
 and the per-model load/callback/cleanup records linked there. Synthetic CUDA
 operator sweeps, prepack alternatives and larger-cache measurements remain pending.
+
+### 1024 geometry: 512 versus 1024 MiB cache
+
+Revision `8c54fbf` completed two fresh runs on Modal T4 using the identical
+CPU-matted public shoe, seed 42, 1024 geometry, 1024 PBR textures, 100,000-face
+advisory target and unchanged chunk sizes/precision/12-step schedules. No neural
+checkpoint was resumed. The 1024 profile explicitly uses 32,768-token and
+6,000,000-voxel guards; actual refinement tokens were 10,305 and final shape/texture
+voxels were 2,771,717. Both completed without OOM or resolution fallback.
+
+| Observed metric | 512 MiB | 1024 MiB |
+| --- | ---: | ---: |
+| GPU-stage sum, seconds | 653.65 | 644.02 |
+| Model-callback sum, seconds | 614.60 | 604.84 |
+| Peak PyTorch allocated, GiB | 6.333 | 6.804 |
+| Peak PyTorch reserved, GiB | 6.477 | 6.945 |
+| Cached SS / LR / HR / texture blocks, out of 30 each | 21 / 30 / 8 / 8 | 30 / 30 / 16 / 16 |
+
+The observed GPU-stage difference is **1.47%**, with about 0.472 GiB additional
+peak allocation. Each budget was sampled once, sequentially, with separate
+scale-to-zero workers: this is not a statistically established speedup. Both GLBs
+are byte-identical, and structure/coordinate/HR-shape/texture checkpoint tensors
+are exactly equal. The HR/texture projection cache would need about 1811.43 MiB
+to cover all 30 blocks for this input; that larger budget was **not tested**.
+
+The larger cache does not remove self-attention/FFN work. HR-shape and texture
+flows still account for most GPU time, so profile inside those stages before
+claiming a specific kernel bottleneck or choosing the next optimization. No
+attention/FFN chunk sweep, prepack change, warm-model residency or extra paid
+benchmark was performed. Default cache remains 128 MiB; CLI, administrative SDK
+and HTTP now accept explicit budgets. See
+[full conditions, end-to-end timing and evidence](validation.md#modal-t4-1024-geometry-cache-comparison).
 
 Tiled/fused sparse kernels, packed neighbor maps, selective FP16, CUDA graphs,
 default attention-layout changes and CPU rasterizer rewrites remain deferred
