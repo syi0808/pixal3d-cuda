@@ -1,4 +1,4 @@
-"""Single-environment Modal workers and a proxy-authenticated HTTP API."""
+"""Official native CUDA generation and proxy-authenticated API in Modal main."""
 
 import hashlib
 from dataclasses import asdict
@@ -26,11 +26,13 @@ weights = modal.Volume.from_name(SETTINGS.weights_volume, create_if_missing=True
 jobs = modal.Volume.from_name(SETTINGS.jobs_volume, create_if_missing=True, version=2, environment_name=SETTINGS.environment)
 records = modal.Dict.from_name(SETTINGS.jobs_dict, create_if_missing=True, environment_name=SETTINGS.environment)
 image = (
-    modal.Image.debian_slim(python_version="3.12")
-    .apt_install("git", "libglib2.0-0", "libgl1")
+    modal.Image.from_registry("nvidia/cuda:12.4.1-devel-ubuntu22.04", add_python="3.12")
+    .apt_install("git", "build-essential", "ninja-build", "libglib2.0-0", "libgl1", "libgl1-mesa-dev", "libegl1-mesa-dev", "libjpeg-dev")
     .pip_install("torch==2.6.0", "torchvision==0.21.0", index_url="https://download.pytorch.org/whl/cu124")
-    .pip_install_from_pyproject(str(ROOT / "pyproject.toml"), optional_dependencies=["preprocess", "camera", "server"])
-    .env({"PYTHONPATH": "/opt/pixal3d:/opt/pixal3d/deploy", "HF_HOME": "/weights/hf", "U2NET_HOME": "/weights/u2net", "PIXAL_GPU": GPU,
+    .pip_install_from_pyproject(str(ROOT / "pyproject.toml"), optional_dependencies=["upstream", "camera", "server"])
+    .env({"PYTHONPATH": "/opt/pixal3d:/opt/pixal3d/deploy", "HF_HOME": "/weights/hf", "PIXAL_GPU": GPU,
+          "PIXAL_UPSTREAM_ROOT": "/opt/upstream", "CUDA_HOME": "/usr/local/cuda", "TORCH_CUDA_ARCH_LIST": "8.9",
+          "ATTN_BACKEND": "sdpa", "SPARSE_ATTN_BACKEND": "sdpa", "SPARSE_CONV_BACKEND": "flex_gemm",
           "MODAL_ENVIRONMENT": SETTINGS.environment, "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2",
           "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})
     .add_local_dir(ROOT / "pixalcuda", "/opt/pixal3d/pixalcuda", copy=True, ignore=["__pycache__", "*.pyc"])
@@ -39,6 +41,7 @@ image = (
     .add_local_file(ROOT / "deploy" / "http_api.py", "/opt/pixal3d/deploy/http_api.py", copy=True)
     .add_local_file(ROOT / "deploy" / "modal.toml", "/opt/pixal3d/deploy/modal.toml", copy=True)
     .add_local_file(ROOT / "pyproject.toml", "/opt/pixal3d/pyproject.toml", copy=True)
+    .run_commands("python -m pixalcuda.upstream_sources --root /opt/upstream --build --cuda-arch 8.9")
 )
 offline = image.env({"HF_HUB_OFFLINE": "1", "HF_HUB_DISABLE_TELEMETRY": "1"})
 cpu_options = dict(image=offline, cpu=(SETTINGS.cpu_cores, SETTINGS.cpu_cores), memory=SETTINGS.cpu_memory_mib,
@@ -58,7 +61,8 @@ def source_identity():
     return {**{path.name: sha256_file(path) for path in sorted((ROOT / "pixalcuda").glob("*.py"))},
             **{f"deploy/{name}": sha256_file(ROOT / "deploy" / name) for name in ("modal_app.py", "settings.py", "http_api.py")},
             "deploy/modal.toml": sha256_file(ROOT / "deploy" / "modal.toml"),
-            "pyproject.toml": sha256_file(ROOT / "pyproject.toml")}
+            "pyproject.toml": sha256_file(ROOT / "pyproject.toml"),
+            "upstream-lock.json": sha256_file(ROOT / "pixalcuda" / "upstream-lock.json")}
 
 
 def job_path(job_id):
@@ -96,25 +100,18 @@ def validate_image_files(files, multiview):
             source.load()
 
 
-def inference_limits(geometry_resolution=512, conditioning_cache_mb=128):
-    from pixalcuda.ops import Limits
+def inference_options(geometry_resolution=1024):
+    from pixalcuda.pipeline import validate_options
 
-    if type(geometry_resolution) is not int or geometry_resolution not in (512, 1024):
-        raise ValueError("Geometry resolution must be 512 or 1024")
-    if type(conditioning_cache_mb) is not int or not 0 <= conditioning_cache_mb <= 2048:
-        raise ValueError("Conditioning cache must be an integer between 0 and 2048 MiB")
-    options = {"conditioning_cache_mb": conditioning_cache_mb,
-               "attention_queries": SETTINGS.attention_queries, "cross_attention_queries": SETTINGS.cross_attention_queries,
-               "ffn_rows": SETTINGS.ffn_rows, "sparse_rows": SETTINGS.sparse_rows}
-    if geometry_resolution == 1024:
-        options.update(max_tokens=SETTINGS.geometry_1024_max_tokens, max_voxels=SETTINGS.geometry_1024_max_voxels)
-    return Limits(**options)
+    validate_options(geometry_resolution)
+    return {"low_vram": SETTINGS.low_vram, "attention_backend": SETTINGS.attention_backend,
+            "max_tokens": SETTINGS.max_tokens, "timeout_seconds": SETTINGS.gpu_timeout_seconds - 30}
 
 
 def validate_request_inputs(request, directory):
     from pixalcuda.cameras import uploaded_camera_metadata, view_filename
 
-    inference_limits(request["options"]["geometry_resolution"], request["options"]["conditioning_cache_mb"])
+    inference_options(request["options"]["geometry_resolution"])
     inputs = request["inputs"]
     if not request["multiview"] and len(inputs) != 1:
         raise ValueError("Single-image mode requires exactly one image")
@@ -139,14 +136,12 @@ def validate_request_inputs(request, directory):
               secrets=[modal.Secret.from_name(SETTINGS.hf_secret, required_keys=["HF_TOKEN"], environment_name=SETTINGS.environment)])
 def prefetch(multiview=False, camera=True, rembg=True):
     from pixalcuda.runtime import atomic_json
-    from pixalcuda.weights import ModelStore
+    from pixalcuda.upstream_weights import UpstreamStore
+    from pixalcuda.upstream_sources import lock
 
-    store = ModelStore(multiview=multiview)
-    store.download(camera=camera)
-    if rembg:
-        from rembg import new_session
-        new_session("u2net", providers=["CPUExecutionProvider"])
-    marker = {"revision": store.revision, "camera": camera and not multiview, "rembg": rembg}
+    store = UpstreamStore(multiview=multiview)
+    store.resolve(camera=camera)
+    marker = {"runtime": "official", "lock": lock(), "revision": store.revision, "camera": camera and not multiview, "rembg": True}
     atomic_json(WEIGHTS_ROOT / ("ready-mv.json" if multiview else "ready-sv.json"), marker)
     weights.commit()
     return marker
@@ -154,9 +149,8 @@ def prefetch(multiview=False, camera=True, rembg=True):
 
 @app.function(**cpu_options, volumes={"/weights": weights.with_mount_options(read_only=True), "/jobs": jobs})
 def prepare_job(job_id, request):
-    from pixalcuda.multiview import prepare_views, read_views
-    from pixalcuda.preprocess import prepare_foreground
     from pixalcuda.runtime import atomic_json
+    from pixalcuda.upstream_sources import lock
     from pixalcuda.weights import sha256_file
 
     if fingerprint(request) != job_id or request["source"] != source_identity() or request["gpu"] != GPU:
@@ -173,7 +167,8 @@ def prepare_job(job_id, request):
         validate_request_inputs(request, directory)
         options = request["options"]
         marker = json.loads((WEIGHTS_ROOT / ("ready-mv.json" if request["multiview"] else "ready-sv.json")).read_text())
-        if (marker["revision"] != request["revision"] or (options["remove_background"] and not marker["rembg"])
+        if (marker.get("runtime") != "official" or marker.get("lock") != lock()
+                or marker["revision"] != request["revision"] or (options["remove_background"] and not marker["rembg"])
                 or (not request["multiview"] and options["camera"] == "auto" and not marker["camera"])):
             raise ValueError("Run CPU prefetch for this mode/camera/background-removal setting first")
         for record in request["inputs"]:
@@ -181,14 +176,10 @@ def prepare_job(job_id, request):
                 raise ValueError("Uploaded image hash mismatch")
         prepared = directory / "prepared"
         prepared.mkdir(exist_ok=True)
+        for record in request["inputs"]:
+            shutil.copyfile(directory / "upload" / record["name"], prepared / record["name"])
         if request["multiview"]:
-            atomic_json(directory / "upload" / "transforms.json", request["cameras"])
-            views = prepare_views(read_views(directory / "upload"), options["remove_background"])
-            for index, view in enumerate(views.images):
-                view.save(prepared / f"view{index:02d}.png")
             atomic_json(prepared / "transforms.json", request["cameras"])
-        else:
-            prepare_foreground(directory / "upload" / "input.png", options["remove_background"]).save(prepared / "input.png")
         atomic_json(directory / "request.json", request)
         mark(job_id, "queued_gpu")
         call = infer_job.spawn(job_id)
@@ -214,30 +205,13 @@ def infer_job(job_id):
         if fingerprint(request) != job_id or request["source"] != source_identity() or request["gpu"] != GPU:
             raise ValueError("Deployed GPU worker no longer matches this request")
         mark(job_id, "running_gpu")
-        options = {**request["options"], "remove_background": False, "defer_export": True}
-        limits = inference_limits(options["geometry_resolution"], options.pop("conditioning_cache_mb"))
+        options = {**request["options"]}
+        limits = inference_options(options["geometry_resolution"])
         if request["multiview"]:
             options["views_dir"] = directory / "prepared"
-        Pipeline("cuda", limits=limits).generate(None if request["multiview"] else directory / "prepared" / "input.png",
+        result = Pipeline("cuda", **limits).generate(None if request["multiview"] else directory / "prepared" / "input.png",
                                   directory / "run", **options)
-        mark(job_id, "queued_export")
-        call = export_job.spawn(job_id)
-        return {"job_id": job_id, "status": "queued_export", "call_id": call.object_id}
-    except BaseException as error:
-        mark(job_id, "failed", error=f"{type(error).__name__}: {error}")
-        raise
-
-
-@app.function(**cpu_options, volumes={"/jobs": jobs})
-def export_job(job_id):
-    from pixalcuda.pipeline import finish_export
-    from pixalcuda.weights import sha256_file
-
-    directory = job_path(job_id)
-    jobs.reload()
-    try:
-        mark(job_id, "exporting_cpu")
-        result = finish_export(directory / "run")
+        from pixalcuda.weights import sha256_file
         return mark(job_id, "complete", output=f"{job_id}/run/result.glb", sha256=sha256_file(result), bytes=result.stat().st_size)
     except BaseException as error:
         mark(job_id, "failed", error=f"{type(error).__name__}: {error}")
@@ -245,18 +219,20 @@ def export_job(job_id):
 
 
 def build_request(image_path, views_dir, seed, texture_size, target_faces, camera, fov_degrees, no_rembg, attempt,
-                  *, images=None, transforms=None, geometry_resolution=512, conditioning_cache_mb=128):
+                  *, images=None, transforms=None, geometry_resolution=1024):
     from pixalcuda.cameras import uploaded_camera_metadata, view_filename
     from pixalcuda.multiview import read_mapped_views, read_views
+    from pixalcuda.pipeline import validate_options
     from pixalcuda.weights import MULTIVIEW_REVISION, PIXAL_REVISION, sha256_file
 
-    inference_limits(geometry_resolution, conditioning_cache_mb)
+    inference_options(geometry_resolution)
+    validate_options(geometry_resolution, texture_size, target_faces)
     if sum((bool(image_path), bool(views_dir), images is not None)) != 1:
         raise ValueError("Supply exactly one of --image-path, --views-dir or --images")
     if (images is not None) != bool(transforms):
         raise ValueError("--images and --transforms must be supplied together")
     multiview = bool(views_dir) or images is not None
-    if texture_size not in (512, 1024, 2048) or target_faces < 4 or camera not in ("auto", "fixed"):
+    if texture_size not in (512, 1024, 2048, 4096) or not 4 <= target_faces <= 1000000 or camera not in ("auto", "fixed"):
         raise ValueError("Invalid texture size, target faces or camera")
     if not 1 <= fov_degrees <= 150:
         raise ValueError("FOV must be between 1 and 150 degrees")
@@ -276,11 +252,11 @@ def build_request(image_path, views_dir, seed, texture_size, target_faces, camer
     else:
         files = [(Path(image_path).expanduser().resolve(), "input.png")]
     validate_image_files(files, multiview)
-    request = {"schema": 3, "source": source_identity(), "gpu": GPU, "multiview": multiview,
+    request = {"schema": 4, "runtime": "official", "source": source_identity(), "gpu": GPU, "multiview": multiview,
                "revision": MULTIVIEW_REVISION if multiview else PIXAL_REVISION, "cameras": cameras,
                "inputs": [{"name": name, "sha256": sha256_file(path)} for path, name in files], "attempt": attempt,
                "options": {"seed": seed, "texture_size": texture_size, "target_faces": target_faces,
-                           "geometry_resolution": geometry_resolution, "conditioning_cache_mb": conditioning_cache_mb,
+                           "geometry_resolution": geometry_resolution,
                            "camera": camera, "fov_degrees": fov_degrees, "remove_background": not no_rembg}}
     return request, files
 
@@ -310,7 +286,7 @@ class HttpBackend:
                 not options["remove_background"], options["attempt"],
                 images=images if transforms is not None else None,
                 transforms=metadata_path if transforms is not None else None,
-                geometry_resolution=options["geometry_resolution"], conditioning_cache_mb=options["conditioning_cache_mb"],
+                geometry_resolution=options["geometry_resolution"],
             )
         job_id = fingerprint(request)
         previous = records.get(job_id)
@@ -355,10 +331,10 @@ def api():
 
 
 def run_client(action: str = "generate", image_path: str = "", views_dir: str = "", multiview: bool = False,
-         seed: int = 42, texture_size: int = 1024, target_faces: int = 100000, camera: str = "auto",
+         seed: int = 42, texture_size: int = 4096, target_faces: int = 1000000, camera: str = "auto",
          fov_degrees: float = 49.13, no_rembg: bool = False, attempt: str = "", job_id: str = "",
          output_dir: str = "outputs/modal", wait_seconds: int = 3600, images=None, transforms=None,
-         geometry_resolution: int = 512, conditioning_cache_mb: int = 128):
+         geometry_resolution: int = 1024):
     if action == "plan":
         print(json.dumps({"scope": "Local declarations only; no remote diff, deployment or spend cap",
                           "environment": SETTINGS.environment,
@@ -374,7 +350,7 @@ def run_client(action: str = "generate", image_path: str = "", views_dir: str = 
     if action == "generate":
         request, files = build_request(image_path, views_dir, seed, texture_size, target_faces, camera,
                                       fov_degrees, no_rembg, attempt, images=images, transforms=transforms,
-                                      geometry_resolution=geometry_resolution, conditioning_cache_mb=conditioning_cache_mb)
+                                      geometry_resolution=geometry_resolution)
         job_id = fingerprint(request)
         if job_id not in records:
             with jobs.batch_upload(force=True) as batch:
@@ -423,10 +399,9 @@ if __name__ == "__main__":
     parser.add_argument("--transforms")
     parser.add_argument("--multiview", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--geometry-resolution", type=int, choices=(512, 1024), default=512)
-    parser.add_argument("--conditioning-cache-mb", type=int, default=128, help="Per-flow projection cache budget, 0-2048 MiB")
-    parser.add_argument("--texture-size", type=int, choices=(512, 1024, 2048), default=1024)
-    parser.add_argument("--target-faces", type=int, default=100000)
+    parser.add_argument("--geometry-resolution", type=int, choices=(1024, 1536), default=1024)
+    parser.add_argument("--texture-size", type=int, choices=(512, 1024, 2048, 4096), default=4096)
+    parser.add_argument("--target-faces", type=int, default=1000000)
     parser.add_argument("--camera", choices=("auto", "fixed"), default="auto")
     parser.add_argument("--fov-degrees", type=float, default=49.13)
     parser.add_argument("--no-rembg", action="store_true")

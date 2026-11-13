@@ -16,13 +16,13 @@ class DeploySettings:
     jobs_volume: str = "pixal3d-jobs"
     jobs_dict: str = "pixal3d-jobs"
     hf_secret: str = "pixal3d-hf"
-    gpu: str = "T4"
+    gpu: str = "L4"
     min_containers: int = 0
     max_gpu_containers: int = 1
     scaledown_window: int = 2
     cpu_cores: float = 2.0
     cpu_memory_mib: tuple[int, int] = (4096, 16384)
-    gpu_memory_mib: tuple[int, int] = (8192, 16384)
+    gpu_memory_mib: tuple[int, int] = (16384, 65536)
     prefetch_memory_mib: tuple[int, int] = (2048, 8192)
     gpu_timeout_seconds: int = 1800
     cpu_timeout_seconds: int = 1800
@@ -34,12 +34,9 @@ class DeploySettings:
     max_image_pixels: int = 16_000_000
     api_memory_mib: tuple[int, int] = (1024, 4096)
     api_max_jobs_per_day: int = 10
-    geometry_1024_max_tokens: int = 32768
-    geometry_1024_max_voxels: int = 6000000
-    attention_queries: int = 1024
-    cross_attention_queries: int = 0
-    ffn_rows: int = 8192
-    sparse_rows: int = 16384
+    low_vram: bool = True
+    attention_backend: str = "sdpa"
+    max_tokens: int = 49152
 
     def __post_init__(self):
         if self.environment != "main":
@@ -48,8 +45,8 @@ class DeploySettings:
             value = getattr(self, name)
             if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", value):
                 raise ValueError(f"{name} must be a nonempty resource name")
-        if self.gpu not in ("T4", "L4"):
-            raise ValueError("gpu / PIXAL_GPU must be T4 or L4; no expensive fallback")
+        if self.gpu != "L4":
+            raise ValueError("The official BF16 baseline image targets L4/SM89; T4 requires a separately validated port. No GPU fallback.")
         if type(self.min_containers) is not int or self.min_containers != 0:
             raise ValueError("min_containers must stay zero for the low-credit deployment")
         if (isinstance(self.cpu_cores, bool) or not isinstance(self.cpu_cores, (int, float))
@@ -61,15 +58,19 @@ class DeploySettings:
                     or any(type(item) is not int or item <= 0 for item in value) or value[0] > value[1]):
                 raise ValueError(f"{name} must be [positive request MiB, limit MiB >= request]")
             object.__setattr__(self, name, tuple(value))
-        if type(self.cross_attention_queries) is not int or self.cross_attention_queries < 0:
-            raise ValueError("cross_attention_queries must be a nonnegative integer; 0 means all queries")
-        excluded = {"min_containers", "cpu_cores", "cross_attention_queries"}
+        if type(self.low_vram) is not bool or self.attention_backend not in ("sdpa", "flash_attn"):
+            raise ValueError("Invalid upstream low_vram/attention_backend setting")
+        if self.attention_backend == "flash_attn":
+            raise ValueError("The baseline image builds SDPA only; install and validate FlashAttention before enabling it")
+        excluded = {"min_containers", "cpu_cores"}
         for field in fields(self):
             value = getattr(self, field.name)
             if field.name not in excluded and field.type is int and (type(value) is not int or value <= 0):
                 raise ValueError(f"{field.name} must be a positive integer")
         if not 2 <= self.scaledown_window <= 3600:
             raise ValueError("scaledown_window must be between 2 and 3600 seconds")
+        if self.gpu_timeout_seconds <= 30:
+            raise ValueError("gpu_timeout_seconds must exceed the worker cleanup margin of 30 seconds")
         if self.max_upload_bytes > self.max_total_image_bytes:
             raise ValueError("Per-image upload limit must not exceed the aggregate limit")
 

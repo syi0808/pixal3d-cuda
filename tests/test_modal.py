@@ -11,7 +11,7 @@ pytest.importorskip("modal")
 
 from deploy import modal_app
 from pixalcuda.cameras import orbit_camera_metadata
-from pixalcuda.preprocess import prepare_foreground, prepare_image
+from pixalcuda.upstream_sources import lock
 
 
 def test_modal_request_cache_covers_all_images_cameras_settings_and_source(tmp_path, monkeypatch):
@@ -28,7 +28,7 @@ def test_modal_request_cache_covers_all_images_cameras_settings_and_source(tmp_p
     assert all(".." not in record["name"] for record in original["inputs"])
     assert modal_app.fingerprint(original) == modal_app.fingerprint(modal_app.build_request(**options)[0])
     for update in ({"seed": 1}, {"texture_size": 512}, {"attempt": "retry-1"}, {"no_rembg": False},
-                   {"geometry_resolution": 1024}, {"conditioning_cache_mb": 512}, {"conditioning_cache_mb": 1024}):
+                   {"geometry_resolution": 1536}):
         changed, _ = modal_app.build_request(**{**options, **update})
         assert modal_app.fingerprint(changed) != modal_app.fingerprint(original)
     altered = copy.deepcopy(metadata)
@@ -52,8 +52,7 @@ def test_modal_single_image_and_validation(tmp_path):
     assert files == [(path, "input.png")]
     for changed in ({"views_dir": tmp_path}, {"image_path": ""}, {"texture_size": 7}, {"target_faces": 0},
                     {"camera": "guess"}, {"fov_degrees": float("nan")}, {"geometry_resolution": 256},
-                    {"geometry_resolution": True}, {"conditioning_cache_mb": -1},
-                    {"conditioning_cache_mb": 2049}, {"conditioning_cache_mb": True}):
+                    {"geometry_resolution": True}, {"target_faces": 1000001}):
         with pytest.raises(ValueError):
             modal_app.build_request(**{**options, **changed})
     for invalid in ("../job", "z" * 64, "a" * 63):
@@ -61,17 +60,6 @@ def test_modal_single_image_and_validation(tmp_path):
             modal_app.job_path(invalid)
 
 
-def test_cpu_matting_boundary_does_not_double_crop(tmp_path):
-    source = tmp_path / "source.png"
-    image = Image.new("RGBA", (80, 40), (0, 0, 0, 0))
-    image.paste((200, 50, 10, 255), (8, 5, 35, 30))
-    image.save(source)
-    prepared = tmp_path / "prepared.png"
-    prepare_foreground(source, False).save(prepared)
-    direct = prepare_image(source, False)
-    separated = prepare_image(prepared, False)
-    assert direct.size == separated.size
-    assert direct.tobytes() == separated.tobytes()
 
 
 @pytest.mark.parametrize("view_count", [0, 1, 3, 5, 16])
@@ -109,12 +97,11 @@ def test_private_job_deduplication_and_phase_handoff(tmp_path, monkeypatch, view
     for path, name in files:
         (directory / "upload" / name).write_bytes(path.read_bytes())
     (tmp_path / ("ready-mv.json" if multiview else "ready-sv.json")).write_text(json.dumps(
-        {"revision": request["revision"], "rembg": False, "camera": True}))
+        {"runtime": "official", "lock": lock(), "revision": request["revision"], "rembg": False, "camera": True}))
     if submitted:
         records[job_id] = {"job_id": job_id, "status": "submitted"}
     calls = []
     infer = modal_app.infer_job
-    export = modal_app.export_job
     monkeypatch.setattr(modal_app, "infer_job", SimpleNamespace(spawn=lambda identifier: calls.append(identifier) or SimpleNamespace(object_id="gpu-call")))
     result = modal_app.prepare_job.local(job_id, request)
     assert result["status"] == "queued_gpu" and calls == [job_id]
@@ -122,39 +109,32 @@ def test_private_job_deduplication_and_phase_handoff(tmp_path, monkeypatch, view
     assert calls == [job_id]
     pipeline_calls = []
     class Pipeline:
-        def __init__(self, device, limits):
+        def __init__(self, device, **limits):
             assert device == "cuda"
-            assert limits.conditioning_cache_mb == request["options"]["conditioning_cache_mb"]
+            assert limits["low_vram"] is True
+            assert limits["max_tokens"] == modal_app.SETTINGS.max_tokens
 
         def generate(self, image, output, **options):
             pipeline_calls.append((image, output, options))
-            assert options["defer_export"] and not options["remove_background"]
+            assert "defer_export" not in options
+            assert not options["remove_background"]
             assert bool(options.get("views_dir")) == multiview
+            output.mkdir()
+            result = output / "result.glb"
+            result.write_bytes(b"controlled native worker result; not a real GLB")
+            return result
     monkeypatch.setattr("pixalcuda.pipeline.Pipeline", Pipeline)
-    monkeypatch.setattr(modal_app, "export_job", SimpleNamespace(spawn=lambda identifier: calls.append(identifier) or SimpleNamespace(object_id="export-call")))
-    assert infer.local(job_id)["status"] == "queued_export"
-    assert len(pipeline_calls) == 1
-    def finish(output):
-        output.mkdir()
-        result = output / "result.glb"
-        result.write_bytes(b"controlled export output; not a real GLB")
-        return result
-    monkeypatch.setattr("pixalcuda.pipeline.finish_export", finish)
-    assert export.local(job_id)["status"] == "complete"
+    assert infer.local(job_id)["status"] == "complete"
     assert records[job_id]["bytes"] > 0
     assert modal_app.prepare_job.local(job_id, request)["status"] == "complete"
     assert len(pipeline_calls) == 1
 
 
-def test_modal_geometry_profiles_keep_guards_explicit_and_cache_optional():
-    low = modal_app.inference_limits(512, 0)
-    high = modal_app.inference_limits(1024, 1024)
-    assert low.max_tokens == 16384 and low.max_voxels == 1500000 and low.conditioning_cache_mb == 0
-    assert high.max_tokens == modal_app.SETTINGS.geometry_1024_max_tokens
-    assert high.max_voxels == modal_app.SETTINGS.geometry_1024_max_voxels
-    assert high.conditioning_cache_mb == 1024
-    for name in ("attention_queries", "cross_attention_queries", "ffn_rows", "sparse_rows"):
-        assert getattr(high, name) == getattr(modal_app.SETTINGS, name)
+def test_official_geometry_profiles_are_explicit():
+    assert modal_app.inference_options(1024)["max_tokens"] == 49152
+    assert modal_app.inference_options(1536)["low_vram"] is True
+    with pytest.raises(ValueError, match="not a 512"):
+        modal_app.inference_options(512)
 
 
 def test_modal_mapped_images_preserve_index_mapping_and_ignore_client_paths(tmp_path):

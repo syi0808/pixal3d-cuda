@@ -8,10 +8,10 @@ from deploy.settings import DeploySettings, load_settings
 def test_checked_in_declarations_have_low_credit_defaults():
     settings = load_settings(environ={})
     assert settings == DeploySettings()
-    assert settings.gpu == "T4" and settings.min_containers == 0 and settings.max_gpu_containers == 1
+    assert settings.gpu == "L4" and settings.min_containers == 0 and settings.max_gpu_containers == 1
     assert settings.max_views == 16
     assert settings.environment == "main" and settings.api_max_jobs_per_day == 10
-    assert settings.gpu_memory_mib == (8192, 16384)
+    assert settings.gpu_memory_mib == (16384, 65536)
     assert load_settings(environ={"PIXAL_GPU": "L4"}).gpu == "L4"
 
 
@@ -21,9 +21,7 @@ def test_checked_in_declarations_have_low_credit_defaults():
     {"gpu_memory_mib": (16384, 8192)}, {"gpu_memory_mib": (0, 8192)}, {"scaledown_window": 1},
     {"app_name": ""}, {"max_upload_bytes": 65 * 1024 ** 2},
     {"environment": "dev"}, {"api_max_jobs_per_day": 0}, {"api_memory_mib": (4096, 1024)},
-    {"geometry_1024_max_tokens": 0}, {"geometry_1024_max_voxels": True},
-    {"attention_queries": 0}, {"cross_attention_queries": -1}, {"cross_attention_queries": True},
-    {"ffn_rows": 0}, {"sparse_rows": 0},
+    {"max_tokens": 0}, {"low_vram": 1}, {"attention_backend": "math"}, {"gpu": "T4"}, {"gpu_timeout_seconds": 30},
 ])
 def test_invalid_or_unexpectedly_warm_declarations_are_rejected(changed):
     with pytest.raises(ValueError):

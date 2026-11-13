@@ -6,7 +6,7 @@ from PIL import Image
 import pytest
 
 from pixalcuda.cameras import orbit_camera_metadata, orbit_camera_pose, uploaded_camera_metadata, view_filename
-from pixalcuda.multiview import prepare_views, read_mapped_views, read_views
+from pixalcuda.multiview import read_mapped_views, read_views
 
 
 def camera_mapping(count):
@@ -34,9 +34,9 @@ def test_variable_view_counts_are_mapped_by_index_not_frame_array_order(tmp_path
     for index in range(count):
         np.testing.assert_allclose(manifest.rig.transform_matrix[0, index],
                                    orbit_camera_pose(index * 360 / count, 0, 3.119205), atol=1e-6)
-    prepared = prepare_views(manifest, False)
-    assert [image.getpixel((0, 0))[0] for image in prepared.images] == list(range(count))
-    assert [image.size for image in prepared.images] == [(12, 20)] * count
+    for index, path in enumerate(manifest.paths):
+        with Image.open(path) as source:
+            assert source.getpixel((0, 0))[0] == index and source.size == (12, 20)
     reordered = copy.deepcopy(metadata)
     reordered["frames"].reverse()
     assert read_mapped_views(images, reordered).identity == manifest.identity
@@ -114,7 +114,7 @@ def test_missing_cameras_count_mismatches_and_fov_ambiguity_fail():
         uploaded_camera_metadata(metadata, 1)
 
 
-def test_legacy_array_order_remains_supported_without_an_implicit_rig():
+def test_array_order_mapping_without_an_implicit_rig():
     metadata = camera_mapping(3)
     for frame in metadata["frames"]:
         del frame["image_index"]
@@ -136,6 +136,6 @@ def test_cli_passes_the_explicit_image_list_and_camera_object(tmp_path, monkeypa
         calls.append((pipeline.store.multiview, image_path, options))
         return tmp_path / "not-generated.glb"
     monkeypatch.setattr(Pipeline, "generate", generate)
-    main(["generate", "--device", "cpu", "--images", *images, "--transforms", str(transforms)])
+    main(["generate", "--images", *images, "--transforms", str(transforms)])
     assert len(calls) == 1 and calls[0][:2] == (True, None)
     assert calls[0][2]["images"] == images and calls[0][2]["camera_metadata"] == metadata

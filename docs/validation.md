@@ -1,5 +1,18 @@
 # Validation status
 
+> The pretrained GPU results below apply only to the archived v0.1.x runtime.
+> The official v0.2 rewrite has CPU contract tests but no native GPU acceptance yet.
+
+## v0.2 official-only rebase
+
+2026-11-13: **129 CPU contracts passed**, and the Python wrapper wheel was built
+with its packaged upstream lock and no former neural/exporter modules. Native
+single/mapped wiring uses controlled doubles, not pretrained GPU execution.
+The native benchmark and Modal declaration plans were run without execution.
+**Native extension/image compilation, GPU generation, upstream parity, capacity,
+performance and the new Modal deployment remain unverified.** No paid GPU/app
+was started. See [the current migration/investigation](upstream-runtime.md).
+
 ## Scope
 
 Initial implementation date: 2026-11-11 (Asia/Seoul). Development host: macOS/Apple Silicon, Python 3.12, PyTorch 2.10.0, CPU tests. The separate MLX repository is reference-only and is not a runtime dependency.

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "sources": {
+    "pixal3d": {"url": "https://github.com/TencentARC/Pixal3D.git", "revision": "f7cf38429b0bd264f1995f0f8743a88b1c728b94"},
+    "trellis2": {"url": "https://github.com/microsoft/TRELLIS.2.git", "revision": "75fbf0183001ed9876c8dbb35de6b68552ee08bd"},
+    "flexgemm": {"url": "https://github.com/JeffreyXiang/FlexGEMM.git", "revision": "6dd94a859c26ee8246888502eada3dd8ad85532e"},
+    "cumesh": {"url": "https://github.com/JeffreyXiang/CuMesh.git", "revision": "12289e1062f0603f2f0d0771b02e1395d247f26f"},
+    "nvdiffrast": {"url": "https://github.com/NVlabs/nvdiffrast.git", "revision": "253ac4fcea7de5f396371124af597e6cc957bfae"},
+    "naf": {"url": "https://github.com/valeoai/NAF.git", "revision": "37f2dfc180f2de53d98bd601109c0da0dd6b0f43"}
+  },
+  "models": {
+    "single": {"repo": "TencentARC/Pixal3D", "revision": "0b31f9160aa400719af409098bff7936a932f726"},
+    "multiview": {"repo": "TencentARC/Pixal3D", "revision": "b0cb2e1b794cab9aa0ac38a95d794a4d9337437f"},
+    "dino": {"repo": "camenduru/dinov3-vitl16-pretrain-lvd1689m", "revision": "3c276edd87d6f6e569ff0c4400e086807d0f3881"},
+    "rembg": {"repo": "briaai/RMBG-2.0", "revision": "2fd7b4b0f2393ddb39a267fb62df6c010928a6c6"},
+    "moge": {"repo": "Ruicheng/moge-2-vitl", "revision": "39c4d5e957afe587e04eec59dc2bcc3be5ecd968"}
+  }
+}

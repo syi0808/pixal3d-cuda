@@ -28,10 +28,9 @@ class JobOptions(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     seed: int = Field(default=42, ge=0, le=2 ** 63 - 1)
-    geometry_resolution: Literal[512, 1024] = 512
-    conditioning_cache_mb: int = Field(default=128, ge=0, le=2048, description="Per-flow projection cache budget in MiB")
-    texture_size: Literal[512, 1024, 2048] = 1024
-    target_faces: int = Field(default=100000, ge=4, le=1_000_000)
+    geometry_resolution: Literal[1024, 1536] = 1024
+    texture_size: Literal[512, 1024, 2048, 4096] = 4096
+    target_faces: int = Field(default=1000000, ge=4, le=1_000_000)
     camera: Literal["auto", "fixed"] = "auto"
     fov_degrees: float = Field(default=49.13, ge=1, le=150)
     remove_background: bool = True
@@ -79,7 +78,7 @@ def public_job(record):
 
 def create_app(backend, settings):
     """Create the application; production authentication is enforced at Modal's edge."""
-    app = FastAPI(title="Pixal3D CUDA", description="Proxy-authenticated asynchronous 512/1024 PBR generation")
+    app = FastAPI(title="Pixal3D CUDA", description="Official Pixal3D: asynchronous native 1024/1536 PBR generation")
     body_limit = settings.max_total_image_bytes + settings.max_transforms_bytes + 128 * 1024
     app.add_middleware(BodyLimitMiddleware, limit=body_limit)
     storage_lock = asyncio.Lock()
@@ -92,10 +91,11 @@ def create_app(backend, settings):
 
     @app.get("/api/health")
     async def health():
-        return {"status": "ok", "environment": settings.environment, "geometry_resolution": 512,
-                "supported_geometry_resolutions": [512, 1024], "max_conditioning_cache_mb": 2048,
-                "execution_chunks": {name: getattr(settings, name) for name in
-                                     ("attention_queries", "cross_attention_queries", "ffn_rows", "sparse_rows")},
+        from pixalcuda.upstream_sources import lock
+        return {"status": "ok", "runtime": "official", "environment": settings.environment, "geometry_resolution": 1024,
+                "supported_geometry_resolutions": [1024, 1536],
+                "upstream_revision": lock()["sources"]["pixal3d"]["revision"], "low_vram": settings.low_vram,
+                "attention_backend": settings.attention_backend, "gpu": settings.gpu, "max_tokens": settings.max_tokens,
                 "max_views": settings.max_views, "max_new_jobs_per_utc_day": settings.api_max_jobs_per_day}
 
     @app.post("/api/jobs", status_code=202, openapi_extra={
