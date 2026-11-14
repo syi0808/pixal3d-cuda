@@ -3,6 +3,23 @@
 > Current v0.2 native L4 acceptance is recorded first. Historical T4 results
 > apply only to the archived v0.1.x runtime, not the official rewrite.
 
+## Coverage/no-init and CPU/inpaint rollout
+
+2026-11-14: all 3,450 parameter tensors (6,521,594,742 elements) in seven pinned
+native models were checkpoint-covered with no missing/unexpected application
+keys. Full-init versus covered no-init passed all **149 captured checkpoints
+exactly** on an actual L4 with controlled kernels. The shipped guard additionally
+rejects any uncovered buffer; the main API confirmed complete buffer coverage.
+
+Three sequential L4 trials replayed the same 2,899 xatlas charts and 4K inpaint
+inputs at CPU requests 2/4/8. Chart topology checks and cross-tier inpaint SHA
+equality passed. Default no-init, GPU CPU=8, inpaint workers=4 were rolled out to
+main. A fresh authenticated API job completed native 1024/4K PBR generation in
+309.97 measured stage seconds. The actual GLB was independently validated/rendered.
+Cost estimates are not invoice measurements; 4/8 CPUs are near break-even when
+cold API overhead is included. CPU 8 is the latency-oriented default, not a
+universal least-cost claim. [Full method, limitations and evidence](loading-and-cpu-tuning.md).
+
 ## v0.2 fixed-kernel full profiling
 
 2026-11-14: actual L4, the same prepared shoe/camera/seed, native 1024 geometry,

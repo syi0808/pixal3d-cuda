@@ -80,3 +80,98 @@ python scripts/summarize_native_tuning.py outputs/native-tuning
 
 `.env`, 이미지/가중치, 약 3 GiB reference tensors, chart/inpaint fixtures, Kineto trace와
 GLB는 Git에 넣지 않는다. 실제 실행값·기본값 선정은 검증 기록에서 별도로 구분한다.
+
+## 2026-11-14 L4 실측·적용 결과
+
+### Coverage와 초기화 생략
+
+Pinned native 모델 7개의 **3,450개 parameter tensor / 6,521,594,742개 parameter**가
+checkpoint에 모두 포함됐다. Missing/unexpected key는 모두 0이었다. 적용된 코드에서는
+buffer도 전부 있어야 하며 실제 main 실행의 buffer 1개도 완전히 덮어썼다.
+초기 실험에 있던 미사용 derived-buffer 예외는 rollout 전에 제거했다.
+
+같은 DINO/reuse 옵션, 준비된 신발, camera/seed 42, 원본 schedule/precision/1024 경로로
+full-init과 no-init을 비교했다. 같은 calibration manifest를 유지하고 새로운 tuning을
+거절한 상태에서 **149개 checkpoint 전부 exact**였다. HR/texture의 conditioning/noise/
+step, latents, 최종 raw vertices/faces/재질 voxel을 포함하며 모든 tensor가 finite였다.
+
+| 구간 | Full init | Covered no-init |
+| --- | ---: | ---: |
+| 모델 로드 | 130.73 s | **12.87 s** |
+| Neural 진단 | 154.06 s | 125.09 s |
+
+두 번째 load는 파일 cache가 warm하므로 90.2% 차이 전부를 initializer 효과로
+귀속하지 않는다. Neural 시간 차이도 첫 kernel calibration/warmup 때문일 수 있으며
+no-init의 추론 가속으로 세지 않는다. 별도 새 main worker의 실제 load는 **20.62초**였다.
+Checkpoint 값·dtype/layout·네트워크 연산·샘플러는 바꾸지 않았다.
+
+### 같은 xatlas/inpaint 입력의 CPU 비교
+
+세 tier에서 같은 2,899개 post-clustering chart와 4K inpaint 입력을 재생했다.
+Fixture 파일 hash가 모두 같고 각 CPU tier의 chart 생성/packing을 2회 측정했다.
+모든 chart의 oriented topology/UV finite/range 검사가 통과했다. UV 좌표나 최종 GLB
+bit-equality를 주장하는 결과는 아니다.
+
+| Modal GPU worker CPU 요청 | Chart 생성+packing 중앙값 | 직렬 inpaint | 병렬 2 | 병렬 4 |
+| --- | ---: | ---: | ---: | ---: |
+| 2 cores | 197.90 s | 36.85 s | **18.56 s** | 23.80 s |
+| 4 cores | 99.16 s | 35.81 s | 19.36 s | **19.24 s** |
+| 8 cores | **50.93 s** | 37.95 s | 20.15 s | **18.79 s** |
+
+병렬 4가 항상 낫지는 않았다. 각 tier에서 worker 1/2/4를 정·역순으로 2회 실행한
+총 18개 결과의 **4개 channel SHA가 tier 사이에서도 모두 같았다**. 실제 L4 이미지에서
+import된 OpenCV는 **5.0.0**이었다. Dev/CI의 4.12.0에서도 작은 mask/shape 계약을
+검사하지만, native 이미지의 모든 Python 전이 의존성이 hermetic하다는 주장은 아니다.
+
+### 비용 해석과 선정
+
+가중치 로드/신경망/나머지 export에 공통 166.15초를 둔 초기 진단 모델과, 요청 RAM을
+32 GiB로 정규화한 공개 list-price 계산은 다음과 같다. **청구서나 실제 asset 비용이 아니다.**
+
+| CPU / 적정 inpaint worker | 모델 asset 시간 | 정규화 추정 USD |
+| --- | ---: | ---: |
+| 2 / 2 | 382.61 s | 0.1221 |
+| 4 / 4 | 284.55 s | 0.0983 |
+| 8 / 4 | 235.87 s | 0.0938 |
+
+실제 HTTP 검증은 cold GPU body가 329.19초였고 초기 모델보다 길었다. 이를 반영한
+공통 시간 236.64초 sensitivity에서는 RAM 16/24 GiB 가정에서 4코어가 약간 저렴하고,
+32/64 GiB에서는 8코어가 약간 저렴했다. 32 GiB 가정의 4/8코어 추정치는
+0.1226/0.1219 USD로 **거의 손익분기점**이다. 실제 사용 메모리, cold-start, host 차이와
+UV 입력에 따라 순위가 바뀔 수 있어 보편적인 최소비용 설정으로 확정하지 않는다.
+또한 GPU body 이전 startup, region, idle 등은 이 모델에서 빠져 있다.
+
+**기본값은 낮은 latency를 우선해 `gpu_cpu_cores=8`, `inpaint_workers=4`,
+`skip_weight_init=true`로 선정했다.** API/prepare/prefetch CPU는 2로 유지했다.
+비용만 우선하거나 신경망 구간이 길면 `gpu_cpu_cores=4`가 합리적인 대안이다.
+선택/요금/가정은 `scripts/summarize_native_tuning.py`로 재계산한다. 정규화 모델에 실제
+API의 cold GPU non-export 시간을 반영한 sensitivity도 함께 출력한다.
+
+### Main rollout
+
+캐시된 native layer로 **40.999초**에 재배포했다. 실제 인증 HTTP POST로 새 asset을
+제출했고, 상태 대기는 operator Dict로 관측해 HTTP API의 반복 cold-start를 피했다.
+Health는 인증 200/비인증 401이며 no-init/8코어/worker4와 RMBG off를 확인했다.
+
+| 실제 API stage | Seconds |
+| --- | ---: |
+| Load | 20.62 |
+| 전처리·MoGe camera | 9.33 |
+| Denoise/decode | 159.28 |
+| Native remesh/UV/4K PBR/GLB | 120.74 |
+| Stage 합 | **309.97** |
+
+Stage 밖 import/준비, queue/통신/다운로드는 합계에서 제외한다. GPU running→complete는
+329.19초, allocation queue는 약 69.77초였다. 결과는 **38,186,064 bytes**, embedded
+4096² base-color/metallic-roughness를 독립적으로 재검증하고 실제 GLB를 렌더했다.
+새 worker의 엄격한 coverage와 no-init/worker4도 report에서 확인했다. Camera는
+기존 입력의 실제 camera와 같았다. OOM, 재시도, 해상도/장치 fallback은 없었다.
+과거 530초 asset과의 단순 차이를 동일-output 가속률로 발표하지 않는다.
+
+이 실험은 단일 prepared SV shoe의 pilot이다. Chart CPU 비교는 host/순서를 완전히
+교차 통제하지 않았고, 최종 GLB byte parity/MV/1536/T4 품질은 별도다.
+CPU 계약 테스트는 **239 passed**이며 GPU 수치 검증을 대신하지 않는다.
+진단 L4 3회와 최종 API L4 1회를 순차 실행하고 scale-to-zero를 확인했다.
+Main 환경만 사용하며 max GPU=1/min=0을 유지했고 MLX는 수정하지 않았다.
+
+[Sanitized 측정·배포 증거](evidence/modal-l4-loading-cpu-2026-11-14.optimizations.json).

@@ -38,6 +38,8 @@ def main(argv=None):
             "upstream_lock": lock(), "image": str(Path(arguments.image).expanduser().resolve()),
             "profiles": arguments.profiles, "repeats": arguments.repeats,
             "optimizations": {name: asdict(configurations[name]) for name in arguments.profiles},
+            "skip_weight_init": {name: name in ("optimized", "standard") for name in arguments.profiles},
+            "inpaint_workers": {name: 4 if name in ("optimized", "standard") else 1 for name in arguments.profiles},
             "geometry_resolution": arguments.geometry_resolution, "texture_size": arguments.texture_size,
             "seed": 42, "remove_background": arguments.remove_background,
             "process_policy": "Fresh worker per asset; kernel/autotune cache may persist. Not a warm-forward benchmark."}
@@ -57,7 +59,8 @@ def main(argv=None):
             started = time.perf_counter()
             try:
                 Pipeline(low_vram=profile != "standard", optimizations=configurations[profile], save_reference=arguments.save_reference,
-                         skip_weight_init=profile != "reference").generate(arguments.image, destination, seed=42,
+                         skip_weight_init=profile in ("optimized", "standard"),
+                         inpaint_workers=4 if profile in ("optimized", "standard") else 1).generate(arguments.image, destination, seed=42,
                     geometry_resolution=arguments.geometry_resolution, texture_size=arguments.texture_size,
                     remove_background=arguments.remove_background)
                 report = json.loads((destination / "report.json").read_text())

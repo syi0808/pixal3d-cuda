@@ -21,6 +21,10 @@ not a default download or initialization dependency.** See
 Follow-up fixed-kernel profiling passes **149 full neural checkpoints exactly**
 for reference repeat/optimized on this shoe, including HR/texture and raw mesh/PBR
 voxels. Native export remains non-bit-identical. See [scope and bottlenecks](docs/full-profiling.md).
+Covered checkpoint initialization skipping and exact parallel inpaint are now
+enabled. L4 CPU 2/4/8 trials select an 8-core GPU worker/4 inpaint workers for
+latency; 4/8-core costs are near break-even in cold-asset sensitivity.
+[Measured optimization and rollout](docs/loading-and-cpu-tuning.md).
 Historical T4 GLBs/timings belong to the
 archived implementation and are not acceptance evidence for this rewrite.
 
@@ -35,6 +39,7 @@ archived implementation and are not acceptance evidence for this rewrite.
 | Export | Original CUDA remesh + embedded base-color and metallic/roughness GLB |
 | Initial deployment target | **L4 / SM89**, declared explicitly; no automatic GPU fallback |
 | Reuse budgets | DINO 128 MiB; conditioning 256 MiB per flow, configurable |
+| Loading / CPU export | Complete-coverage no-init; GPU worker 8 CPU cores / inpaint 4; API/prepare CPU unchanged |
 
 **T4 is not accepted by the unmodified BF16 baseline.** Re-enabling T4 requires
 a separately measured precision/kernel compatibility project, not silently

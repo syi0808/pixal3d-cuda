@@ -48,7 +48,7 @@ def validate_pbr_glb(path):
 class Pipeline:
     def __init__(self, device="cuda", *, upstream_root=None, store=None, low_vram=True,
                  attention_backend="sdpa", max_tokens=49152, timeout_seconds=1800, save_reference=False,
-                 optimizations=None, skip_weight_init=True, inpaint_workers=1):
+                 optimizations=None, skip_weight_init=True, inpaint_workers=4):
         if device != "cuda":
             raise ValueError("The official runtime requires CUDA")
         if attention_backend not in ("sdpa", "flash_attn"):

@@ -14,6 +14,13 @@ The subsequent [fixed-kernel full profiler](full-profiling.md) passes 149 neural
 checkpoints exactly on the same shoe, under diagnostic-only backend controls.
 It does not change production defaults or establish final GLB byte parity.
 
+Subsequent [coverage and CPU/inpaint rollout](loading-and-cpu-tuning.md) enables
+guarded no-init, `gpu_cpu_cores=8` and `inpaint_workers=4` in main. API/prepare
+remain at `cpu_cores=2`; max GPU=1/min=0 are unchanged. CPU 4 is a cost-first
+alternative to the latency-oriented CPU 8 default; cold-asset estimates are close.
+Clients cannot override these operator budgets. `reference=true` disables no-init
+and parallel inpaint alongside the reuse hooks, without a second runtime.
+
 ## Layout
 
 - `deploy/modal.toml`: main only, L4/SM89, one GPU worker maximum, zero warm

@@ -16,6 +16,8 @@ def test_checked_in_declarations_have_low_credit_defaults():
     assert settings.share_dino and settings.sparse_projection
     assert settings.dino_cache_mb == 128 and settings.conditioning_cache_mb == 256
     assert settings.allow_rmbg is False
+    assert settings.skip_weight_init and settings.gpu_cpu_cores == 8 and settings.inpaint_workers == 4
+    assert settings.cpu_cores == 2
 
 
 @pytest.mark.parametrize("changed", [

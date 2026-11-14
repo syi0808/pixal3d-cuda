@@ -58,6 +58,11 @@ native tensor 통과가 최종 remesh/UV/PBR 시각적 동등성을 증명하지
 
 ## 검증과 남은 후보
 
+현재는 [coverage-guarded no-init와 동일 픽셀 병렬 inpaint](loading-and-cpu-tuning.md)도
+적용했다. No-init의 149개 전체 checkpoint exact와 실제 4K inpaint의 tier 간 SHA
+일치를 확인했다. `--full-init`/`--inpaint-workers`로 별도 제어하며 `--reference`는 둘 다 끈다.
+생산 kernel의 전역 결정성이나 GLB byte parity를 새로 보장하는 것은 아니다.
+
 더 최신인 [fixed-kernel 전체 profiling](full-profiling.md)은 같은 신발에서 HR/texture와
 최종 raw mesh/재질 voxel까지 149개 checkpoint exact를 확인했다. Production 기본값과
 달리 제어한 cuDNN/TF32 조건의 단일 입력 결과다. Export의 삼각형/GLB hash는 여전히

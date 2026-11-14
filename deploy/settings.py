@@ -21,7 +21,7 @@ class DeploySettings:
     max_gpu_containers: int = 1
     scaledown_window: int = 2
     cpu_cores: float = 2.0
-    gpu_cpu_cores: float = 2.0
+    gpu_cpu_cores: float = 8.0
     cpu_memory_mib: tuple[int, int] = (4096, 16384)
     gpu_memory_mib: tuple[int, int] = (16384, 65536)
     prefetch_memory_mib: tuple[int, int] = (2048, 8192)
@@ -45,7 +45,7 @@ class DeploySettings:
     save_reference: bool = False
     allow_rmbg: bool = False
     skip_weight_init: bool = True
-    inpaint_workers: int = 1
+    inpaint_workers: int = 4
 
     def __post_init__(self):
         if self.environment != "main":

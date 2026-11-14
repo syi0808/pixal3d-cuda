@@ -108,7 +108,7 @@ def main(argv=None):
                       attention_backend=arguments.attention_backend, max_tokens=arguments.max_tokens,
                       timeout_seconds=arguments.timeout_seconds, save_reference=arguments.save_reference,
                       skip_weight_init=not arguments.reference and not arguments.full_init,
-                      inpaint_workers=1 if arguments.inpaint_workers is None else arguments.inpaint_workers,
+                      inpaint_workers=(1 if arguments.reference else 4) if arguments.inpaint_workers is None else arguments.inpaint_workers,
                       optimizations=optimizations).generate(
         arguments.image, arguments.output_dir, seed=arguments.seed, texture_size=arguments.texture_size,
         target_faces=arguments.target_faces, camera=arguments.camera or "auto",

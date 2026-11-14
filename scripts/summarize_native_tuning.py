@@ -44,13 +44,28 @@ def summarize(directory):
                          "inpaint_median_seconds": inpaint, "modeled_asset_seconds": total,
                          "normalized_estimated_asset_usd": {str(memory): cost(total, cores, memory) for memory in (16, 32, 64)}})
     selected = min(rows, key=lambda row: row["normalized_estimated_asset_usd"]["32"])
-    return {"schema": "pixalcuda.cpu-cost-comparison.v1", "rates_usd": RATES,
+    result = {"schema": "pixalcuda.cpu-cost-comparison.v1", "rates_usd": RATES,
             "pricing_source": "https://modal.com/pricing", "pricing_checked_date": "2026-11-14",
             "common_seconds_from_2core_diagnostic": common, "rows": rows, "selected": selected,
             "sensitivity": [{"common_seconds": shared, "memory_gib": memory,
                              "selected": min(rows, key=lambda row: cost(shared + row["atlas_median_seconds"] + row["inpaint_median_seconds"], row["cores"], memory))["cores"]}
                             for shared in (0, 150, 300) for memory in (16, 32, 64)],
             "scope": "List-price normalized model, not an invoice or measured end-to-end baseline. Memory is fixed at 16/32/64 GiB for sensitivity. Diagnostic common time includes snapshot/capture overhead; excludes startup/queue/network/idle. Actual Modal charges max(request, usage), and host/ordering effects are not isolated."}
+    api_path = directory / "api-final/report.json"
+    transitions_path = directory / "api-final/transitions.json"
+    if api_path.exists() and transitions_path.exists():
+        api = json.loads(api_path.read_text())
+        transitions = {entry["status"]: entry["updated_at"] for entry in json.loads(transitions_path.read_text())}
+        body = transitions["complete"] - transitions["running_gpu"]
+        export_seconds = next(stage["elapsed_seconds"] for stage in api["stages"] if stage["name"] == "remesh_pbr_export")
+        cold_common = body - export_seconds + max(0, stages["capture_export"] - original_hotspots)
+        result["api_cold_sensitivity"] = {
+            "observed_gpu_body_seconds": body, "common_seconds": cold_common,
+            "rows": [{"cores": row["cores"], "inpaint_workers": row["inpaint_workers"],
+                      "normalized_estimated_usd": {str(memory): cost(cold_common + row["atlas_median_seconds"] + row["inpaint_median_seconds"], row["cores"], memory)
+                                                   for memory in (16, 24, 32, 64)}} for row in rows],
+            "interpretation": "Cold API non-export time reused in the frozen-input cost model. Not a paired whole-asset run or actual bill: API geometry/UV differed, startup before running_gpu is excluded. CPU 4/8 are near break-even; CPU8 is the lower-latency choice, not a universal cost minimum."}
+    return result
 
 
 def main(argv=None):

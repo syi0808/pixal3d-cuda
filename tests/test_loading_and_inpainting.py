@@ -26,7 +26,7 @@ def toy_exporter(base_color, metallic, roughness, alpha, mask_inv):
 
 
 @pytest.mark.parametrize("workers", [1, 2, 4, 8])
-@pytest.mark.parametrize("mask_kind", ["holes", "empty", "border"])
+@pytest.mark.parametrize("mask_kind", ["holes", "empty", "border", "full"])
 def test_parallel_inpaint_keeps_original_channels_radii_and_bytes(workers, mask_kind):
     random = np.random.default_rng(42)
     color = random.integers(0, 256, (40, 48, 3), dtype=np.uint8)
@@ -36,6 +36,8 @@ def test_parallel_inpaint_keeps_original_channels_radii_and_bytes(workers, mask_
         mask[4:12, 8:30] = 1
     elif mask_kind == "border":
         mask[:6] = 1
+    elif mask_kind == "full":
+        mask[:] = 1
     arguments = (color, *channels, mask)
     expected = toy_exporter(*arguments)
     actual = parallel_exporter(toy_exporter, workers)(*arguments)

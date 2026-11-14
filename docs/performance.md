@@ -86,6 +86,12 @@ sampler/worker 종료 시 보관한 cache tensor는 0이다. Reference의 load c
 
 ## 후속 원인 분리
 
+가장 최신의 [coverage/no-init·CPU·inpaint 실험](loading-and-cpu-tuning.md)은 초기화 생략
+전후 149개 checkpoint exact, CPU tier 사이의 inpaint bytes exact를 확인했다.
+모델 load 130.73→12.87초, 같은 chart의 CPU 2/4/8 중앙값 197.90/99.16/50.93초다.
+배포 후 실제 API의 stage 합은 309.97초였다. Cost model과 cold-start sensitivity를
+구분하며 4/8-core는 거의 비용 손익분기점이다. 일반화된 asset speedup 주장이 아니다.
+
 후속 전체 경로는 고정한 커널/TF32/cuDNN 조건 아래 reference 반복과 optimized가
 HR/texture 및 최종 raw mesh/재질 voxel까지 **149개 checkpoint exact**였다.
 모델 로드의 `nn.init` 96–103초, UV의 xatlas chart 생성 199–229초가 주요 비용이었다.

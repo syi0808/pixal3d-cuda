@@ -3,6 +3,7 @@ import json
 import pytest
 
 from scripts.summarize_native_tuning import cost, summarize
+from scripts.benchmark_upstream import main as benchmark_plan
 
 
 def test_normalized_cost_selects_measured_tier_and_requires_cross_tier_pixels(tmp_path):
@@ -26,3 +27,9 @@ def test_normalized_cost_selects_measured_tier_and_requires_cross_tier_pixels(tm
     path.write_text(json.dumps(report))
     with pytest.raises(ValueError, match="outputs/version"):
         summarize(tmp_path)
+
+
+def test_named_reuse_projection_ablations_do_not_enable_unrelated_hooks():
+    plan = benchmark_plan(["--image", "unused.png", "--profiles", "reference", "reuse", "projected", "optimized"])
+    assert plan["skip_weight_init"] == {"reference": False, "reuse": False, "projected": False, "optimized": True}
+    assert plan["inpaint_workers"] == {"reference": 1, "reuse": 1, "projected": 1, "optimized": 4}
