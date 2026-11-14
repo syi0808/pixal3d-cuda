@@ -15,7 +15,7 @@ def compare(reference_path, candidate_path, *, atol=1e-6, rtol=1e-5):
     candidate = torch.load(candidate_path, map_location="cpu", weights_only=True)
     if reference["schema"] != "pixalcuda.native-reference.v1" or candidate["schema"] != reference["schema"]:
         raise ValueError("Unsupported native reference schema")
-    ignored = {"optimizations", "save_reference"}
+    ignored = {"optimizations", "save_reference", "skip_weight_init", "inpaint_workers"}
     identities = [{key: value for key, value in record["identity"].items() if key not in ignored}
                   for record in (reference, candidate)]
     for identity in identities:

@@ -56,7 +56,8 @@ def main(argv=None):
             destination = directory / f"round-{round_index}-{profile}"
             started = time.perf_counter()
             try:
-                Pipeline(low_vram=profile != "standard", optimizations=configurations[profile], save_reference=arguments.save_reference).generate(arguments.image, destination, seed=42,
+                Pipeline(low_vram=profile != "standard", optimizations=configurations[profile], save_reference=arguments.save_reference,
+                         skip_weight_init=profile != "reference").generate(arguments.image, destination, seed=42,
                     geometry_resolution=arguments.geometry_resolution, texture_size=arguments.texture_size,
                     remove_background=arguments.remove_background)
                 report = json.loads((destination / "report.json").read_text())

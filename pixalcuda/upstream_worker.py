@@ -17,6 +17,8 @@ import torch
 
 from .pipeline import validate_pbr_glb
 from .background import deferred_background_removal
+from .initialization import covered_initialization
+from .inpainting import parallel_exporter
 from .optimizations import OptimizationOptions, OptimizationSession
 from .runtime import atomic_json
 from .upstream_sources import lock, verify_source
@@ -149,10 +151,11 @@ def execute(request, directory, entry, exporter, report, optimization_session=No
         config["model_name"] = bundle["dino"]
     with report.stage("load_pipeline"):
         local = local_pipeline_config(bundle, directory / "pipeline-config", rembg=identity["remove_background"])
-        with deferred_background_removal() as removers:
+        with covered_initialization(identity.get("skip_weight_init", False)) as coverage, deferred_background_removal() as removers:
             pipeline = entry.init_pipeline(model_path=str(local), low_vram=identity["low_vram"])
         if optimization_session is not None:
             optimization_session.install(pipeline, identity["multiview"])
+    report.data["initialization"] = {"skip_weight_init": identity.get("skip_weight_init", False), "coverage": coverage}
     report.data["conditioning"] = {name: {key: config[key] for key in ("image_size", "grid_resolution", "naf_target_size") if key in config}
                                    for name, config in entry.IMAGE_COND_CONFIGS.items()}
     with report.stage("preprocess_camera"):
@@ -184,6 +187,10 @@ def execute(request, directory, entry, exporter, report, optimization_session=No
             del reference
             report.data["private_reference"] = "reference.pt"
     with report.stage("remesh_pbr_export"):
+        import cv2
+
+        report.data["opencv"] = cv2.__version__
+        exporter = parallel_exporter(exporter, identity.get("inpaint_workers", 1))
         glb = exporter(vertices=mesh.vertices, faces=mesh.faces, attr_volume=mesh.attrs, coords=mesh.coords,
                        attr_layout=pipeline.pbr_attr_layout, grid_size=actual_resolution,
                        aabb=[[-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]], decimation_target=identity["target_faces"],
@@ -193,7 +200,8 @@ def execute(request, directory, entry, exporter, report, optimization_session=No
         glb.export(str(temporary), extension_webp=True)
         validation = validate_pbr_glb(temporary)
         temporary.replace(directory / "result.glb")
-    report.data.update(status="complete", validation=validation, postprocess_device="cuda")
+    report.data.update(status="complete", validation=validation, postprocess_device="cuda",
+                       inpaint_workers=identity.get("inpaint_workers", 1))
     report.write()
     return directory / "result.glb"
 

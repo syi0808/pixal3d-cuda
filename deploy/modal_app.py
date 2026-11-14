@@ -122,7 +122,9 @@ def inference_options(geometry_resolution=1024, reference=False):
         SETTINGS.share_dino, SETTINGS.dino_cache_mb, SETTINGS.sparse_projection, SETTINGS.conditioning_cache_mb)
     return {"low_vram": SETTINGS.low_vram, "attention_backend": SETTINGS.attention_backend,
             "max_tokens": SETTINGS.max_tokens, "timeout_seconds": SETTINGS.gpu_timeout_seconds - 30,
-            "optimizations": optimizations, "save_reference": SETTINGS.save_reference}
+            "optimizations": optimizations, "save_reference": SETTINGS.save_reference,
+            "skip_weight_init": SETTINGS.skip_weight_init and not reference,
+            "inpaint_workers": 1 if reference else SETTINGS.inpaint_workers}
 
 
 def validate_request_inputs(request, directory):
@@ -208,7 +210,7 @@ def prepare_job(job_id, request):
         raise
 
 
-@app.function(image=offline, gpu=GPU, cpu=(SETTINGS.cpu_cores, SETTINGS.cpu_cores), memory=SETTINGS.gpu_memory_mib,
+@app.function(image=offline, gpu=GPU, cpu=(SETTINGS.gpu_cpu_cores, SETTINGS.gpu_cpu_cores), memory=SETTINGS.gpu_memory_mib,
               timeout=SETTINGS.gpu_timeout_seconds, retries=0,
               min_containers=SETTINGS.min_containers, max_containers=SETTINGS.max_gpu_containers,
               buffer_containers=0, scaledown_window=SETTINGS.scaledown_window,

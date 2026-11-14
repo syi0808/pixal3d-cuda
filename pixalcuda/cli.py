@@ -68,6 +68,8 @@ def main(argv=None):
     generation.add_argument("--dense-projection", action="store_true")
     generation.add_argument("--dino-cache-mb", type=int)
     generation.add_argument("--conditioning-cache-mb", type=int)
+    generation.add_argument("--full-init", action="store_true", help="Keep original random parameter initialization before checkpoint load")
+    generation.add_argument("--inpaint-workers", type=int, default=None)
     arguments = parser.parse_args(argv)
     if arguments.command == "doctor":
         return doctor()
@@ -91,7 +93,8 @@ def main(argv=None):
             parser.error(f"Invalid camera JSON: {error}")
     from .pipeline import Pipeline
     if arguments.reference and (arguments.no_share_dino or arguments.dense_projection
-                               or arguments.dino_cache_mb is not None or arguments.conditioning_cache_mb is not None):
+                               or arguments.dino_cache_mb is not None or arguments.conditioning_cache_mb is not None
+                               or arguments.inpaint_workers is not None):
         parser.error("--reference cannot be combined with optimization overrides")
     try:
         optimizations = OptimizationOptions.disabled() if arguments.reference else OptimizationOptions(
@@ -104,6 +107,8 @@ def main(argv=None):
                       store=UpstreamStore(arguments.model_dir, multiview=multiview), low_vram=not arguments.standard,
                       attention_backend=arguments.attention_backend, max_tokens=arguments.max_tokens,
                       timeout_seconds=arguments.timeout_seconds, save_reference=arguments.save_reference,
+                      skip_weight_init=not arguments.reference and not arguments.full_init,
+                      inpaint_workers=1 if arguments.inpaint_workers is None else arguments.inpaint_workers,
                       optimizations=optimizations).generate(
         arguments.image, arguments.output_dir, seed=arguments.seed, texture_size=arguments.texture_size,
         target_faces=arguments.target_faces, camera=arguments.camera or "auto",

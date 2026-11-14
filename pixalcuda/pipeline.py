@@ -48,7 +48,7 @@ def validate_pbr_glb(path):
 class Pipeline:
     def __init__(self, device="cuda", *, upstream_root=None, store=None, low_vram=True,
                  attention_backend="sdpa", max_tokens=49152, timeout_seconds=1800, save_reference=False,
-                 optimizations=None):
+                 optimizations=None, skip_weight_init=True, inpaint_workers=1):
         if device != "cuda":
             raise ValueError("The official runtime requires CUDA")
         if attention_backend not in ("sdpa", "flash_attn"):
@@ -57,13 +57,16 @@ class Pipeline:
             raise ValueError("low_vram must be boolean and max_tokens must be positive")
         if type(timeout_seconds) is not int or timeout_seconds < 1:
             raise ValueError("timeout_seconds must be positive")
+        if type(skip_weight_init) is not bool or type(inpaint_workers) is not int or not 1 <= inpaint_workers <= 8:
+            raise ValueError("Invalid initialization/inpaint policy")
         self.root = source_root(upstream_root)
         self.store = store
         optimizations = OptimizationOptions() if optimizations is None else optimizations
         if not isinstance(optimizations, OptimizationOptions):
             raise ValueError("optimizations must be OptimizationOptions")
         self.options = {"low_vram": low_vram, "attention_backend": attention_backend, "max_tokens": max_tokens,
-                        "save_reference": save_reference, "optimizations": asdict(optimizations)}
+                        "save_reference": save_reference, "optimizations": asdict(optimizations),
+                        "skip_weight_init": skip_weight_init, "inpaint_workers": inpaint_workers}
         self.timeout_seconds = timeout_seconds
 
     def generate(self, image_path, output_dir, seed=42, texture_size=4096, target_faces=1000000,

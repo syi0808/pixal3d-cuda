@@ -100,6 +100,8 @@ def create_app(backend, settings):
                 "upstream_revision": lock()["sources"]["pixal3d"]["revision"], "low_vram": settings.low_vram,
                 "attention_backend": settings.attention_backend, "gpu": settings.gpu, "max_tokens": settings.max_tokens,
                 "background_removal_default": False, "rmbg_enabled": settings.allow_rmbg,
+                "skip_weight_init": settings.skip_weight_init, "inpaint_workers": settings.inpaint_workers,
+                "gpu_cpu_cores": settings.gpu_cpu_cores,
                 "optimizations": asdict(OptimizationOptions(settings.share_dino, settings.dino_cache_mb,
                                                             settings.sparse_projection, settings.conditioning_cache_mb)),
                 "max_views": settings.max_views, "max_new_jobs_per_utc_day": settings.api_max_jobs_per_day}

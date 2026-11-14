@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 camera = ["moge @ git+https://github.com/microsoft/MoGe.git@b942f00bdc2a2a23ebb474fbe034d487e6dcceec"]
-dev = ["pytest>=8", "nbformat>=5.10", "httpx>=0.28,<1", "trimesh>=4.6,<5"]
+dev = ["pytest>=8", "nbformat>=5.10", "httpx>=0.28,<1", "trimesh>=4.6,<5", "safetensors>=0.5", "opencv-python-headless==4.12.0.88"]
 modal = ["modal>=1.6.4,<2"]
 server = ["fastapi>=0.162.4,<1", "pydantic>=2,<3", "python-multipart>=0.0.20"]
 upstream = [

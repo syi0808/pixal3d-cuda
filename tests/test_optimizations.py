@@ -341,6 +341,8 @@ def test_native_reference_comparison_checks_settings_structure_and_finiteness(tm
     baseline, candidate = tmp_path / "baseline.pt", tmp_path / "candidate.pt"
     torch.save(reference, baseline)
     reference["identity"]["optimizations"] = asdict(OptimizationOptions())
+    reference["identity"]["skip_weight_init"] = True
+    reference["identity"]["inpaint_workers"] = 4
     torch.save(reference, candidate)
     assert compare(baseline, candidate)["passed"]
     reference["mesh"]["faces"][0, 0] = 1

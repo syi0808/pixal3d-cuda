@@ -21,6 +21,7 @@ class DeploySettings:
     max_gpu_containers: int = 1
     scaledown_window: int = 2
     cpu_cores: float = 2.0
+    gpu_cpu_cores: float = 2.0
     cpu_memory_mib: tuple[int, int] = (4096, 16384)
     gpu_memory_mib: tuple[int, int] = (16384, 65536)
     prefetch_memory_mib: tuple[int, int] = (2048, 8192)
@@ -43,6 +44,8 @@ class DeploySettings:
     conditioning_cache_mb: int = 256
     save_reference: bool = False
     allow_rmbg: bool = False
+    skip_weight_init: bool = True
+    inpaint_workers: int = 1
 
     def __post_init__(self):
         if self.environment != "main":
@@ -58,6 +61,11 @@ class DeploySettings:
         if (isinstance(self.cpu_cores, bool) or not isinstance(self.cpu_cores, (int, float))
                 or not math.isfinite(self.cpu_cores) or self.cpu_cores <= 0):
             raise ValueError("cpu_cores must be finite and positive")
+        if (isinstance(self.gpu_cpu_cores, bool) or not isinstance(self.gpu_cpu_cores, (int, float))
+                or not math.isfinite(self.gpu_cpu_cores) or self.gpu_cpu_cores <= 0):
+            raise ValueError("gpu_cpu_cores must be finite and positive")
+        if type(self.skip_weight_init) is not bool or type(self.inpaint_workers) is not int or not 1 <= self.inpaint_workers <= 8:
+            raise ValueError("Invalid checkpoint initialization or inpaint policy")
         for name in ("cpu_memory_mib", "gpu_memory_mib", "prefetch_memory_mib", "api_memory_mib"):
             value = getattr(self, name)
             if (not isinstance(value, (tuple, list)) or len(value) != 2
@@ -70,7 +78,7 @@ class DeploySettings:
             raise ValueError("The baseline image builds SDPA only; install and validate FlashAttention before enabling it")
         from pixalcuda.optimizations import OptimizationOptions
         OptimizationOptions(self.share_dino, self.dino_cache_mb, self.sparse_projection, self.conditioning_cache_mb)
-        excluded = {"min_containers", "cpu_cores", "dino_cache_mb", "conditioning_cache_mb"}
+        excluded = {"min_containers", "cpu_cores", "gpu_cpu_cores", "dino_cache_mb", "conditioning_cache_mb"}
         for field in fields(self):
             value = getattr(self, field.name)
             if field.name not in excluded and field.type is int and (type(value) is not int or value <= 0):
