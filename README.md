@@ -18,6 +18,9 @@ strict native tensor parity; it does not establish equivalent-quality speedup.
 RMBG-2.0 is disabled/optional,
 not a default download or initialization dependency.** See
 [measurements and remaining checks](docs/performance.md).
+Follow-up fixed-kernel profiling passes **149 full neural checkpoints exactly**
+for reference repeat/optimized on this shoe, including HR/texture and raw mesh/PBR
+voxels. Native export remains non-bit-identical. See [scope and bottlenecks](docs/full-profiling.md).
 Historical T4 GLBs/timings belong to the
 archived implementation and are not acceptance evidence for this rewrite.
 

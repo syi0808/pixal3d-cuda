@@ -1,0 +1,1403 @@
+{
+  "schema": "pixalcuda.native-full-profiling.v1",
+  "date": "2026-11-14",
+  "timezone": "Asia/Seoul",
+  "base_revision": "0bdf7b9ddaf370f688d3f5139125a6788c3878f2",
+  "identity": {
+    "upstream_lock": {
+      "schema": 1,
+      "sources": {
+        "pixal3d": {
+          "url": "https://github.com/TencentARC/Pixal3D.git",
+          "revision": "f7cf38429b0bd264f1995f0f8743a88b1c728b94"
+        },
+        "trellis2": {
+          "url": "https://github.com/microsoft/TRELLIS.2.git",
+          "revision": "75fbf0183001ed9876c8dbb35de6b68552ee08bd"
+        },
+        "flexgemm": {
+          "url": "https://github.com/JeffreyXiang/FlexGEMM.git",
+          "revision": "6dd94a859c26ee8246888502eada3dd8ad85532e"
+        },
+        "cumesh": {
+          "url": "https://github.com/JeffreyXiang/CuMesh.git",
+          "revision": "12289e1062f0603f2f0d0771b02e1395d247f26f"
+        },
+        "nvdiffrast": {
+          "url": "https://github.com/NVlabs/nvdiffrast.git",
+          "revision": "253ac4fcea7de5f396371124af597e6cc957bfae"
+        },
+        "naf": {
+          "url": "https://github.com/valeoai/NAF.git",
+          "revision": "37f2dfc180f2de53d98bd601109c0da0dd6b0f43"
+        },
+        "utils3d": {
+          "url": "https://github.com/EasternJournalist/utils3d.git",
+          "revision": "3fab839f0be9931dac7c8488eb0e1600c236e183"
+        }
+      },
+      "models": {
+        "single": {
+          "repo": "TencentARC/Pixal3D",
+          "revision": "0b31f9160aa400719af409098bff7936a932f726"
+        },
+        "multiview": {
+          "repo": "TencentARC/Pixal3D",
+          "revision": "b0cb2e1b794cab9aa0ac38a95d794a4d9337437f"
+        },
+        "dino": {
+          "repo": "camenduru/dinov3-vitl16-pretrain-lvd1689m",
+          "revision": "3c276edd87d6f6e569ff0c4400e086807d0f3881"
+        },
+        "rembg": {
+          "repo": "briaai/RMBG-2.0",
+          "revision": "2fd7b4b0f2393ddb39a267fb62df6c010928a6c6"
+        },
+        "moge": {
+          "repo": "Ruicheng/moge-2-vitl",
+          "revision": "39c4d5e957afe587e04eec59dc2bcc3be5ecd968"
+        }
+      }
+    },
+    "image_sha256": "84f4bc53f07a26a8e649a2db906d6c725ef8fd729765afd03d5301630fc68b12",
+    "camera": {
+      "camera_angle_x": 0.6342361302062468,
+      "distance": 1.523488998413086,
+      "mesh_scale": 1.0
+    },
+    "seed": 42,
+    "geometry_resolution": 1024,
+    "remove_background": false,
+    "model_policy": "Same loaded pipeline and warmed in-process Triton configurations; fixed top-level SPLITK",
+    "runtime_sources": {
+      "__init__.py": "32e278d0b8b1519b6cf905142748d099871bdd00d2c6fb13de9b4faa6cb82bdb",
+      "background.py": "3b00fedf4c31bdf108cbe0ec6c2ca4eef23304f6129a805ed04d1b9cff814ce0",
+      "cameras.py": "bbd95bd9d8c99f59e5e08bd144a59bb63411b008e1839f9c6bd3ba7c4846fb9d",
+      "cli.py": "e1b8e93d1b0d77bdc6d43b310080e9b5db00761eed76cc6f54cbf6ceea8e75ed",
+      "full_profiling.py": "42d6b5b9dff098c55287498a0ca315cd56ceabfb648ad64a847a14efff41267c",
+      "multiview.py": "9dac451da9dbeb53b8835a8de383b5565dde5fce14c69f9790b0b762b3c04bac",
+      "optimizations.py": "747e8ba428c472bac2bae49c8ecc2828bb53a3ddbf92b9d062b238ee31795434",
+      "pipeline.py": "293bee3a1598253c40dab8b277aea1a6524716154b6f24a6e3d9ef1314ed57e9",
+      "profiling.py": "7b4d584b5205b6598efdfdd8334be38aa08236c26fb5d21fff9c88655054dd86",
+      "runtime.py": "79637d918799dfbad9eb4044b88c7c105d8a7996085b49afed38f7d5a5dcffdc",
+      "upstream_sources.py": "ffdfc5155c675e55c1c808f9276c252e9721cc1c155f5f3ce875fd73c79103b3",
+      "upstream_weights.py": "beed2f75641d243caf99aed4630e6fcdc1f7d1381944b4d6b66bc1b3249e62ac",
+      "upstream_worker.py": "45342260d4b1b9a2ce6d3c4e705eb65babe78d4267d886cb35f6d8126e390f95",
+      "weights.py": "5724eebffa5d4f93e077b3c6c8ba4b6f8e9991f0bdeb39b95e8cfe1d476be146"
+    }
+  },
+  "hardware": {
+    "gpu": "NVIDIA L4",
+    "capability": [
+      8,
+      9
+    ],
+    "gpu_total_bytes": 23689363456,
+    "torch": "2.6.0+cu124",
+    "cuda_runtime": "12.4"
+  },
+  "method": {
+    "paid_gpu_invocations": 1,
+    "gpu_timeout_seconds": 1800,
+    "max_gpu_containers": 1,
+    "cpu_cores": 2,
+    "host_memory_request_limit_mib": [
+      16384,
+      65536
+    ],
+    "automatic_retries": 0,
+    "neural_cases": [
+      "reference_first",
+      "reference_repeat",
+      "optimized"
+    ],
+    "export_replays": 2,
+    "sequential": true,
+    "reference_pipeline_initializations": 1,
+    "optimized_initializations_measured_separately": 1,
+    "reference_snapshot_cap_bytes": 3221225472,
+    "integer_comparison": "exact",
+    "float_atol": 1e-06,
+    "float_rtol": 1e-05,
+    "low_vram": true,
+    "attention_backend": "sdpa",
+    "flow_precision": "original BF16",
+    "decoder_precision": "original FP16 torso",
+    "geometry_resolution": 1024,
+    "export_texture_size": 4096,
+    "texture_naf_target_size": 1024,
+    "target_faces": 1000000,
+    "schedules": "Original 12 steps for each SS/LR/HR/texture flow",
+    "camera": "Reused source-job camera; MoGe not rerun"
+  },
+  "backend_settings_before": {
+    "cublas_workspace_config": ":4096:8",
+    "cudnn_benchmark": false,
+    "cudnn_deterministic": true,
+    "cudnn_allow_tf32": false,
+    "matmul_allow_tf32": false,
+    "flex_gemm_allow_tf32": false,
+    "deterministic_algorithms": false
+  },
+  "backend_settings_after": {
+    "cublas_workspace_config": ":4096:8",
+    "cudnn_benchmark": false,
+    "cudnn_deterministic": true,
+    "cudnn_allow_tf32": false,
+    "matmul_allow_tf32": false,
+    "flex_gemm_allow_tf32": false,
+    "deterministic_algorithms": false
+  },
+  "kernel_manifest_sha256": "555342cac1d85d40c1e653ea664a110ae30094c32ba55ded005db9dd3c534adc",
+  "actual_native_cache_equal_all_cases": true,
+  "profiles": [
+    {
+      "profile": "reference_first",
+      "options": {
+        "share_dino": false,
+        "dino_cache_mb": 0,
+        "sparse_projection": false,
+        "conditioning_cache_mb": 0
+      },
+      "events": 149,
+      "passed": null,
+      "first_failure": null,
+      "first_nonexact": null,
+      "snapshot_payload_bytes": 3010327004,
+      "kernel_cache_equal": true,
+      "all_tensors_finite": true,
+      "all_checkpoints_exact": null,
+      "splitk_choices": {
+        "(2^11, 1024, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^11, 1024, 4096, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 512, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 512, 2048, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 256, 256, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 256, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 128, 128, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 128, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 64, 64, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 1024, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 1024, 4096, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 512, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 512, 2048, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 256, 256, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 256, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 128, 128, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 128, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^21, 64, 64, 27)": {
+          "SPLITK": 1
+        }
+      },
+      "kernel_profiles_one_step": {}
+    },
+    {
+      "profile": "reference_repeat",
+      "options": {
+        "share_dino": false,
+        "dino_cache_mb": 0,
+        "sparse_projection": false,
+        "conditioning_cache_mb": 0
+      },
+      "events": 149,
+      "passed": true,
+      "first_failure": null,
+      "first_nonexact": null,
+      "snapshot_payload_bytes": 3010327004,
+      "kernel_cache_equal": true,
+      "all_tensors_finite": true,
+      "all_checkpoints_exact": true,
+      "splitk_choices": {
+        "(2^11, 1024, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^11, 1024, 4096, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 512, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 512, 2048, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 256, 256, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 256, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 128, 128, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 128, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 64, 64, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 1024, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 1024, 4096, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 512, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 512, 2048, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 256, 256, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 256, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 128, 128, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 128, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^21, 64, 64, 27)": {
+          "SPLITK": 1
+        }
+      },
+      "kernel_profiles_one_step": {
+        "shape_hr": [
+          {
+            "operator": "aten::addmm",
+            "calls": 490,
+            "self_device_microseconds": 884227.4830000018,
+            "self_cpu_microseconds": 94054.54500000134
+          },
+          {
+            "operator": "aten::_flash_attention_forward",
+            "calls": 120,
+            "self_device_microseconds": 795305.5359999995,
+            "self_cpu_microseconds": 4930.065000002111
+          },
+          {
+            "operator": "aten::copy_",
+            "calls": 1162,
+            "self_device_microseconds": 385983.8730000043,
+            "self_cpu_microseconds": 16402.49399999371
+          },
+          {
+            "operator": "aten::mul",
+            "calls": 858,
+            "self_device_microseconds": 351800.9780000021,
+            "self_cpu_microseconds": 17672.510000004302
+          },
+          {
+            "operator": "aten::add",
+            "calls": 543,
+            "self_device_microseconds": 136218.03399999818,
+            "self_cpu_microseconds": 10647.26499999859
+          },
+          {
+            "operator": "aten::native_layer_norm",
+            "calls": 182,
+            "self_device_microseconds": 100996.53700000257,
+            "self_cpu_microseconds": 5956.235000000526
+          },
+          {
+            "operator": "aten::gelu",
+            "calls": 60,
+            "self_device_microseconds": 85512.36900000219,
+            "self_cpu_microseconds": 1511.1610000005749
+          },
+          {
+            "operator": "aten::div",
+            "calls": 244,
+            "self_device_microseconds": 78712.9429999993,
+            "self_cpu_microseconds": 6046.094000001845
+          },
+          {
+            "operator": "aten::index",
+            "calls": 361,
+            "self_device_microseconds": 77513.96400000014,
+            "self_cpu_microseconds": 11740.64599999489
+          },
+          {
+            "operator": "aten::cat",
+            "calls": 186,
+            "self_device_microseconds": 76954.00500000085,
+            "self_cpu_microseconds": 6020.048000000164
+          }
+        ],
+        "texture": [
+          {
+            "operator": "aten::addmm",
+            "calls": 245,
+            "self_device_microseconds": 441946.55799999915,
+            "self_cpu_microseconds": 44096.33199999934
+          },
+          {
+            "operator": "aten::_flash_attention_forward",
+            "calls": 60,
+            "self_device_microseconds": 396831.20300000015,
+            "self_cpu_microseconds": 2034.8410000003132
+          },
+          {
+            "operator": "aten::copy_",
+            "calls": 579,
+            "self_device_microseconds": 192580.5020000022,
+            "self_cpu_microseconds": 7771.715999998711
+          },
+          {
+            "operator": "aten::mul",
+            "calls": 426,
+            "self_device_microseconds": 175849.1559999999,
+            "self_cpu_microseconds": 7833.306000001145
+          },
+          {
+            "operator": "aten::add",
+            "calls": 271,
+            "self_device_microseconds": 68849.93799999986,
+            "self_cpu_microseconds": 4884.057999999553
+          },
+          {
+            "operator": "aten::native_layer_norm",
+            "calls": 91,
+            "self_device_microseconds": 50769.06299999976,
+            "self_cpu_microseconds": 2437.4130000002488
+          },
+          {
+            "operator": "aten::gelu",
+            "calls": 30,
+            "self_device_microseconds": 42640.44800000039,
+            "self_cpu_microseconds": 752.1599999999726
+          },
+          {
+            "operator": "aten::div",
+            "calls": 121,
+            "self_device_microseconds": 39545.63600000061,
+            "self_cpu_microseconds": 2624.99600000028
+          },
+          {
+            "operator": "aten::index",
+            "calls": 180,
+            "self_device_microseconds": 38632.923000000446,
+            "self_cpu_microseconds": 5460.260000000824
+          },
+          {
+            "operator": "aten::cat",
+            "calls": 92,
+            "self_device_microseconds": 38395.13800000022,
+            "self_cpu_microseconds": 2592.4799999992674
+          }
+        ]
+      }
+    },
+    {
+      "profile": "optimized",
+      "options": {
+        "share_dino": true,
+        "dino_cache_mb": 128,
+        "sparse_projection": true,
+        "conditioning_cache_mb": 256
+      },
+      "events": 149,
+      "passed": true,
+      "first_failure": null,
+      "first_nonexact": null,
+      "snapshot_payload_bytes": 3010327004,
+      "kernel_cache_equal": true,
+      "all_tensors_finite": true,
+      "all_checkpoints_exact": true,
+      "splitk_choices": {
+        "(2^11, 1024, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^11, 1024, 4096, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 512, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 512, 2048, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 256, 256, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 256, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 128, 128, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 128, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 64, 64, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 1024, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^13, 1024, 4096, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 512, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^15, 512, 2048, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 256, 256, 27)": {
+          "SPLITK": 1
+        },
+        "(2^17, 256, 1024, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 128, 128, 27)": {
+          "SPLITK": 1
+        },
+        "(2^19, 128, 512, 27)": {
+          "SPLITK": 1
+        },
+        "(2^21, 64, 64, 27)": {
+          "SPLITK": 1
+        }
+      },
+      "kernel_profiles_one_step": {
+        "shape_hr": [
+          {
+            "operator": "aten::addmm",
+            "calls": 455,
+            "self_device_microseconds": 874556.8269999998,
+            "self_cpu_microseconds": 88140.79800000085
+          },
+          {
+            "operator": "aten::_flash_attention_forward",
+            "calls": 120,
+            "self_device_microseconds": 792048.9899999991,
+            "self_cpu_microseconds": 4543.261999999284
+          },
+          {
+            "operator": "aten::copy_",
+            "calls": 1224,
+            "self_device_microseconds": 386388.9180000001,
+            "self_cpu_microseconds": 16977.357000008054
+          },
+          {
+            "operator": "aten::mul",
+            "calls": 858,
+            "self_device_microseconds": 353667.55300000485,
+            "self_cpu_microseconds": 17319.996999999465
+          },
+          {
+            "operator": "aten::add",
+            "calls": 543,
+            "self_device_microseconds": 137195.9430000035,
+            "self_cpu_microseconds": 11031.904000005095
+          },
+          {
+            "operator": "aten::native_layer_norm",
+            "calls": 182,
+            "self_device_microseconds": 101368.26500000004,
+            "self_cpu_microseconds": 6014.452000001772
+          },
+          {
+            "operator": "aten::gelu",
+            "calls": 60,
+            "self_device_microseconds": 85262.87700000088,
+            "self_cpu_microseconds": 1662.3800000006577
+          },
+          {
+            "operator": "aten::div",
+            "calls": 244,
+            "self_device_microseconds": 79081.29400000072,
+            "self_cpu_microseconds": 5579.516000001471
+          },
+          {
+            "operator": "aten::cat",
+            "calls": 186,
+            "self_device_microseconds": 77032.4150000005,
+            "self_cpu_microseconds": 5799.992999999055
+          },
+          {
+            "operator": "aten::index",
+            "calls": 361,
+            "self_device_microseconds": 76919.36799999938,
+            "self_cpu_microseconds": 12049.340999999462
+          }
+        ],
+        "texture": [
+          {
+            "operator": "aten::addmm",
+            "calls": 210,
+            "self_device_microseconds": 436003.3580000005,
+            "self_cpu_microseconds": 37942.58800000026
+          },
+          {
+            "operator": "aten::_flash_attention_forward",
+            "calls": 60,
+            "self_device_microseconds": 398018.1419999994,
+            "self_cpu_microseconds": 1914.565999999275
+          },
+          {
+            "operator": "aten::copy_",
+            "calls": 614,
+            "self_device_microseconds": 194267.57100000198,
+            "self_cpu_microseconds": 7879.26399999999
+          },
+          {
+            "operator": "aten::mul",
+            "calls": 426,
+            "self_device_microseconds": 176353.21399999925,
+            "self_cpu_microseconds": 7700.251999999875
+          },
+          {
+            "operator": "aten::add",
+            "calls": 271,
+            "self_device_microseconds": 68328.5589999998,
+            "self_cpu_microseconds": 4747.285000000047
+          },
+          {
+            "operator": "aten::native_layer_norm",
+            "calls": 91,
+            "self_device_microseconds": 50723.21300000083,
+            "self_cpu_microseconds": 2347.5209999992885
+          },
+          {
+            "operator": "aten::gelu",
+            "calls": 30,
+            "self_device_microseconds": 42602.53099999959,
+            "self_cpu_microseconds": 784.1290000003701
+          },
+          {
+            "operator": "aten::div",
+            "calls": 121,
+            "self_device_microseconds": 39745.62300000004,
+            "self_cpu_microseconds": 2675.101999999257
+          },
+          {
+            "operator": "aten::index",
+            "calls": 180,
+            "self_device_microseconds": 38686.138999999144,
+            "self_cpu_microseconds": 5278.2439999997805
+          },
+          {
+            "operator": "aten::cat",
+            "calls": 92,
+            "self_device_microseconds": 38354.9150000002,
+            "self_cpu_microseconds": 2480.527999999223
+          }
+        ]
+      }
+    }
+  ],
+  "shared_final_tensor_structures": {
+    "coordinates.shape_hr": {
+      "value": {
+        "shape": [
+          10637,
+          4
+        ],
+        "dtype": "torch.int32"
+      }
+    },
+    "decode_latent": {
+      "value.0.vertices": {
+        "shape": [
+          3300965,
+          3
+        ],
+        "dtype": "torch.float32"
+      },
+      "value.0.faces": {
+        "shape": [
+          7495674,
+          3
+        ],
+        "dtype": "torch.int32"
+      },
+      "value.0.coords": {
+        "shape": [
+          3294505,
+          3
+        ],
+        "dtype": "torch.int32"
+      },
+      "value.0.attrs": {
+        "shape": [
+          3294505,
+          6
+        ],
+        "dtype": "torch.float32"
+      }
+    },
+    "final.shape_latent": {
+      "value.features": {
+        "shape": [
+          10637,
+          32
+        ],
+        "dtype": "torch.float32"
+      },
+      "value.coordinates": {
+        "shape": [
+          10637,
+          4
+        ],
+        "dtype": "torch.int32"
+      }
+    },
+    "final.texture_latent": {
+      "value.features": {
+        "shape": [
+          10637,
+          32
+        ],
+        "dtype": "torch.float32"
+      },
+      "value.coordinates": {
+        "shape": [
+          10637,
+          4
+        ],
+        "dtype": "torch.int32"
+      }
+    }
+  },
+  "full_neural_tensor_parity_accepted_for_this_case": true,
+  "original_cli_parity_claim": false,
+  "production_default_parity_claim": false,
+  "global_determinism_claim": false,
+  "loader_profiles": {
+    "reference": {
+      "component_wall_seconds": {
+        ".construct": 109.005565746,
+        ".checkpoint_mapping": 8.536876564000018,
+        ".apply_checkpoint": 5.6001762379999995,
+        ".dino_load": 1.1889914649999582,
+        ".naf_load": 1.0330991820000008
+      },
+      "initializer_fill_wall_seconds": 102.68549665399918,
+      "dino_loader_calls": 4,
+      "initializers": {
+        "initialization.kaiming_uniform_": {
+          "calls": 1216,
+          "inclusive_wall_seconds": 49.08713928900002,
+          "process_cpu_seconds": 48.54000000000003
+        },
+        "initialization.uniform_": {
+          "calls": 1216,
+          "inclusive_wall_seconds": 0.08943030200010682,
+          "process_cpu_seconds": 0.22000000000018183
+        },
+        "initialization.ones_": {
+          "calls": 429,
+          "inclusive_wall_seconds": 0.015086660999795498,
+          "process_cpu_seconds": 0.0600000000001506
+        },
+        "initialization.zeros_": {
+          "calls": 433,
+          "inclusive_wall_seconds": 0.00762244399934886,
+          "process_cpu_seconds": 0.04000000000016524
+        },
+        "initialization.normal_": {
+          "calls": 1352,
+          "inclusive_wall_seconds": 52.45865506100009,
+          "process_cpu_seconds": 52.27000000000018
+        },
+        "initialization.constant_": {
+          "calls": 1492,
+          "inclusive_wall_seconds": 0.11071068099976955,
+          "process_cpu_seconds": 0.11000000000043642
+        },
+        "initialization.xavier_uniform_": {
+          "calls": 136,
+          "inclusive_wall_seconds": 0.9168522160000521,
+          "process_cpu_seconds": 0.9300000000002413
+        }
+      },
+      "model_totals_and_constructors": {
+        "model.ss_dec_conv3d_16l8_fp16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.6175338530000012,
+          "process_cpu_seconds": 0.6799999999999988
+        },
+        "model.ss_dec_conv3d_16l8_fp16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.7332294010000027,
+          "process_cpu_seconds": 0.8199999999999994
+        },
+        "model.ss_flow_img_dit_1_3B_64_bf16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 24.281869562,
+          "process_cpu_seconds": 24.29
+        },
+        "model.ss_flow_img_dit_1_3B_64_bf16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 27.812944696000002,
+          "process_cpu_seconds": 29.110000000000007
+        },
+        "model.shape_dec_next_dc_f16c32_fp16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 4.8277653319999985,
+          "process_cpu_seconds": 5.6499999999999995
+        },
+        "model.shape_dec_next_dc_f16c32_fp16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 5.423046101000004,
+          "process_cpu_seconds": 6.459999999999995
+        },
+        "model.slat_flow_img2shape_dit_1_3B_512_bf16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 25.583194991,
+          "process_cpu_seconds": 25.669999999999998
+        },
+        "model.slat_flow_img2shape_dit_1_3B_512_bf16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 29.035680006999996,
+          "process_cpu_seconds": 30.41
+        },
+        "model.slat_flow_img2shape_dit_1_3B_1024_bf16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 24.116940474999993,
+          "process_cpu_seconds": 24.340000000000007
+        },
+        "model.slat_flow_img2shape_dit_1_3B_1024_bf16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 27.555419797,
+          "process_cpu_seconds": 28.959999999999997
+        },
+        "model.tex_dec_next_dc_f16c32_fp16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 4.622822049999996,
+          "process_cpu_seconds": 5.490000000000001
+        },
+        "model.tex_dec_next_dc_f16c32_fp16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 5.212726445000001,
+          "process_cpu_seconds": 6.2900000000000125
+        },
+        "model.slat_flow_imgshape2tex_dit_1_3B_1024_bf16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 24.955439483000006,
+          "process_cpu_seconds": 25.0
+        },
+        "model.slat_flow_imgshape2tex_dit_1_3B_1024_bf16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 28.179886650000014,
+          "process_cpu_seconds": 29.329999999999984
+        }
+      }
+    },
+    "optimized": {
+      "component_wall_seconds": {
+        ".construct": 101.21850247499992,
+        ".checkpoint_mapping": 12.681605178999916,
+        ".apply_checkpoint": 6.21863792399995,
+        ".dino_load": 1.0664355989999876,
+        ".naf_load": 0.06678240399992319
+      },
+      "initializer_fill_wall_seconds": 95.93325194399426,
+      "dino_loader_calls": 1,
+      "initializers": {
+        "initialization.kaiming_uniform_": {
+          "calls": 1216,
+          "inclusive_wall_seconds": 44.271629395994296,
+          "process_cpu_seconds": 44.44000000000326
+        },
+        "initialization.uniform_": {
+          "calls": 1216,
+          "inclusive_wall_seconds": 0.07552461699765445,
+          "process_cpu_seconds": 0.04000000000372239
+        },
+        "initialization.ones_": {
+          "calls": 282,
+          "inclusive_wall_seconds": 0.009559002000514738,
+          "process_cpu_seconds": 0.019999999997594387
+        },
+        "initialization.zeros_": {
+          "calls": 286,
+          "inclusive_wall_seconds": 0.004536596002481019,
+          "process_cpu_seconds": 0.01999999999763702
+        },
+        "initialization.normal_": {
+          "calls": 1352,
+          "inclusive_wall_seconds": 50.5607462699968,
+          "process_cpu_seconds": 50.77000000002986
+        },
+        "initialization.constant_": {
+          "calls": 1492,
+          "inclusive_wall_seconds": 0.09258577500418141,
+          "process_cpu_seconds": 0.12000000003418876
+        },
+        "initialization.xavier_uniform_": {
+          "calls": 136,
+          "inclusive_wall_seconds": 0.9186702879983386,
+          "process_cpu_seconds": 0.9300000000041067
+        }
+      },
+      "model_totals_and_constructors": {
+        "model.ss_dec_conv3d_16l8_fp16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.5352066299999478,
+          "process_cpu_seconds": 0.5799999999998917
+        },
+        "model.ss_dec_conv3d_16l8_fp16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.6645782560001408,
+          "process_cpu_seconds": 0.7399999999999807
+        },
+        "model.ss_flow_img_dit_1_3B_64_bf16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 22.650234398999828,
+          "process_cpu_seconds": 22.83999999999986
+        },
+        "model.ss_flow_img_dit_1_3B_64_bf16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 27.261652598999945,
+          "process_cpu_seconds": 29.169999999999803
+        },
+        "model.shape_dec_next_dc_f16c32_fp16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 4.471501892000106,
+          "process_cpu_seconds": 5.260000000000112
+        },
+        "model.shape_dec_next_dc_f16c32_fp16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 5.212605030000077,
+          "process_cpu_seconds": 6.210000000000157
+        },
+        "model.slat_flow_img2shape_dit_1_3B_512_bf16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 23.209717645999945,
+          "process_cpu_seconds": 23.290000000000006
+        },
+        "model.slat_flow_img2shape_dit_1_3B_512_bf16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 27.77378720599995,
+          "process_cpu_seconds": 29.05999999999976
+        },
+        "model.slat_flow_img2shape_dit_1_3B_1024_bf16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 22.888594880000028,
+          "process_cpu_seconds": 23.250000000000185
+        },
+        "model.slat_flow_img2shape_dit_1_3B_1024_bf16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 27.24642087999996,
+          "process_cpu_seconds": 29.010000000000183
+        },
+        "model.tex_dec_next_dc_f16c32_fp16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 4.4498165709999284,
+          "process_cpu_seconds": 5.299999999999962
+        },
+        "model.tex_dec_next_dc_f16c32_fp16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 5.251653459999943,
+          "process_cpu_seconds": 6.3099999999999525
+        },
+        "model.slat_flow_imgshape2tex_dit_1_3B_1024_bf16.construct": {
+          "calls": 1,
+          "inclusive_wall_seconds": 23.01343045700014,
+          "process_cpu_seconds": 23.19999999999996
+        },
+        "model.slat_flow_imgshape2tex_dit_1_3B_1024_bf16.total": {
+          "calls": 1,
+          "inclusive_wall_seconds": 27.423815432999845,
+          "process_cpu_seconds": 28.79999999999987
+        }
+      }
+    }
+  },
+  "load_optimized_reuse_counters": {
+    "options": {
+      "share_dino": true,
+      "dino_cache_mb": 128,
+      "sparse_projection": true,
+      "conditioning_cache_mb": 256
+    },
+    "dino_feature_cache": {
+      "budget_bytes": 134217728,
+      "hits": 0,
+      "misses": 0,
+      "evictions": 0,
+      "oversized": 0,
+      "used_bytes": 0,
+      "peak_bytes": 0
+    },
+    "backbone_loads": 1,
+    "shared_backbone_hits": 3,
+    "active_projections": [],
+    "flow_caches": []
+  },
+  "loader_interpretation": [
+    "Constructor/init and loader measurements are nested; do not sum overlapping times",
+    "Mapping/read and state application are not pure physical-disk I/O benchmarks",
+    "Reference loaded first; optimized after neural/export work. Not interleaved cold-loader speedup measurements",
+    "HR/texture NAF had a shared image/grid timing label; only total NAF loading is published"
+  ],
+  "frozen_mesh_digests": {
+    "vertices": "9f5d3bef3624a926a4e5a2fcf8c648850573da5f96bbb501410fc41ea034a602",
+    "faces": "896db639f5c9bb625c75d64385ccc06f19fdcf129af12b47791bbdf4b40d8825",
+    "attrs": "65ee1df8185fc0e6c2dee0cf57f7a45e096425cbe63435a156734d2061550683",
+    "coords": "a3fbf906257456b50c405c980a773122674954634e6d00c45877421e4a5cb664"
+  },
+  "frozen_exports": [
+    {
+      "index": 0,
+      "input_digests": {
+        "vertices": "9f5d3bef3624a926a4e5a2fcf8c648850573da5f96bbb501410fc41ea034a602",
+        "faces": "896db639f5c9bb625c75d64385ccc06f19fdcf129af12b47791bbdf4b40d8825",
+        "attrs": "65ee1df8185fc0e6c2dee0cf57f7a45e096425cbe63435a156734d2061550683",
+        "coords": "a3fbf906257456b50c405c980a773122674954634e6d00c45877421e4a5cb664"
+      },
+      "coarse_phases": [
+        {
+          "phase": "Extracting GLB",
+          "seconds": 0.054094540000050984
+        },
+        {
+          "phase": "Building BVH",
+          "seconds": 4.533711796000034
+        },
+        {
+          "phase": "Cleaning mesh",
+          "seconds": 3.063133322999988
+        },
+        {
+          "phase": "Parameterizing new mesh",
+          "seconds": 233.75614340699997
+        },
+        {
+          "phase": "Sampling attributes",
+          "seconds": 4.676314048999984
+        },
+        {
+          "phase": "Finalizing mesh",
+          "seconds": 38.83449758400002
+        }
+      ],
+      "nested_component_timings": {
+        "cumesh.fill_holes": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.040759375999982694,
+          "process_cpu_seconds": 0.039999999999970726
+        },
+        "cumesh.simplify": {
+          "calls": 1,
+          "inclusive_wall_seconds": 2.525671970000076,
+          "process_cpu_seconds": 2.4500000000000526
+        },
+        "cumesh.compute_charts": {
+          "calls": 1,
+          "inclusive_wall_seconds": 1.200458135999952,
+          "process_cpu_seconds": 1.1500000000000057
+        },
+        "xatlas.add_mesh": {
+          "calls": 2936,
+          "inclusive_wall_seconds": 0.3246813479980801,
+          "process_cpu_seconds": 1.0999999999143029
+        },
+        "xatlas.compute_charts": {
+          "calls": 1,
+          "inclusive_wall_seconds": 229.252867014,
+          "process_cpu_seconds": 449.4800000000001
+        },
+        "xatlas.pack_charts": {
+          "calls": 1,
+          "inclusive_wall_seconds": 1.0418098190000364,
+          "process_cpu_seconds": 1.0699999999999363
+        },
+        "xatlas.get_mesh": {
+          "calls": 2936,
+          "inclusive_wall_seconds": 0.1245725659995287,
+          "process_cpu_seconds": 0.29999999992849524
+        },
+        "cumesh.uv_unwrap": {
+          "calls": 1,
+          "inclusive_wall_seconds": 233.74201852300007,
+          "process_cpu_seconds": 454.1
+        },
+        "cumesh.compute_vertex_normals": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.0012780140000359097,
+          "process_cpu_seconds": 7.105427357601002e-14
+        },
+        "nvdiffrast.rasterize": {
+          "calls": 10,
+          "inclusive_wall_seconds": 0.0507642999999689,
+          "process_cpu_seconds": 0.05000000000066507
+        },
+        "nvdiffrast.interpolate": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.0024456160000454474,
+          "process_cpu_seconds": 7.105427357601002e-14
+        },
+        "volume.grid_sample_3d": {
+          "calls": 1,
+          "inclusive_wall_seconds": 4.47648639099998,
+          "process_cpu_seconds": 3.589999999999989
+        },
+        "cv2.inpaint": {
+          "calls": 4,
+          "inclusive_wall_seconds": 38.03785095599994,
+          "process_cpu_seconds": 37.699999999999626
+        },
+        "glb.serialize_webp": {
+          "calls": 1,
+          "inclusive_wall_seconds": 6.7456078259999686,
+          "process_cpu_seconds": 5.610000000000035
+        }
+      },
+      "validation": {
+        "embedded_pbr": true,
+        "bytes": 37041768,
+        "sha256": "11bcecca50132c37cec88a6bf8497926cd70c74a9196cba0f94eaae6c21d977d"
+      },
+      "triangles": 972805,
+      "render_witness": {
+        "blender_version": "5.1.2",
+        "engine": "CYCLES",
+        "device": "CPU",
+        "input_sha256": "11bcecca50132c37cec88a6bf8497926cd70c74a9196cba0f94eaae6c21d977d",
+        "asset_triangles": 972799,
+        "materials": [
+          {
+            "name": "Material_0",
+            "principled_bsdf": true,
+            "textures": [
+              {
+                "name": "Image_0",
+                "size": [
+                  4096,
+                  4096
+                ],
+                "color_space": "sRGB",
+                "interpolation": "Linear"
+              },
+              {
+                "name": "Image_1",
+                "size": [
+                  4096,
+                  4096
+                ],
+                "color_space": "Non-Color",
+                "interpolation": "Linear"
+              }
+            ],
+            "base_color_linked": true,
+            "roughness_linked": true,
+            "metallic_linked": true
+          }
+        ],
+        "modifiers_added": false,
+        "import_shading": "NORMALS",
+        "render_png_sha256": "74db7c81f74eecc41f426ceafd9ad3c585ce85662cb4cd0f7e0e468cf2cdd599"
+      }
+    },
+    {
+      "index": 1,
+      "input_digests": {
+        "vertices": "9f5d3bef3624a926a4e5a2fcf8c648850573da5f96bbb501410fc41ea034a602",
+        "faces": "896db639f5c9bb625c75d64385ccc06f19fdcf129af12b47791bbdf4b40d8825",
+        "attrs": "65ee1df8185fc0e6c2dee0cf57f7a45e096425cbe63435a156734d2061550683",
+        "coords": "a3fbf906257456b50c405c980a773122674954634e6d00c45877421e4a5cb664"
+      },
+      "coarse_phases": [
+        {
+          "phase": "Extracting GLB",
+          "seconds": 0.05422303800003192
+        },
+        {
+          "phase": "Building BVH",
+          "seconds": 4.551210717999993
+        },
+        {
+          "phase": "Cleaning mesh",
+          "seconds": 2.9438051989999394
+        },
+        {
+          "phase": "Parameterizing new mesh",
+          "seconds": 203.04572332200007
+        },
+        {
+          "phase": "Sampling attributes",
+          "seconds": 2.1633293630000026
+        },
+        {
+          "phase": "Finalizing mesh",
+          "seconds": 39.31783048400007
+        }
+      ],
+      "nested_component_timings": {
+        "cumesh.fill_holes": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.04254940300006638,
+          "process_cpu_seconds": 0.04999999999993321
+        },
+        "cumesh.simplify": {
+          "calls": 1,
+          "inclusive_wall_seconds": 2.4989440729999615,
+          "process_cpu_seconds": 2.4599999999999724
+        },
+        "cumesh.compute_charts": {
+          "calls": 1,
+          "inclusive_wall_seconds": 1.12862196399999,
+          "process_cpu_seconds": 1.0900000000000745
+        },
+        "xatlas.add_mesh": {
+          "calls": 2943,
+          "inclusive_wall_seconds": 0.32456022399901485,
+          "process_cpu_seconds": 1.0499999998456744
+        },
+        "xatlas.compute_charts": {
+          "calls": 1,
+          "inclusive_wall_seconds": 198.63760092799998,
+          "process_cpu_seconds": 389.2799999999999
+        },
+        "xatlas.pack_charts": {
+          "calls": 1,
+          "inclusive_wall_seconds": 1.0461903359998814,
+          "process_cpu_seconds": 1.069999999999851
+        },
+        "xatlas.get_mesh": {
+          "calls": 2943,
+          "inclusive_wall_seconds": 0.11969672400482523,
+          "process_cpu_seconds": 0.2800000001579832
+        },
+        "cumesh.uv_unwrap": {
+          "calls": 1,
+          "inclusive_wall_seconds": 203.03208360500003,
+          "process_cpu_seconds": 393.77000000000015
+        },
+        "cumesh.compute_vertex_normals": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.001011134000009406,
+          "process_cpu_seconds": 0.0
+        },
+        "nvdiffrast.rasterize": {
+          "calls": 10,
+          "inclusive_wall_seconds": 0.05013468900006046,
+          "process_cpu_seconds": 0.03999999999996362
+        },
+        "nvdiffrast.interpolate": {
+          "calls": 1,
+          "inclusive_wall_seconds": 0.002124403999914648,
+          "process_cpu_seconds": 0.0
+        },
+        "volume.grid_sample_3d": {
+          "calls": 1,
+          "inclusive_wall_seconds": 1.9756042410001555,
+          "process_cpu_seconds": 1.9300000000000637
+        },
+        "cv2.inpaint": {
+          "calls": 4,
+          "inclusive_wall_seconds": 38.45024237199982,
+          "process_cpu_seconds": 38.169999999999575
+        },
+        "glb.serialize_webp": {
+          "calls": 1,
+          "inclusive_wall_seconds": 7.018484236000177,
+          "process_cpu_seconds": 5.530000000000079
+        }
+      },
+      "validation": {
+        "embedded_pbr": true,
+        "bytes": 37027676,
+        "sha256": "79ea017e7eae281e5e965c1206a65cc64031ce10bcacb061b98ba0e5ab30e8c7"
+      },
+      "triangles": 972587,
+      "render_witness": {
+        "blender_version": "5.1.2",
+        "engine": "CYCLES",
+        "device": "CPU",
+        "input_sha256": "79ea017e7eae281e5e965c1206a65cc64031ce10bcacb061b98ba0e5ab30e8c7",
+        "asset_triangles": 972583,
+        "materials": [
+          {
+            "name": "Material_0",
+            "principled_bsdf": true,
+            "textures": [
+              {
+                "name": "Image_0",
+                "size": [
+                  4096,
+                  4096
+                ],
+                "color_space": "sRGB",
+                "interpolation": "Linear"
+              },
+              {
+                "name": "Image_1",
+                "size": [
+                  4096,
+                  4096
+                ],
+                "color_space": "Non-Color",
+                "interpolation": "Linear"
+              }
+            ],
+            "base_color_linked": true,
+            "roughness_linked": true,
+            "metallic_linked": true
+          }
+        ],
+        "modifiers_added": false,
+        "import_shading": "NORMALS",
+        "render_png_sha256": "19bbf1c9d8f32977ede64c2c869e1ebb5e010af505a4f76746072e7ff79a1b95"
+      }
+    }
+  ],
+  "export_byte_parity_accepted": false,
+  "export_interpretation": [
+    "Both replayed the same raw mesh/material tensors verified by four input hashes",
+    "Intermediate remesh/simplify/UV meshes were not frozen; exported triangle counts differ",
+    "Nested synchronized timings include diagnostic overhead and are not additive",
+    "xatlas compute_charts CPU/wall ratio is about 1.96 under a two-core cap",
+    "Blender imported a few fewer triangles than the GLB index counts; no production topology/quality claim"
+  ],
+  "measured_stages_with_diagnostic_overhead": [
+    {
+      "name": "load_reference_pipeline",
+      "peak_sampled_rss_bytes": 23899176960,
+      "device_peak_sampled_used_bytes": 206045184,
+      "memory_sampling_interval_seconds": 0.1,
+      "elapsed_seconds": 126.34787840599999,
+      "peak_allocated_bytes": 0,
+      "peak_reserved_bytes": 0,
+      "rss_bytes_after": 23338164224
+    },
+    {
+      "name": "reference_first",
+      "peak_sampled_rss_bytes": 28784730112,
+      "device_peak_sampled_used_bytes": 16301686784,
+      "memory_sampling_interval_seconds": 0.1,
+      "elapsed_seconds": 159.47952690999998,
+      "peak_allocated_bytes": 15293181440,
+      "peak_reserved_bytes": 15869149184,
+      "rss_bytes_after": 28694765568
+    },
+    {
+      "name": "reference_repeat",
+      "peak_sampled_rss_bytes": 34361311232,
+      "device_peak_sampled_used_bytes": 16356212736,
+      "memory_sampling_interval_seconds": 0.1,
+      "elapsed_seconds": 140.85654364200002,
+      "peak_allocated_bytes": 15293183488,
+      "peak_reserved_bytes": 15911092224,
+      "rss_bytes_after": 33469612032
+    },
+    {
+      "name": "optimized",
+      "peak_sampled_rss_bytes": 34434179072,
+      "device_peak_sampled_used_bytes": 16266035200,
+      "memory_sampling_interval_seconds": 0.1,
+      "elapsed_seconds": 136.72887542299998,
+      "peak_allocated_bytes": 14300220928,
+      "peak_reserved_bytes": 15820914688,
+      "rss_bytes_after": 33621549056
+    },
+    {
+      "name": "frozen_export_0",
+      "peak_sampled_rss_bytes": 33937661952,
+      "device_peak_sampled_used_bytes": 6050807808,
+      "memory_sampling_interval_seconds": 0.1,
+      "elapsed_seconds": 292.876720192,
+      "peak_allocated_bytes": 4364651008,
+      "peak_reserved_bytes": 4701814784,
+      "rss_bytes_after": 32521232384
+    },
+    {
+      "name": "frozen_export_1",
+      "peak_sampled_rss_bytes": 33363050496,
+      "device_peak_sampled_used_bytes": 6078070784,
+      "memory_sampling_interval_seconds": 0.1,
+      "elapsed_seconds": 260.33267412700013,
+      "peak_allocated_bytes": 4364651008,
+      "peak_reserved_bytes": 4680843264,
+      "rss_bytes_after": 32684851200
+    },
+    {
+      "name": "load_optimized_pipeline",
+      "peak_sampled_rss_bytes": 40548630528,
+      "device_peak_sampled_used_bytes": 514326528,
+      "memory_sampling_interval_seconds": 0.1,
+      "elapsed_seconds": 122.33488636099992,
+      "peak_allocated_bytes": 33600000,
+      "peak_reserved_bytes": 67108864,
+      "rss_bytes_after": 33812504576
+    }
+  ],
+  "stage_sum_seconds_with_diagnostic_overhead": 1238.957105061,
+  "production_latency_or_speedup_claim": false,
+  "post_run_metadata_fix": {
+    "file": "full_profiling.py",
+    "scope": "Disambiguate HR/texture NAF labels using extractor identity; neural/export computation unchanged",
+    "tested_file_sha256": "42d6b5b9dff098c55287498a0ca315cd56ceabfb648ad64a847a14efff41267c",
+    "committed_file_sha256": "e650ac5ab7934daa04a75f8d7c0423b9ea22d6d4f3d63640be5d578adf26245d",
+    "gpu_reexecuted_for_label_fix": false,
+    "cpu_regression_test_passed": true
+  },
+  "limitations": [
+    "One prepared SV shoe, one sample per case in the same process",
+    "Tensor snapshots/digests/disk comparisons and profiled steps perturb timings",
+    "TF32/cuDNN settings differ from previous pilots and production defaults",
+    "Exact captured checkpoints are not a global/custom-kernel determinism proof",
+    "No MV/1536/T4, standalone CLI or cold-container reproducibility acceptance",
+    "Final GLBs are not byte-identical despite the same raw exporter inputs"
+  ],
+  "cleanup": {
+    "diagnostic_app_stopped": true,
+    "active_containers_observed": 0,
+    "production_deployment_changed": false,
+    "production_defaults_changed": false,
+    "new_api_generation_jobs": 0,
+    "mlx_checkout_modified": false
+  },
+  "cpu_tests": {
+    "passed": 210,
+    "warnings": 1
+  },
+  "private_artifacts_not_committed": [
+    "Input and source-job IDs",
+    "Reference tensor and raw mesh fixtures",
+    "Per-event/Kineto traces",
+    "Native kernel-cache manifests",
+    "GLBs and renders"
+  ],
+  "data_policy": "No credentials, private filesystem paths or financial account information are published."
+}

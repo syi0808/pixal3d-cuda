@@ -8,7 +8,10 @@ v0.2는 기존 신경망 포팅을 더 고치는 대신, 고정된 공식 Pixal3
 
 CPU 계약 테스트, Modal SM89 native 이미지 빌드와 main HTTP/인증 검증을 완료했다.
 이후 실제 L4의 reference/optimized 각 1회에서 1024/4K PBR GLB 생성과 렌더를 완료했다.
-**Strict tensor parity는 실패했고, 원본 CLI 동등성과 일반화된 가속은 미검증이다.**
+이전 pilot의 strict tensor parity는 실패했지만, 이후 고정한 커널/TF32/cuDNN 조건에서
+HR/texture와 raw mesh/재질 voxel까지 149개 checkpoint exact를 확인했다.
+**원본 CLI·production 기본값의 동등성과 일반화된 가속은 미검증이다.**
+[전체 profiling](full-profiling.md)을 참조한다.
 RMBG-2.0은 이제 기본 다운로드/초기화에서 제외했으며, 이전의 403은 기본 경로의
 필수 접근 조건이 아니다. [측정 기록](performance.md)을 참조한다.
 과거 7 GiB T4 측정은 legacy

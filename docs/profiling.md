@@ -1,5 +1,9 @@
 # Native 수치 차이 분리 — L4 prefix 진단
 
+이 문서는 초기 prefix 결과다. 이후 [전체 fixed-kernel profiling](full-profiling.md)에서
+HR/texture와 raw mesh/재질 voxel의 149개 체크포인트까지 exact를 확인하고,
+모델 초기화·xatlas·inpaint 비용을 분리했다. Prefix에서 미검증이던 항목을 구분해 읽는다.
+
 2026-11-14 KST에 실제 Modal L4 한 장에서 pretrained pipeline을 한 번 로드하고,
 같은 준비된 신발/카메라/seed 42로 7개 prefix를 순차 실행했다. **생산 inference나
 GLB benchmark가 아니라 최초 divergence를 찾는 진단**이다. 별도 dev environment는

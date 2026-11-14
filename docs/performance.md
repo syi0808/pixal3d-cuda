@@ -86,6 +86,12 @@ sampler/worker 종료 시 보관한 cache tensor는 0이다. Reference의 load c
 
 ## 후속 원인 분리
 
+후속 전체 경로는 고정한 커널/TF32/cuDNN 조건 아래 reference 반복과 optimized가
+HR/texture 및 최종 raw mesh/재질 voxel까지 **149개 checkpoint exact**였다.
+모델 로드의 `nn.init` 96–103초, UV의 xatlas chart 생성 199–229초가 주요 비용이었다.
+Production 가속률이나 byte-identical GLB 검증은 아니다.
+[전체 profiling과 다음 우선순위](full-profiling.md)를 참조한다.
+
 같은 날짜의 L4 prefix 진단에서 SPLITK를 고정하자 reference 반복과 DINO/projection/
 conditioning/전체 hook이 SS/LR의 73개 체크포인트에서 exact였다. Hook 없이 관측된
 key 하나의 SPLITK만 바꾸면 decoder convolution 출력부터 차이가 나고 HR 좌표 수까지

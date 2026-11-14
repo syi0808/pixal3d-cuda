@@ -10,6 +10,10 @@ requirement. See [optional background removal](background-removal.md) and
 Old T4 evidence
 applies only to [the previous revision](https://github.com/syi0808/pixal3d-cuda/tree/a6ce8a3c4a68e377569b7965035a8f00d74ff9b0).
 
+The subsequent [fixed-kernel full profiler](full-profiling.md) passes 149 neural
+checkpoints exactly on the same shoe, under diagnostic-only backend controls.
+It does not change production defaults or establish final GLB byte parity.
+
 ## Layout
 
 - `deploy/modal.toml`: main only, L4/SM89, one GPU worker maximum, zero warm

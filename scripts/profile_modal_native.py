@@ -1,4 +1,4 @@
-"""Explicit, single-L4 private prefix profiling; never exports or submits API jobs."""
+"""Explicit single-L4 private prefix/full profiling; never submits API jobs."""
 
 import argparse
 import json
@@ -11,6 +11,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-job", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--scope", choices=("prefix", "full"), default="prefix")
     parser.add_argument("--execute", action="store_true")
     arguments = parser.parse_args(argv)
     if len(arguments.source_job) != 64 or any(character not in "0123456789abcdef" for character in arguments.source_job):
@@ -22,6 +23,12 @@ def main(argv=None):
             "splitk": "1, except reference_splitk2 uses 2 only for (2^13, 512, 512, 27)",
             "model_policy": "One reference pipeline loaded once; shared backbone aliases restored between probes",
             "private_tensors": True}
+    plan["scope_name"] = arguments.scope
+    if arguments.scope == "full":
+        plan.update(gpu_timeout_seconds=1800, profiles=["reference_first", "reference_repeat", "optimized"],
+                    scope="Full native neural parity, frozen-mesh 1024/4K export twice, reference/optimized model-load components",
+                    splitk="1; inner autotuning calibrated once then new keys rejected", frozen_export_repeats=2,
+                    model_policy="Reference pipeline reused for parity; a second optimized initialization is measured separately")
     print(json.dumps(plan, indent=2), flush=True)
     if not arguments.execute:
         return plan
@@ -38,16 +45,19 @@ def main(argv=None):
         raise RuntimeError("Production GPU work is present; profiling will not request another GPU")
     app = modal.App("pixal3d-native-profile")
 
-    @app.function(image=offline, gpu="L4", cpu=(2, 2), memory=(16384, 65536), timeout=1200, retries=0,
+    @app.function(image=offline, gpu="L4", cpu=(2, 2), memory=(16384, 65536), timeout=plan["gpu_timeout_seconds"], retries=0,
                   min_containers=0, max_containers=1, buffer_containers=0, scaledown_window=2,
                   include_source=False, serialized=True,
                   volumes={"/weights": weights.with_mount_options(read_only=True), "/jobs": jobs})
-    def profile(source_job, attempt):
+    def profile(source_job, attempt, scope):
         import hashlib
         import json
         import os
         from pathlib import Path
         import sys
+
+        if scope == "full":
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
         import numpy as np
         from PIL import Image
@@ -91,12 +101,19 @@ def main(argv=None):
             with Image.open(image_path) as image:
                 rgba = np.asarray(image.convert("RGBA"), dtype=np.float32)
                 prepared = Image.fromarray((rgba[..., :3] * (rgba[..., 3:] / 255)).astype(np.uint8))
-            with report.stage("load_pipeline"):
-                local = local_pipeline_config(bundle, directory / "pipeline-config", rembg=False)
-                with deferred_background_removal():
-                    pipeline = entry.init_pipeline(model_path=str(local), low_vram=True)
-            report.data["profiles"] = run_prefix_profiles(pipeline, prepared, previous["camera"], directory, report)
-            report.data.update(status="complete", scope="Private SS/LR prefix ablations only; not GLB parity or production performance")
+            if scope == "full":
+                from pixalcuda.full_profiling import execute_full_profile
+
+                execute_full_profile(entry, bundle, prepared, previous["camera"], directory, report)
+                report.data["scope"] = "Full native tensor parity and frozen export/load profiling; not an original CLI or production throughput benchmark"
+            else:
+                with report.stage("load_pipeline"):
+                    local = local_pipeline_config(bundle, directory / "pipeline-config", rembg=False)
+                    with deferred_background_removal():
+                        pipeline = entry.init_pipeline(model_path=str(local), low_vram=True)
+                report.data["profiles"] = run_prefix_profiles(pipeline, prepared, previous["camera"], directory, report)
+                report.data["scope"] = "Private SS/LR prefix ablations only; not GLB parity or production performance"
+            report.data["status"] = "complete"
         except BaseException as error:
             report.data.update(status="failed", error=f"{type(error).__name__}: {error}")
             raise
@@ -107,9 +124,9 @@ def main(argv=None):
 
     arguments.output_dir.mkdir(parents=True)
     atomic_json(arguments.output_dir / "plan.json", plan)
-    attempt = "prefix-" + uuid.uuid4().hex
+    attempt = arguments.scope + "-" + uuid.uuid4().hex
     with modal.enable_output(), app.run(environment_name="main"):
-        call = profile.spawn(arguments.source_job, attempt)
+        call = profile.spawn(arguments.source_job, attempt, arguments.scope)
         atomic_json(arguments.output_dir / "call.json", {"call_id": call.object_id, "attempt": attempt})
         print(json.dumps({"call_id": call.object_id, "attempt": attempt}), flush=True)
         try:

@@ -58,6 +58,11 @@ native tensor 통과가 최종 remesh/UV/PBR 시각적 동등성을 증명하지
 
 ## 검증과 남은 후보
 
+더 최신인 [fixed-kernel 전체 profiling](full-profiling.md)은 같은 신발에서 HR/texture와
+최종 raw mesh/재질 voxel까지 149개 checkpoint exact를 확인했다. Production 기본값과
+달리 제어한 cuDNN/TF32 조건의 단일 입력 결과다. Export의 삼각형/GLB hash는 여전히
+달랐으며 일반 가속률/품질이나 다른 입력의 동등성을 보장하지 않는다.
+
 후속 [L4 prefix profiling](profiling.md)에서 native SPLITK를 고정한 SS/LR 구간은
 기준 반복/개별 hook/전체 hook 모두 73개 체크포인트에서 exact였다. SPLITK만 바꾼
 negative control은 decoder 출력과 HR 좌표 수가 달랐다. HR/texture 및 전체 GLB

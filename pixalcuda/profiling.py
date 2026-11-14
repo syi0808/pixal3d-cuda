@@ -55,6 +55,9 @@ def tensor_tree(value, prefix="value"):
         return {prefix: value}
     if hasattr(value, "feats") and hasattr(value, "coords"):
         return {prefix + ".features": value.feats, prefix + ".coordinates": value.coords}
+    if hasattr(value, "vertices") and hasattr(value, "faces"):
+        return {prefix + "." + name: getattr(value, name)
+                for name in ("vertices", "faces", "coords", "attrs") if hasattr(value, name)}
     if isinstance(value, dict):
         result = {}
         for key in sorted(value):
@@ -170,12 +173,14 @@ class PrefixComplete(Exception):
 
 
 class PrefixProbe:
-    def __init__(self, pipeline, trace, kernel_profile=False):
+    def __init__(self, pipeline, trace, kernel_profile=False, full=False):
         self.pipeline, self.trace = pipeline, trace
         self.kernel_profile = kernel_profile
         self.patches = Patches()
         self.measurements = []
         self.kernel_summary = None
+        self.kernel_summaries = {}
+        self.full = full
         self.active_flow = None
         self.step = 0
 
@@ -198,8 +203,13 @@ class PrefixProbe:
             bound = signature.bind(*arguments, **options)
             if sparse and bound.arguments["image_cond_model"] is self.pipeline.image_cond_model_shape_1024:
                 self.trace.emit("coordinates.shape_hr", bound.arguments["coords"])
-                raise PrefixComplete()
+                if not self.full:
+                    raise PrefixComplete()
             name = "conditioning.shape_lr" if sparse else "conditioning.ss"
+            if sparse and bound.arguments["image_cond_model"] is self.pipeline.image_cond_model_shape_1024:
+                name = "conditioning.shape_hr"
+            if sparse and bound.arguments["image_cond_model"] is self.pipeline.image_cond_model_tex_1024:
+                name = "conditioning.texture"
             self.rng(name + ".rng_before")
             result = self.measured(name, lambda: original(*arguments, **options))
             self.trace.emit(name, result)
@@ -212,9 +222,15 @@ class PrefixProbe:
 
         def forward(*arguments, **options):
             bound = signature.bind(*arguments, **options)
-            name = "ss" if bound.arguments["model"] is self.pipeline.models["sparse_structure_flow_model"] else "shape_lr"
+            names = {"sparse_structure_flow_model": "ss", "shape_slat_flow_model_512": "shape_lr",
+                     "shape_slat_flow_model_1024": "shape_hr", "tex_slat_flow_model_1024": "texture"}
+            name = next(label for key, label in names.items() if self.pipeline.models.get(key) is bound.arguments["model"])
             self.active_flow, self.step = name, 0
             self.trace.emit(name + ".noise", bound.arguments["noise"])
+            if "concat_cond" in bound.arguments.get("kwargs", {}):
+                self.trace.emit(name + ".concat_condition", bound.arguments["kwargs"]["concat_cond"])
+            elif "concat_cond" in options:
+                self.trace.emit(name + ".concat_condition", options["concat_cond"])
             self.rng(name + ".rng_before_sampling")
             result = self.measured(name + ".sampler", lambda: original(*arguments, **options))
             self.trace.emit(name + ".sample", result.samples)
@@ -224,19 +240,22 @@ class PrefixProbe:
     def sample_once(self, original):
         def forward(*arguments, **options):
             name = f"{self.active_flow}.step.{self.step:02d}"
-            capture = self.kernel_profile and self.active_flow == "shape_lr" and self.step == 1
+            flows = ("shape_hr", "texture") if self.full else ("shape_lr",)
+            capture = self.kernel_profile and self.active_flow in flows and self.step == 1
             profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CPU,
                                                          torch.profiler.ProfilerActivity.CUDA],
                                                record_shapes=True) if capture else nullcontext()
             with profiler as recording:
                 result = self.measured(name, lambda: original(*arguments, **options))
             if capture:
-                recording.export_chrome_trace(str(self.trace.directory / "kernel-trace.json"))
+                filename = self.active_flow + "-kernel-trace.json" if self.full else "kernel-trace.json"
+                recording.export_chrome_trace(str(self.trace.directory / filename))
                 averages = recording.key_averages()
                 self.kernel_summary = [{"operator": item.key, "calls": item.count,
                                         "self_device_microseconds": item.self_device_time_total,
                                         "self_cpu_microseconds": item.self_cpu_time_total}
                                        for item in sorted(averages, key=lambda item: item.self_device_time_total, reverse=True)[:25]]
+                self.kernel_summaries[self.active_flow] = self.kernel_summary
             self.trace.emit(name, result.pred_x_prev)
             self.step += 1
             return result
@@ -267,7 +286,12 @@ class PrefixProbe:
         for name, module in decoder.named_modules():
             if type(module).__name__ == "SparseConv3d" and module.in_channels == module.out_channels == 512:
                 self.patches.set(module, "forward", self.convolution(module.forward, "decoder." + name))
-        for sampler in (pipeline.sparse_structure_sampler, pipeline.shape_slat_sampler):
+        samplers = [pipeline.sparse_structure_sampler, pipeline.shape_slat_sampler]
+        if self.full:
+            samplers.append(pipeline.tex_slat_sampler)
+            for method in ("decode_shape_slat", "decode_tex_slat", "decode_latent"):
+                self.patches.set(pipeline, method, self.output(getattr(pipeline, method), method))
+        for sampler in samplers:
             self.patches.set(sampler, "sample", self.sampler(sampler.sample))
             self.patches.set(sampler, "sample_once", self.sample_once(sampler.sample_once))
         return self

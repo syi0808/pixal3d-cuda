@@ -3,6 +3,26 @@
 > Current v0.2 native L4 acceptance is recorded first. Historical T4 results
 > apply only to the archived v0.1.x runtime, not the official rewrite.
 
+## v0.2 fixed-kernel full profiling
+
+2026-11-14: actual L4, the same prepared shoe/camera/seed, native 1024 geometry,
+texture NAF 1024 and original 12-step schedules. Reference repeat and optimized
+were **exact at all 149 captured checkpoints**, including HR/texture conditioning,
+per-step outputs, final latents, decoded vertices/faces and material voxels.
+All tensors were finite and the calibrated inner kernel cache remained unchanged;
+new autotuning was rejected. Controlled cuDNN/TF32/CUBLAS settings differ from
+the original full pilot and are diagnostic-only, not production defaults.
+
+Two exports replayed the same frozen raw mesh/material inputs. Both actual 4K PBR
+GLBs were independently imported/rendered, but final triangle counts and GLB hashes
+differed: export reproducibility is not equivalent to neural tensor parity.
+Loader/export breakdowns and limitations are in [full profiling](full-profiling.md).
+No standalone original CLI, multi-input, MV, T4/1536, cold-container determinism,
+production speedup or final GLB exact-parity result is claimed.
+
+One bounded L4 invocation completed; production deployment/defaults and MLX were
+unchanged. The diagnostic App stopped with zero active containers observed.
+
 ## v0.2 L4 performance pilot
 
 Follow-up: the [bounded L4 prefix profiler](profiling.md) found exact equality at
