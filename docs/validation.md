@@ -5,6 +5,14 @@
 
 ## v0.2 L4 performance pilot
 
+Follow-up: the [bounded L4 prefix profiler](profiling.md) found exact equality at
+73 SS/LR checkpoints for reference repeat and all hook ablations under fixed
+SPLITK. Changing the one previously differing SPLITK key with hooks disabled
+caused the first feature divergence in a shape-decoder convolution and then a
+different HR coordinate count. This is a sufficient native-algorithm mechanism,
+not a literal replay or proof of the old full pair's sole cause. HR/texture and
+GLB parity remain unaccepted. **204 CPU tests passed** after adding the profiler.
+
 2026-11-14 KST, CUDA revision `02f84c942844558d03daa0205f2295d27f156aa1`:
 one optimized run followed by one reference run completed through Modal main's
 authenticated HTTP API on an actual NVIDIA L4. Both used the same prepared

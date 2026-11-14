@@ -58,6 +58,11 @@ native tensor 통과가 최종 remesh/UV/PBR 시각적 동등성을 증명하지
 
 ## 검증과 남은 후보
 
+후속 [L4 prefix profiling](profiling.md)에서 native SPLITK를 고정한 SS/LR 구간은
+기준 반복/개별 hook/전체 hook 모두 73개 체크포인트에서 exact였다. SPLITK만 바꾼
+negative control은 decoder 출력과 HR 좌표 수가 달랐다. HR/texture 및 전체 GLB
+동등성을 확인한 것은 아니며 production에 고정 SPLITK를 새 기본값으로 넣지 않았다.
+
 CPU 테스트는 pinned upstream 소스의 projection builder, SV/MV extractor,
 ProjectAttention/SparseProjectAttention, ElasticModuleMixin을 AST로 읽어 실행한다.
 DINO backbone/NAF는 작은 대역이며 sparse tensor도 최소 interface 대역이다.

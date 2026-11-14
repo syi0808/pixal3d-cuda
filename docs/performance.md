@@ -84,6 +84,15 @@ sampler/worker 종료 시 보관한 cache tensor는 0이다. Reference의 load c
 진단 뒤 `save_reference=false`로 main을 재배포했다. min=0/max GPU=1을 유지하며
 추가 생성·자동 재시도는 제출하지 않았다.
 
+## 후속 원인 분리
+
+같은 날짜의 L4 prefix 진단에서 SPLITK를 고정하자 reference 반복과 DINO/projection/
+conditioning/전체 hook이 SS/LR의 73개 체크포인트에서 exact였다. Hook 없이 관측된
+key 하나의 SPLITK만 바꾸면 decoder convolution 출력부터 차이가 나고 HR 좌표 수까지
+달라졌다. Native 알고리즘 선택이 구조 차이를 만들 수 있다는 재현이며, 이전 full pair의
+유일 원인 확정이나 HR/texture/GLB 동등성 통과는 아니다.
+[세부 원인 분리·커널 프로파일](profiling.md)을 참조한다.
+
 ## 다음 우선순위
 
 1. **동등성부터:** reference/reference 반복과 고정 kernel 선택의 frozen-input 연산별 비교로
